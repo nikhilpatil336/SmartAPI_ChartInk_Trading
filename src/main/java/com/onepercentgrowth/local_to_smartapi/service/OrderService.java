@@ -1,10 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
-import com.onepercentgrowth.local_to_smartapi.model.OrderRequest;
-import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
-import com.onepercentgrowth.local_to_smartapi.model.RmsData;
-import com.onepercentgrowth.local_to_smartapi.model.WebhookRequest;
+import com.onepercentgrowth.local_to_smartapi.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -86,21 +83,74 @@ public class OrderService {
             return Mono.error(new RuntimeException("User not logged in. No JWT token found."));
         }
 
+//        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+//        orderRequest.setExchange("NSE");
+//        orderRequest.setTradingsymbol(stockName+"-EQ");
+//        orderRequest.setSymboltoken(symboltoken);
+//        orderRequest.setOrdertype("MARKET");
+//        orderRequest.setProducttype("INTRADAY");
+//        orderRequest.setTransactiontype("BUY");
+//        orderRequest.setVariety("NORMAL");
+////        orderRequest.setVariety("ROBO");
+//        orderRequest.setDisclosedquantity(String.valueOf(0));
+//        orderRequest.setQuantity(String.valueOf(quantity));
+//        orderRequest.setScripconsent("yes");
+//        orderRequest.setDuration("DAY");
+
+        OrderRequest_v2 orderRequest = createOrderRequest_v2(stockName, symboltoken, quantity, webhookRequest.getTrigger_prices());
+
+        // 8. Call API client
+        return brokerApiClient.placeOrder(orderRequest, jwtToken);
+    }
+
+    private OrderRequest createOrderRequest(String stockName, String symboltoken, int quantity) {
         OrderRequest orderRequest = new OrderRequest();
         orderRequest.setExchange("NSE");
-        orderRequest.setTradingsymbol(stockName+"-EQ");
+        orderRequest.setTradingsymbol(stockName + "-EQ");
         orderRequest.setSymboltoken(symboltoken);
         orderRequest.setOrdertype("MARKET");
         orderRequest.setProducttype("INTRADAY");
         orderRequest.setTransactiontype("BUY");
         orderRequest.setVariety("NORMAL");
-//        orderRequest.setVariety("ROBO");
-        orderRequest.setDisclosedquantity(String.valueOf(0));
+        orderRequest.setDisclosedquantity("0");
         orderRequest.setQuantity(String.valueOf(quantity));
         orderRequest.setScripconsent("yes");
         orderRequest.setDuration("DAY");
 
-        // 8. Call API client
-        return brokerApiClient.placeOrder(orderRequest, jwtToken);
+        return orderRequest;
+    }
+
+    private OrderRequest_v2 createOrderRequest_v2(String stockName, String symboltoken, int quantity, String price) {
+//        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+//        orderRequest.setExchange("NSE");
+//        orderRequest.setTradingsymbol(stockName + "-EQ");
+//        orderRequest.setSymboltoken(symboltoken);
+//        orderRequest.setOrdertype("MARKET");
+//        orderRequest.setProducttype("INTRADAY");
+//        orderRequest.setTransactiontype("BUY");
+//        orderRequest.setVariety("NORMAL");
+//        orderRequest.setDisclosedquantity("0");
+//        orderRequest.setQuantity(String.valueOf(quantity));
+//        orderRequest.setScripconsent("yes");
+//        orderRequest.setDuration("DAY");
+
+        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+        orderRequest.setExchange("NSE");
+        orderRequest.setTradingsymbol(stockName + "-EQ");
+        orderRequest.setSymboltoken(symboltoken);
+//        orderRequest.setOrdertype("MARKET");
+        orderRequest.setOrdertype("LIMIT");
+        orderRequest.setProducttype("BO");
+        orderRequest.setTransactiontype("BUY");
+        orderRequest.setVariety("ROBO");
+        orderRequest.setDisclosedquantity("0");
+        orderRequest.setQuantity(String.valueOf(quantity));
+        orderRequest.setScripconsent("yes");
+        orderRequest.setDuration("DAY");
+        orderRequest.setSquareoff("20");
+        orderRequest.setStoploss("20");
+        orderRequest.setPrice(price);
+
+        return orderRequest;
     }
 }

@@ -8,6 +8,14 @@ public class LoginRequest {
     private String totp;   // optional, if 2FA is enabled
     private String state;  // optional
 
+    public LoginRequest() {
+    }
+
+    public LoginRequest(String clientcode, String password) {
+        this.clientcode = clientcode;
+        this.password = password;
+    }
+
     // Getters and Setters
     public String getClientcode() { return clientcode; }
     public void setClientcode(String clientcode) { this.clientcode = clientcode; }

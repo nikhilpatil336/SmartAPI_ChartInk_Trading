@@ -71,7 +71,7 @@ public class BrokerApiClient {
                         log.info("LoginWithTotp Response: {}", resp);
                         if (resp != null && resp.getData() != null) {
                             tokenStorageService.storeTokens(resp.getData());
-                            log.info("Tokens stored successfully for client={}", clientCode);
+                            log.info("Tokens stored successfully and written to file for client={}", clientCode);
                         }
                     })
                     .doOnError(err -> log.error("LoginWithTotp failed: {}", err.getMessage(), err));
@@ -82,7 +82,7 @@ public class BrokerApiClient {
         }
     }
 
-    public Mono<OrderResponse> placeOrder(OrderRequest orderRequest, String authToken) {
+    public Mono<OrderResponse> placeOrder(OrderRequest_v2 orderRequest, String authToken) {
 
         log.info("Placing order: {}", orderRequest);
 

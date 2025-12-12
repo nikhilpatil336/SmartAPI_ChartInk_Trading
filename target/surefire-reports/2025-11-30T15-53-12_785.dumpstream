@@ -1,5 +1,0 @@
-# Created at 2025-11-30T15:53:14.479
-Boot Manifest-JAR contains absolute paths in classpath 'D:\portable\springboot\wrkspc\1_percent_growth\local_to_smartapi\target\test-classes'
-Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-'other' has different root
-

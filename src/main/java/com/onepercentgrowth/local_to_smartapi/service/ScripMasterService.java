@@ -23,6 +23,8 @@ public class ScripMasterService {
 
     private volatile Map<String, String> nseEquityMap = new HashMap<>();
 
+    private volatile List<Map<String, Object>> rawScripList = null;
+
     private volatile RmsData rmsData = null;
 
     public ScripMasterService(BrokerApiClient brokerApiClient,
@@ -45,7 +47,11 @@ public class ScripMasterService {
         return brokerApiClient
                 .downloadScripMaster(accessToken)
                 .doOnSubscribe(sub -> log.info("➡ Calling BrokerApiClient.downloadScripMaster()"))
-                .doOnSuccess(list -> log.info("✔ Successfully fetched raw ScripMaster list. Count={}", list.size()))
+                .doOnSuccess(list ->
+                {
+                    this.rawScripList = list;
+                    log.info("✔ Successfully fetched raw ScripMaster list. Count={}", list.size());
+                })
                 .doOnError(err -> log.error("❌ Error while downloading ScripMaster: {}", err.getMessage(), err))
                 .map(list -> {
                     log.info("➡ Filtering only NSE symbols from ScripMaster...");
@@ -56,7 +62,23 @@ public class ScripMasterService {
                 });
     }
 
-    private Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
+    public Mono<List<Map<String, Object>>> downloadRawScripMaster() {
+
+        String accessToken = tokenStorageService.getJwtToken();
+
+        if (accessToken == null) {
+            return Mono.error(new RuntimeException("Login required. No token found."));
+        }
+
+        return brokerApiClient
+                .downloadScripMaster(accessToken)
+                .doOnSuccess(list -> {
+                    this.rawScripList = list;
+                    log.info("✔ Raw ScripMaster stored in memory. Size={}", list.size());
+                });
+    }
+
+    public Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
 
         return rawJsonList.stream()
                 .filter(item -> "NSE".equals(item.get("exch_seg")))
@@ -69,6 +91,25 @@ public class ScripMasterService {
                         item -> item.get("token").toString(),
                         (existing, duplicate) -> existing
                 ));
+    }
+
+    public void rebuildNseCacheFromRaw() {
+        if (rawScripList != null) {
+            this.nseEquityMap = filterOnlyEquityNse(rawScripList);
+        }
+    }
+
+    public Map<String, String> getNseEquityMap() {
+        return nseEquityMap;
+    }
+
+    public void setRawScripList(List<Map<String, Object>> rawList) {
+        this.rawScripList = rawList;
+        rebuildNseCacheFromRaw();
+    }
+
+    public List<Map<String, Object>> getRawScripList() {
+        return rawScripList;
     }
 
     public Mono<RmsResponse> getCurrentBalance() {
@@ -99,5 +140,9 @@ public class ScripMasterService {
 
     public void setRmsData(RmsData rmsData) {
         this.rmsData = rmsData;
+    }
+
+    public void setNseEquityMap(Map<String, String> nseEquityMap) {
+        this.nseEquityMap = nseEquityMap;
     }
 }
