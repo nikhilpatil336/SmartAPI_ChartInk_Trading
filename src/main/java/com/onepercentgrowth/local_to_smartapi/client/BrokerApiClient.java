@@ -2,19 +2,22 @@ package com.onepercentgrowth.local_to_smartapi.client;
 
 import com.onepercentgrowth.local_to_smartapi.config.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
-import com.onepercentgrowth.local_to_smartapi.service.TokenStorageService;
+import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
+import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -82,7 +85,7 @@ public class BrokerApiClient {
         }
     }
 
-    public Mono<OrderResponse> placeOrder(OrderRequest_v2 orderRequest, String authToken) {
+    public Mono<OrderResponse> placeOrder(BracketOrderRequest orderRequest, String authToken) {
 
         log.info("Placing order: {}", orderRequest);
 
@@ -102,6 +105,50 @@ public class BrokerApiClient {
                 .bodyToMono(OrderResponse.class)
                 .doOnSuccess(resp -> log.info("Order Response: {}", resp))
                 .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+    }
+
+    public Mono<OrderResponse> chartinkPlaceOrder(IOrderRequest orderRequest, String authToken) {
+
+        log.info("Placing order: {}", orderRequest);
+
+        return brokerWebClient.post()
+                .uri("/rest/secure/angelbroking/order/v1/placeOrder")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(orderRequest)
+                .retrieve()
+                .bodyToMono(OrderResponse.class)
+                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+    }
+
+    public Mono<OrderResponse> chartinkModifyOrder(IOrderRequest orderRequest, String authToken) {
+
+        log.info("Modifying order: {}", orderRequest);
+
+        return brokerWebClient.post()
+                .uri("/rest/secure/angelbroking/order/v1/modifyOrder")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(orderRequest)
+                .retrieve()
+                .bodyToMono(OrderResponse.class)
+                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .doOnError(err -> log.error("Error Modifying order: {}", err.getMessage(), err));
     }
 
     public Mono<LoginResponse> generateTokens(String refreshToken, String authToken) {
@@ -222,7 +269,7 @@ public class BrokerApiClient {
                 .doOnError(err -> log.error("❌ Error fetching RMS: {}", err.getMessage(), err));
     }
 
-    public Mono<OrderBookResponse> getOrderBook(String token) {
+    public Mono<OrderBookResponse_v2> getOrderBook(String token) {
         return brokerWebClient.get()
                 .uri("/rest/secure/angelbroking/order/v1/getOrderBook")
                 .header("Authorization", "Bearer " + token)
@@ -234,7 +281,7 @@ public class BrokerApiClient {
                 .header("X-MACAddress", angelConfig.getClientMacAddress())
                 .header("X-PrivateKey", angelConfig.getPrivateKey())
                 .retrieve()
-                .bodyToMono(OrderBookResponse.class);
+                .bodyToMono(OrderBookResponse_v2.class);
     }
 
     public Mono<TradeBookResponse> getTradeBook(String token) {
@@ -251,5 +298,123 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(TradeBookResponse.class);
     }
+
+//    public Mono<OrderStatusResponse> getIndividualOrderStatus(String orderId, String authToken) {
+//
+////        OrderStatusRequest request = new OrderStatusRequest(orderId);
+//
+//        log.info("Fetching order status for orderId={}", orderId);
+//
+//        return brokerWebClient.get()
+//                .uri("/rest/secure/angelbroking/order/v1/details/" + orderId)
+//                .header("Authorization", "Bearer " + authToken)
+//                .header("Content-Type", "application/json")
+//                .header("Accept", "application/json")
+//                .header("X-UserType", angelConfig.getUserType())
+//                .header("X-SourceID", angelConfig.getSourceId())
+//                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+//                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+//                .header("X-MACAddress", angelConfig.getClientMacAddress())
+//                .header("X-PrivateKey", angelConfig.getPrivateKey())
+////                .retrieve()
+////                .bodyToMono(OrderStatusResponse.class)
+////                .doOnSuccess(resp -> log.info("Order status response: {}", resp))
+////                .doOnError(err -> log.error("Error fetching order status", err));
+////                .retrieve()
+////                .onStatus(
+////                        status -> !status.is2xxSuccessful(),
+////                        resp -> resp.bodyToMono(String.class)
+////                                .flatMap(body -> {
+////                                    log.error("AngelOne error response: {}", body);
+////                                    return Mono.error(new RuntimeException("AngelOne API failed"));
+////                                })
+////                )
+////                .bodyToMono(OrderStatusResponse.class);
+//                .exchangeToMono(response -> {
+//
+//                    String contentType = response.headers()
+//                            .contentType()
+//                            .map(Object::toString)
+//                            .orElse("UNKNOWN");
+//
+//                    log.error("AngelOne Content-Type: {}", contentType);
+//
+//                    return response.bodyToMono(String.class)
+//                            .flatMap(body -> {
+//                                log.error("RAW ANGELONE RESPONSE:\n{}", body);
+//
+//                                // ❌ HTML → throw meaningful error
+//                                if (contentType.contains("text/html")) {
+//                                    return Mono.error(
+//                                            new RuntimeException("AngelOne returned HTML instead of JSON")
+//                                    );
+//                                }
+//
+//                                // ✅ JSON → deserialize manually
+//                                try {
+//                                    ObjectMapper mapper = new ObjectMapper();
+//                                    OrderStatusResponse parsed =
+//                                            mapper.readValue(body, OrderStatusResponse.class);
+//                                    return Mono.just(parsed);
+//                                } catch (Exception e) {
+//                                    return Mono.error(e);
+//                                }
+//                            });
+//                });
+//    }
+
+
+    public Mono<JsonNode> getIndividualOrderStatus(String orderId, String authToken) {
+
+        log.info("Fetching order status for orderId={}", orderId);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        return brokerWebClient.get()
+                .uri("/rest/secure/angelbroking/order/v1/details/{orderId}", orderId)
+                .header("Authorization", "Bearer " + authToken)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .exchangeToMono(response -> {
+
+                    String contentType = response.headers()
+                            .contentType()
+                            .map(MediaType::toString)
+                            .orElse("UNKNOWN");
+
+                    log.info("AngelOne Content-Type: {}", contentType);
+
+                    return response.bodyToMono(String.class)
+                            .flatMap(body -> {
+
+                                log.debug("RAW ANGELONE RESPONSE:\n{}", body);
+
+                                // ❌ HTML response (session expired, WAF, Cloudflare, etc.)
+                                if (contentType.contains(MediaType.TEXT_HTML_VALUE)) {
+                                    return Mono.error(
+                                            new RuntimeException(
+                                                    "AngelOne returned HTML instead of JSON. Possible auth/session issue."
+                                            )
+                                    );
+                                }
+
+                                // ✅ JSON → parse to JsonNode
+                                try {
+                                    JsonNode jsonNode = objectMapper.readTree(body);
+                                    return Mono.just(jsonNode);
+                                } catch (Exception e) {
+                                    return Mono.error(
+                                            new RuntimeException("Failed to parse AngelOne JSON response", e)
+                                    );
+                                }
+                            });
+                });
+    }
+
 
 }

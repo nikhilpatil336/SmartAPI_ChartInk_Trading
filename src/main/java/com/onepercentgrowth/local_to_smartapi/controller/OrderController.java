@@ -1,10 +1,14 @@
 package com.onepercentgrowth.local_to_smartapi.controller;
 
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
+import com.onepercentgrowth.local_to_smartapi.model.OrderStatusResponse;
 import com.onepercentgrowth.local_to_smartapi.model.WebhookRequest;
 import com.onepercentgrowth.local_to_smartapi.service.OrderService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
 
 @RestController
 @RequestMapping("/api/order")
@@ -42,6 +46,21 @@ public class OrderController {
     @PostMapping("/webhook-order")
     public Mono<OrderResponse> placeWebhookOrder(@RequestBody WebhookRequest webhookRequest) {
         return orderService.placeWebhookOrder(webhookRequest);
+    }
+
+    @PostMapping("/buy")
+    public Mono<OrderResponse> chartinkBuyOrder(@RequestBody WebhookRequest webhookRequest) {
+        return orderService.chartinkBuyOrder(webhookRequest);
+    }
+
+    @PostMapping("/modify")
+    public Mono<OrderResponse> chartinkModifyOrder(@RequestBody WebhookRequest webhookRequest) {
+        return orderService.placeWebhookOrder(webhookRequest);
+    }
+
+    @GetMapping(value = "/{orderId}/status", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<JsonNode> getOrderStatus(@PathVariable String orderId) {
+        return orderService.getOrderStatus(orderId);
     }
 }
 

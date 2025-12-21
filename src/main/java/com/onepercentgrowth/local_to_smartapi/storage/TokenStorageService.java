@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.service;
+package com.onepercentgrowth.local_to_smartapi.storage;
 
 import com.onepercentgrowth.local_to_smartapi.model.LoginResponse;
 import org.slf4j.Logger;
