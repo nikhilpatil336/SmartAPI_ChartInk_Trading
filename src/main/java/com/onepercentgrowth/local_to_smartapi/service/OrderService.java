@@ -212,18 +212,18 @@ public class OrderService {
             return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
         }
 
-        Double availableCash = Double.parseDouble(rmsData.getAvailablecash());
+        Double availableCash = (Double.parseDouble(rmsData.getAvailablecash())*applicationProperties.getPercentBalanceUse());
 //      ***************************
         availableCash = 10000.00;
 
-        if (availableCash <= applicationProperties.getMinimumBalanceAmount()) {
+        if (availableCash <= applicationProperties.getBalanceMinimumAllowed()) {
             return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
         }
 
         // 3. Quantity
-        int quantity = (int) (Math.floor(availableCash / triggerPrice)-1);
-        if (quantity <= applicationProperties.getMinimumStockBuyQuantity()) {
-            return Mono.error(new RuntimeException("Not enough cash to buy even 1 share."));
+        int quantity = (int) (Math.floor(availableCash / triggerPrice)-applicationProperties.getNumberOfStocksBuyLess());
+        if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+            return Mono.error(new RuntimeException("Not enough cash to buy " + applicationProperties.getStockBuyMinimumQuantityRequired()+1 + " shares."));
         }
 
         // 4. JWT

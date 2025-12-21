@@ -31,3 +31,6 @@ replay_pid*
 target/
 out/
 build/
+
+# Spring Boot config
+src/main/resources/application.properties
