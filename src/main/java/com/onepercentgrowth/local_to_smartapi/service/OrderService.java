@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
@@ -34,7 +35,6 @@ public class OrderService {
     private ScripMasterService scripMasterService;
     @Autowired
     private SlOrderStore slOrderStore;
-
     @Autowired
     private ApplicationProperties applicationProperties;
 
@@ -214,7 +214,7 @@ public class OrderService {
 
         Double availableCash = (Double.parseDouble(rmsData.getAvailablecash())*applicationProperties.getPercentBalanceUse());
 //      ***************************
-        availableCash = 10000.00;
+//        availableCash = 10000.00;
 
         if (availableCash <= applicationProperties.getBalanceMinimumAllowed()) {
             return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
@@ -222,6 +222,10 @@ public class OrderService {
 
         // 3. Quantity
         int quantity = (int) (Math.floor(availableCash / triggerPrice)-applicationProperties.getNumberOfStocksBuyLess());
+
+//        if(quantity > 1)
+//            quantity -= applicationProperties.getNumberOfStocksBuyLess();
+
         if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
             return Mono.error(new RuntimeException("Not enough cash to buy " + applicationProperties.getStockBuyMinimumQuantityRequired()+1 + " shares."));
         }
@@ -272,39 +276,81 @@ public class OrderService {
                                                 slTriggerPrice
                                         );
 
-                                return brokerApiClient
-                                        .chartinkPlaceOrder(sellOrder, jwtToken)
-                                        .flatMap(sellResp -> {
+//                                return brokerApiClient
+//                                        .chartinkPlaceOrder(sellOrder, jwtToken)
+//                                        .flatMap(sellResp -> {
+//
+//                                            if (!sellResp.isStatus()) {
+//                                                return Mono.error(
+//                                                        new RuntimeException("SELL order failed")
+//                                                );
+//                                            }
+//
+//                                            String sellOrderId =
+//                                                    sellResp.getData().getOrderid();
+//
+//                                            // 2️⃣ Place STOP LOSS order AFTER SELL
+//                                            return brokerApiClient
+//                                                    .chartinkPlaceOrder(sellSlmOrder, jwtToken)
+//                                                    .doOnSuccess(slResp -> {
+//
+//                                                        slOrderStore.put(
+//                                                                "NSE:" + stockName + ":" + LocalDate.now(),
+//                                                                new SlOrderMeta(
+//                                                                        buyOrderId,
+//                                                                        slResp.getData().getOrderid(),
+//                                                                        quantity,
+//                                                                        slTriggerPrice,
+//                                                                        symboltoken
+//                                                                )
+//                                                        );
+//                                                    })
+//                                                    // Final return value
+//                                                    .thenReturn(buyResponse);
+//                                        });
+                                Mono<OrderResponse> sellMono =
+                                        withOrderRetry(
+                                                brokerApiClient.chartinkPlaceOrder(sellOrder, jwtToken)
+                                                        .flatMap(resp -> {
+                                                            if (!resp.isStatus()) {
+                                                                return Mono.error(
+                                                                        new RuntimeException("SELL order failed")
+                                                                );
+                                                            }
+                                                            return Mono.just(resp);
+                                                        })
+                                        );
 
-                                            if (!sellResp.isStatus()) {
-                                                return Mono.error(
-                                                        new RuntimeException("SELL order failed")
-                                                );
-                                            }
+                                Mono<OrderResponse> slmMono =
+                                        withOrderRetry(
+                                                brokerApiClient.chartinkPlaceOrder(sellSlmOrder, jwtToken)
+                                                        .flatMap(resp -> {
+                                                            if (!resp.isStatus()) {
+                                                                return Mono.error(
+                                                                        new RuntimeException("SLM order failed")
+                                                                );
+                                                            }
+                                                            return Mono.just(resp);
+                                                        })
+                                                        .doOnSuccess(slResp -> {
+                                                            slOrderStore.put(
+                                                                    "NSE:" + stockName + ":" + LocalDate.now(),
+                                                                    new SlOrderMeta(
+                                                                            buyOrderId,
+                                                                            slResp.getData().getOrderid(),
+                                                                            quantity,
+                                                                            slTriggerPrice,
+                                                                            symboltoken
+                                                                    )
+                                                            );
+                                                        })
+                                        );
 
-                                            String sellOrderId =
-                                                    sellResp.getData().getOrderid();
+                                return Mono.zip(sellMono, slmMono)
+                                        .thenReturn(buyResponse);
 
-                                            // 2️⃣ Place STOP LOSS order AFTER SELL
-                                            return brokerApiClient
-                                                    .chartinkPlaceOrder(sellSlmOrder, jwtToken)
-                                                    .doOnSuccess(slResp -> {
-
-                                                        slOrderStore.put(
-                                                                "NSE:" + stockName + ":" + LocalDate.now(),
-                                                                new SlOrderMeta(
-                                                                        buyOrderId,
-                                                                        slResp.getData().getOrderid(),
-                                                                        quantity,
-                                                                        slTriggerPrice,
-                                                                        symboltoken
-                                                                )
-                                                        );
-                                                    })
-                                                    // Final return value
-                                                    .thenReturn(buyResponse);
-                                        });
                             });
+
                 });
     }
 
@@ -502,6 +548,7 @@ public class OrderService {
         sellOrder.setStoploss("0");            // Required for NORMAL variety [1]
         sellOrder.setDisclosedquantity("0");   // Standard parameter [3]
         sellOrder.setTriggerprice("0");
+        sellOrder.setScripconsent("yes");
 
         return sellOrder;
     }
@@ -671,6 +718,20 @@ public class OrderService {
             // OR if you prefer to fail fast:
             // throw new IllegalStateException("Unknown order status: " + status);
         }
+    }
+
+    private <T> Mono<T> withOrderRetry(Mono<T> mono) {
+
+        Retry retrySpec = Retry
+                .fixedDelay(5, Duration.ofSeconds(3))
+                .filter(ex -> ex instanceof RuntimeException)
+                .doBeforeRetry(rs ->
+                        log.warn("Retrying operation. Attempt {}",
+                                rs.totalRetries() + 1)
+                )
+                .onRetryExhaustedThrow((spec, signal) -> signal.failure());
+
+        return mono.retryWhen(retrySpec);
     }
 
 }

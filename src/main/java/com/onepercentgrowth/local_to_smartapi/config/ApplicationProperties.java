@@ -19,27 +19,55 @@ public class ApplicationProperties {
         return balanceMinimumAllowed;
     }
 
+    public void setBalanceMinimumAllowed(double balanceMinimumAllowed) {
+        this.balanceMinimumAllowed = balanceMinimumAllowed;
+    }
+
     public int getStockBuyMinimumQuantityRequired() {
         return stockBuyMinimumQuantityRequired;
+    }
+
+    public void setStockBuyMinimumQuantityRequired(int stockBuyMinimumQuantityRequired) {
+        this.stockBuyMinimumQuantityRequired = stockBuyMinimumQuantityRequired;
     }
 
     public double getProfitPercentageMultiplier() {
         return profitPercentageMultiplier;
     }
 
+    public void setProfitPercentageMultiplier(double profitPercentageMultiplier) {
+        this.profitPercentageMultiplier = profitPercentageMultiplier;
+    }
+
     public double getStoplossPercentageMultiplier() {
         return stoplossPercentageMultiplier;
+    }
+
+    public void setStoplossPercentageMultiplier(double stoplossPercentageMultiplier) {
+        this.stoplossPercentageMultiplier = stoplossPercentageMultiplier;
     }
 
     public long getOrderBookRetryMilliseconds() {
         return orderBookRetryMilliseconds;
     }
 
+    public void setOrderBookRetryMilliseconds(long orderBookRetryMilliseconds) {
+        this.orderBookRetryMilliseconds = orderBookRetryMilliseconds;
+    }
+
     public double getPercentBalanceUse() {
         return percentBalanceUse;
     }
 
+    public void setPercentBalanceUse(double percentBalanceUse) {
+        this.percentBalanceUse = percentBalanceUse;
+    }
+
     public int getNumberOfStocksBuyLess() {
         return numberOfStocksBuyLess;
+    }
+
+    public void setNumberOfStocksBuyLess(int numberOfStocksBuyLess) {
+        this.numberOfStocksBuyLess = numberOfStocksBuyLess;
     }
 }

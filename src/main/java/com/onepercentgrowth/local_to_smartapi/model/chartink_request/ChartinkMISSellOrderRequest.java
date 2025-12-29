@@ -28,9 +28,9 @@ public class ChartinkMISSellOrderRequest implements IOrderRequest{
 
 
     public String disclosedquantity;
-//
-//    public String scripconsent;
-//
+
+    public String scripconsent;
+
     public String triggerprice;
 //
 //    public String orderid;
@@ -63,7 +63,7 @@ public class ChartinkMISSellOrderRequest implements IOrderRequest{
         this.transactiontype = transactiontype;
         this.quantity = quantity;
         this.symboltoken = symboltoken;
-//        this.scripconsent = scripconsent;
+        this.scripconsent = scripconsent;
         this.triggerprice = triggerprice;
         this.price = price;
 //        this.symbol = symbol;
@@ -158,13 +158,13 @@ public class ChartinkMISSellOrderRequest implements IOrderRequest{
         this.symboltoken = symboltoken;
     }
 
-//    public String getScripconsent() {
-//        return scripconsent;
-//    }
-//
-//    public void setScripconsent(String scripconsent) {
-//        this.scripconsent = scripconsent;
-//    }
+    public String getScripconsent() {
+        return scripconsent;
+    }
+
+    public void setScripconsent(String scripconsent) {
+        this.scripconsent = scripconsent;
+    }
 
     public String getSquareoff() {
         return squareoff;
@@ -277,7 +277,7 @@ public class ChartinkMISSellOrderRequest implements IOrderRequest{
                 ", transactiontype='" + transactiontype + '\'' +
                 ", quantity='" + quantity + '\'' +
                 ", symboltoken='" + symboltoken + '\'' +
-//                ", scripconsent='" + scripconsent + '\'' +
+                ", scripconsent='" + scripconsent + '\'' +
                 ", triggerprice='" + triggerprice + '\'' +
                 ", price='" + price + '\'' +
 //                ", symbol='" + symbol + '\'' +
