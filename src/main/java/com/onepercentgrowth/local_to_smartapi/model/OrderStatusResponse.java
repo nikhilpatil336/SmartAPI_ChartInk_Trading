@@ -52,27 +52,5 @@ public class OrderStatusResponse {
     public void setData(OrderStatusData data) {
         this.data = data;
     }
-
-    //    @Data
-//    public static class OrderStatusData {
-//
-//        private String orderid;
-//        private String orderstatus;
-//        private String tradingsymbol;
-//        private String transactiontype;
-//
-//        @JsonProperty("avgprice")
-//        private Double avgprice;
-//
-//        @JsonProperty("averageprice")
-//        private Double averageprice;
-//
-//        public double getExecutedPrice() {
-//            return avgprice != null ? avgprice : averageprice;
-//        }
-//
-//        private int quantity;
-//    }
-
 }
 
