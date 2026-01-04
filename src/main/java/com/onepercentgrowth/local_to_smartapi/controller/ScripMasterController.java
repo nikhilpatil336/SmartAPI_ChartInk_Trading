@@ -19,12 +19,12 @@ public class ScripMasterController {
         this.scripMasterService = scripMasterService;
     }
 
-    @GetMapping("/nse")
+    @GetMapping("/nse/download")
     public Mono<Map<String, String>> getNseScripMaster() {
         return scripMasterService.fetchNseScripMaster();
     }
 
-    @GetMapping("/rms")
+    @GetMapping("/rms/balance")
     public Mono<RmsResponse> getRmsBalance() {
         return scripMasterService.getCurrentBalance();
     }

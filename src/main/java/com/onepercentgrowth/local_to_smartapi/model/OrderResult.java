@@ -17,7 +17,7 @@ public class OrderResult {
     }
 
     public static OrderResult rejected() {
-        return new OrderResult(0, true);
+        return new OrderResult(-1, true);
     }
 
     public static OrderResult completed(double avgPrice) {
@@ -34,5 +34,13 @@ public class OrderResult {
 
     public double getResult() {
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "OrderResult{" +
+                "result=" + result +
+                ", terminal=" + terminal +
+                '}';
     }
 }

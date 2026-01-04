@@ -64,4 +64,15 @@ public class SlOrderMeta {
     public void setSymbolToken(String symbolToken) {
         this.symbolToken = symbolToken;
     }
+
+    @Override
+    public String toString() {
+        return "SlOrderMeta{" +
+                "buyOrderId='" + buyOrderId + '\'' +
+                ", slOrderId='" + slOrderId + '\'' +
+                ", quantity=" + quantity +
+                ", triggerPrice=" + triggerPrice +
+                ", symbolToken='" + symbolToken + '\'' +
+                '}';
+    }
 }

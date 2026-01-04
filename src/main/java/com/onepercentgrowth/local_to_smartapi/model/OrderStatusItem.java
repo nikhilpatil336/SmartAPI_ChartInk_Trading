@@ -165,4 +165,27 @@ public class OrderStatusItem {
     public void setUpdatetime(String updatetime) {
         this.updatetime = updatetime;
     }
+
+    @Override
+    public String toString() {
+        return "OrderStatusItem{" +
+                "orderid='" + orderid + '\'' +
+                ", uniqueorderid='" + uniqueorderid + '\'' +
+                ", tradingsymbol='" + tradingsymbol + '\'' +
+                ", transactiontype='" + transactiontype + '\'' +
+                ", exchange='" + exchange + '\'' +
+                ", producttype='" + producttype + '\'' +
+                ", ordertype='" + ordertype + '\'' +
+                ", variety='" + variety + '\'' +
+                ", quantity='" + quantity + '\'' +
+                ", filledshares='" + filledshares + '\'' +
+                ", unfilledshares='" + unfilledshares + '\'' +
+                ", price='" + price + '\'' +
+                ", averageprice='" + averageprice + '\'' +
+                ", triggerprice='" + triggerprice + '\'' +
+                ", status='" + status + '\'' +
+                ", orderstatus='" + orderstatus + '\'' +
+                ", updatetime='" + updatetime + '\'' +
+                '}';
+    }
 }

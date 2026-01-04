@@ -3,12 +3,15 @@ package com.onepercentgrowth.local_to_smartapi.service;
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.model.RmsData;
 import com.onepercentgrowth.local_to_smartapi.model.RmsResponse;
+import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,44 +24,44 @@ public class ScripMasterService {
 
     private final BrokerApiClient brokerApiClient;
     private final TokenStorageService tokenStorageService;
-
+    private final ScripMasterStorageService scripMasterStorageService;
     private volatile Map<String, String> nseEquityMap = new HashMap<>();
-
     private volatile List<Map<String, Object>> rawScripList = null;
-
     private volatile RmsData rmsData = null;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ScripMasterService(BrokerApiClient brokerApiClient,
-                              TokenStorageService tokenStorageService) {
+                              TokenStorageService tokenStorageService, ScripMasterStorageService scripMasterStorageService) {
         this.brokerApiClient = brokerApiClient;
         this.tokenStorageService = tokenStorageService;
+        this.scripMasterStorageService = scripMasterStorageService;
     }
 
     public Mono<Map<String, String>> fetchNseScripMaster() {
 
-        log.info("➡ Starting fetchNseScripMaster()");
+        log.info("Starting fetchNseScripMaster()");
 
         String accessToken = tokenStorageService.getJwtToken();
 
         if (accessToken == null) {
-            log.error("❌ No access token found in TokenStorageService. Login required.");
+            log.error("No access token found in TokenStorageService. Login required.");
             return Mono.error(new RuntimeException("No access token found. Please login first."));
         }
 
         return brokerApiClient
                 .downloadScripMaster(accessToken)
-                .doOnSubscribe(sub -> log.info("➡ Calling BrokerApiClient.downloadScripMaster()"))
+                .doOnSubscribe(sub -> log.info("Calling BrokerApiClient.downloadScripMaster()"))
                 .doOnSuccess(list ->
                 {
                     this.rawScripList = list;
-                    log.info("✔ Successfully fetched raw ScripMaster list. Count={}", list.size());
+                    log.info("Successfully fetched raw ScripMaster list. Count={}", list.size());
                 })
-                .doOnError(err -> log.error("❌ Error while downloading ScripMaster: {}", err.getMessage(), err))
+                .doOnError(err -> log.error("Error while downloading ScripMaster: {}", err.getMessage(), err))
                 .map(list -> {
-                    log.info("➡ Filtering only NSE symbols from ScripMaster...");
+                    log.info("Filtering only NSE symbols from ScripMaster...");
                     Map<String, String> result = filterOnlyEquityNse(list);
                     this.nseEquityMap = result;
-                    log.info("✔ NSE filter complete. NSE count={}", result.size());
+                    log.info("NSE filter complete. NSE count={}", result.size());
                     return result;
                 });
     }
@@ -75,9 +78,64 @@ public class ScripMasterService {
                 .downloadScripMaster(accessToken)
                 .doOnSuccess(list -> {
                     this.rawScripList = list;
-                    log.info("✔ Raw ScripMaster stored in memory. Size={}", list.size());
+                    this.nseEquityMap = filterOnlyEquityNse(this.rawScripList);
+                    scripMasterStorageService.saveRawScripMaster(this.rawScripList);
+                    log.info("Raw ScripMaster stored in memory. Size={}", list.size());
                 });
     }
+
+//    public Mono<Map<String, String>> downloadFilteredScripMaster() {
+//
+//        String accessToken = tokenStorageService.getJwtToken();
+//
+//        if (accessToken == null) {
+//            return Mono.error(new RuntimeException("Login required. No token found."));
+//        }
+//
+//        return brokerApiClient
+//                .downloadScripMaster(accessToken)
+//                .map(list -> {
+//                    this.rawScripList = list;
+//
+//                    Map<String, String> filteredMap = filterOnlyEquityNse(list);
+//                    this.nseEquityMap = filteredMap;
+//
+//                    scripMasterStorageService.saveFilteredScripMaster(filteredMap);
+//
+//                    log.info("Filtered ScripMaster stored in memory. Size={}", filteredMap.size());
+//
+//                    return filteredMap; // ✅ IMPORTANT
+//                });
+//    }
+
+    public Mono<Map<String, String>> downloadFilteredScripMaster() {
+
+        String token = tokenStorageService.getJwtToken();
+        if (token == null) {
+            return Mono.error(new RuntimeException("Login required"));
+        }
+
+        return brokerApiClient
+                .downloadScripMasterStream(token)
+                .filter(item -> "NSE".equals(item.get("exch_seg")))
+                .filter(item -> {
+                    String symbol = (String) item.get("symbol");
+                    return symbol != null && symbol.endsWith("-EQ");
+                })
+                .collect(Collectors.toMap(
+                        item -> item.get("name").toString(),
+                        item -> item.get("token").toString(),
+                        (a, b) -> a
+                ))
+                .doOnSuccess(map -> {
+                    this.nseEquityMap = map;
+                    scripMasterStorageService.saveFilteredScripMaster(map);
+                    log.info("Filtered NSE EQ count={}", map.size());
+                });
+    }
+
+
+
 
     public Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
 
@@ -104,6 +162,10 @@ public class ScripMasterService {
         return nseEquityMap;
     }
 
+    public void setNseEquityMap(Map<String, String> nseEquityMap) {
+        this.nseEquityMap = nseEquityMap;
+    }
+
     public void setRawScripList(List<Map<String, Object>> rawList) {
         this.rawScripList = rawList;
         rebuildNseCacheFromRaw();
@@ -111,6 +173,17 @@ public class ScripMasterService {
 
     public List<Map<String, Object>> getRawScripList() {
         return rawScripList;
+    }
+
+    private void saveFile(String path, Object model) {
+        try {
+            new File(path).getParentFile().mkdirs();
+            objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValue(new File(path), model);
+            log.info("Saved {}", path);
+        } catch (Exception e) {
+            log.error("Failed saving {}", path, e);
+        }
     }
 
     public Mono<RmsResponse> getCurrentBalance() {
@@ -124,9 +197,9 @@ public class ScripMasterService {
                 .doOnNext(rmsResponse -> {
                     if (rmsResponse != null && rmsResponse.getData() != null) {
                         this.rmsData = rmsResponse.getData(); // store for later use
-                        log.info("✔ Stored RMS data locally: {}", rmsData);
+                        log.info("Stored RMS data locally: {}", rmsData);
                     } else {
-                        log.warn("⚠ RMS response data is null");
+                        log.warn("RMS response data is null");
                     }
                 });
     }
@@ -143,7 +216,5 @@ public class ScripMasterService {
         this.rmsData = rmsData;
     }
 
-    public void setNseEquityMap(Map<String, String> nseEquityMap) {
-        this.nseEquityMap = nseEquityMap;
-    }
+
 }

@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.startupservice;
 
+import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
 import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 public class ApplicationStartupService {
@@ -21,38 +23,54 @@ public class ApplicationStartupService {
     private final ScripMasterService scripMasterService;
     private final SlOrderStore slOrderStore;
     private final OrderStatusWebSocketService orderStatusWebSocketService;
+    private final TokenManager tokenManager;
 
-    @Value("${myapp.sl_orderstore.file-path}")
+
+    @Value("${myapp.sl-orderstore-file-path}")
     private String slOrderBaseDir;
 
     public ApplicationStartupService(
             ScripMasterStorageService scripMasterStorageService,
             ScripMasterService scripMasterService,
             SlOrderStore slOrderStore,
-            OrderStatusWebSocketService orderStatusWebSocketService
+            OrderStatusWebSocketService orderStatusWebSocketService,
+            TokenManager tokenManager
     ) {
         this.scripMasterStorageService = scripMasterStorageService;
         this.scripMasterService = scripMasterService;
         this.slOrderStore = slOrderStore;
         this.orderStatusWebSocketService = orderStatusWebSocketService;
+        this.tokenManager = tokenManager;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
 
-        log.info("🚀 Application startup sequence initiated");
+        log.info("Application startup sequence initiated");
 
         // ---- Scrip master ----
-        scripMasterStorageService.loadFromFile();
+//        scripMasterStorageService.loadFromFile();
+//
+//        if (scripMasterStorageService.getCachedRawList() != null &&
+//                scripMasterStorageService.isFileFromToday()) {
+//
+//            scripMasterService.setRawScripList(
+//                    scripMasterStorageService.getCachedRawList()
+//            );
+//        } else {
+//            scripMasterService.setRawScripList(scripMasterService.downloadRawScripMaster().block());
+//        }
 
-        if (scripMasterStorageService.getCachedRawList() != null &&
+        scripMasterStorageService.loadFilteredScripmasterFromFile();
+
+        if (scripMasterStorageService.getCachedFilteredList() != null &&
                 scripMasterStorageService.isFileFromToday()) {
 
-            scripMasterService.setRawScripList(
-                    scripMasterStorageService.getCachedRawList()
+            scripMasterService.setNseEquityMap(
+                    scripMasterStorageService.getCachedFilteredList()
             );
         } else {
-            scripMasterService.downloadRawScripMaster().block();
+            scripMasterService.setNseEquityMap(scripMasterService.downloadFilteredScripMaster().block());
         }
 
         // ---- SL Order store ----
@@ -60,8 +78,21 @@ public class ApplicationStartupService {
         slOrderStore.loadFromFile();
 
         // ---- WebSocket ----
-        log.info("🔌 Starting Order Status WebSocket");
+        log.info("Starting Order Status WebSocket");
         orderStatusWebSocketService.start();
+
+        // ---- RMS BALANCE ----
+        log.info("Fetching RMS balance on startup");
+
+        Mono.fromRunnable(() -> tokenManager.getValidJwtToken())
+                .then(scripMasterService.getCurrentBalance())
+                .doOnSuccess(resp ->
+                        log.info("RMS balance loaded successfully on startup")
+                )
+                .doOnError(err ->
+                        log.error("Failed to fetch RMS on startup", err)
+                )
+                .subscribe();
     }
 }
 

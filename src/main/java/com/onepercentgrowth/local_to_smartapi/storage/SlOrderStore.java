@@ -1,6 +1,10 @@
 package com.onepercentgrowth.local_to_smartapi.storage;
 
 import com.onepercentgrowth.local_to_smartapi.model.SlOrderMeta;
+import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusWebSocketHandler;
+import lombok.extern.java.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -17,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SlOrderStore {
+
+    private static final Logger log = LoggerFactory.getLogger(SlOrderStore.class);
 
     private final Map<String, SlOrderMeta> cache = new ConcurrentHashMap<>();
 
@@ -35,7 +41,7 @@ public class SlOrderStore {
                     "sl-orders-" + LocalDate.now() + ".json"
             );
 
-            System.out.println("✔ SL Order Store initialized at: " + storeFile);
+            log.info("SL Order Store initialized at: " + storeFile);
 
         } catch (Exception e) {
             throw new IllegalStateException("Failed to init SL Order Store", e);

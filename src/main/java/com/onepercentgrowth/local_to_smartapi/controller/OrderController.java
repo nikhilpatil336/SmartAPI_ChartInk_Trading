@@ -4,6 +4,10 @@ import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
 import com.onepercentgrowth.local_to_smartapi.model.OrderStatusResponse;
 import com.onepercentgrowth.local_to_smartapi.model.WebhookRequest;
 import com.onepercentgrowth.local_to_smartapi.service.OrderService;
+import com.onepercentgrowth.local_to_smartapi.service.OrderService_v2;
+import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -14,47 +18,40 @@ import tools.jackson.databind.JsonNode;
 @RequestMapping("/api/order")
 public class OrderController {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
+
     private final OrderService orderService;
+    private final OrderService_v2 orderService_v2;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, OrderService_v2 orderServiceV2) {
         this.orderService = orderService;
+        this.orderService_v2 = orderServiceV2;
     }
-
-    // BUY endpoint
-//    @PostMapping("/buy")
-//    public Mono<OrderResponse> placeBuyOrder(
-//            @RequestParam String symbol,
-//            @RequestParam int quantity,
-//            @RequestHeader("Authorization") String token
-//    ) {
-//        // token should be: "Bearer <jwt>"
-//        String authToken = token.replace("Bearer ", "").trim();
-//        return orderService.placeOrder(symbol, quantity, "BUY", authToken);
-//    }
-
-    // SELL endpoint
-//    @PostMapping("/sell")
-//    public Mono<OrderResponse> placeSellOrder(
-//            @RequestParam String symbol,
-//            @RequestParam int quantity,
-//            @RequestHeader("Authorization") String token
-//    ) {
-//        String authToken = token.replace("Bearer ", "").trim();
-//        return orderService.placeOrder(symbol, quantity, "SELL", authToken);
-//    }
 
     @PostMapping("/webhook-order")
     public Mono<OrderResponse> placeWebhookOrder(@RequestBody WebhookRequest webhookRequest) {
+        log.info("placeWebhookOrder request: {}", webhookRequest);
         return orderService.placeWebhookOrder(webhookRequest);
     }
 
     @PostMapping("/buy")
     public Mono<OrderResponse> chartinkBuyOrder(@RequestBody WebhookRequest webhookRequest) {
-        return orderService.chartinkBuyOrder(webhookRequest);
+        log.info("placeWebhookOrder request: {}", webhookRequest);
+        return orderService_v2.chartinkBuyOrder(webhookRequest);
+    }
+
+    @PostMapping("/buy/webhookstatus")
+    public Mono<OrderResponse> chartinkSimpleBuyOrder(@RequestBody WebhookRequest webhookRequest) {
+        return orderService_v2.chartinkSimpleBuyOrder(webhookRequest);
     }
 
     @PostMapping("/modify")
     public Mono<OrderResponse> chartinkModifyOrder(@RequestBody WebhookRequest webhookRequest) {
+        return orderService.placeWebhookOrder(webhookRequest);
+    }
+
+    @PostMapping("/cancel")
+    public Mono<OrderResponse> chartinkCancelOrder(@RequestBody WebhookRequest webhookRequest) {
         return orderService.placeWebhookOrder(webhookRequest);
     }
 

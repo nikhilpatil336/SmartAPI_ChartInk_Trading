@@ -1,6 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
-import com.onepercentgrowth.local_to_smartapi.config.TokenManagerService;
+import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.websocket.WebSocketClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,7 @@ public class OrderStatusWebSocketService {
 
     private final StandardWebSocketClient client;
     private final WebSocketHandler handler;
-    private final TokenManagerService tokenManagerService;
+    private final TokenManager tokenManager;
 
     private WebSocketConnectionManager manager;
 
@@ -26,11 +26,11 @@ public class OrderStatusWebSocketService {
     public OrderStatusWebSocketService(
             StandardWebSocketClient client,
             WebSocketHandler handler,
-            TokenManagerService tokenManagerService
+            TokenManager tokenManager
     ) {
         this.client = client;
         this.handler = handler;
-        this.tokenManagerService = tokenManagerService;
+        this.tokenManager = tokenManager;
     }
 
     public synchronized void start() {
@@ -40,7 +40,7 @@ public class OrderStatusWebSocketService {
             return;
         }
 
-        String jwt = tokenManagerService.getValidJwtToken();
+        String jwt = tokenManager.getValidJwtToken();
         log.info("Using JWT (first 10 chars): {}...", jwt.substring(0, 10));
 
         HttpHeaders headers = new HttpHeaders();

@@ -1,18 +1,19 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
-import com.onepercentgrowth.local_to_smartapi.config.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartInkMISBuyOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMISSellOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMIS_SL_OrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
+import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,6 +38,12 @@ public class OrderService {
     private SlOrderStore slOrderStore;
     @Autowired
     private ApplicationProperties applicationProperties;
+    @Autowired
+    private OrderRegistry orderRegistry;
+
+    @Autowired
+    private OrderRequestFactory orderRequestFactory;
+
 
 //    public OrderService(BrokerApiClient brokerApiClient,
 //                        TokenStorageService tokenStorageService,
@@ -236,8 +243,11 @@ public class OrderService {
             return Mono.error(new RuntimeException("User not logged in. No JWT token found."));
         }
 
+//        IOrderRequest buyOrderRequest =
+//                createChartinkBuyOrderRequest(stockName, symboltoken, quantity, price);
+
         IOrderRequest buyOrderRequest =
-                createChartinkBuyOrderRequest(stockName, symboltoken, quantity, price);
+                orderRequestFactory.createBuyOrder(stockName, symboltoken, quantity, price);
 
         return brokerApiClient
                 .chartinkPlaceOrder(buyOrderRequest, jwtToken)
@@ -249,7 +259,7 @@ public class OrderService {
 
                     String buyOrderId = buyResponse.getData().getOrderid();
 
-                    // 🔁 WAIT until BUY is COMPLETE (retry 5 times, 2 sec delay)
+                    // WAIT until BUY is COMPLETE (retry 5 times, 2 sec delay)
                     return pollOrderUntilComplete(buyOrderId, jwtToken)
                             .flatMap(executedPrice  -> {
 
@@ -257,8 +267,16 @@ public class OrderService {
 
                                 double profitTriggerPrice = strikePrice * applicationProperties.getProfitPercentageMultiplier();
 
+//                                IOrderRequest sellOrder =
+//                                        createChartinkSellOrderRequest(
+//                                                stockName,
+//                                                symboltoken,
+//                                                quantity,
+//                                                profitTriggerPrice
+//                                        );
+
                                 IOrderRequest sellOrder =
-                                        createChartinkSellOrderRequest(
+                                        orderRequestFactory.createSellOrder(
                                                 stockName,
                                                 symboltoken,
                                                 quantity,
@@ -268,8 +286,16 @@ public class OrderService {
                                 // 2% SL from executed price
                                 double slTriggerPrice = strikePrice * applicationProperties.getStoplossPercentageMultiplier();
 
+//                                IOrderRequest sellSlmOrder =
+//                                        createChartinkSellSlmOrderRequest(
+//                                                stockName,
+//                                                symboltoken,
+//                                                quantity,
+//                                                slTriggerPrice
+//                                        );
+
                                 IOrderRequest sellSlmOrder =
-                                        createChartinkSellSlmOrderRequest(
+                                        orderRequestFactory.createStopLossOrder(
                                                 stockName,
                                                 symboltoken,
                                                 quantity,
@@ -347,7 +373,26 @@ public class OrderService {
                                         );
 
                                 return Mono.zip(sellMono, slmMono)
+                                        .doOnSuccess(tuple -> {
+                                            OrderResponse sellResp = tuple.getT1();
+                                            OrderResponse slResp = tuple.getT2();
+
+                                            OrderContext ctx =
+                                                    new OrderContext(
+                                                            buyOrderId,
+                                                            sellResp.getData().getOrderid(),
+                                                            slResp.getData().getOrderid(),
+                                                            stockName,
+                                                            symboltoken,
+                                                            quantity,
+                                                            "NORMAL",
+                                                            "STOPLOSS"
+                                                    );
+
+                                            orderRegistry.register(ctx);
+                                        })
                                         .thenReturn(buyResponse);
+
 
                             });
 
@@ -735,3 +780,353 @@ public class OrderService {
     }
 
 }
+
+//import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
+//import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
+//import com.onepercentgrowth.local_to_smartapi.model.*;
+////import com.onepercentgrowth.local_to_smartapi.model.chartink_request.WebhookRequest;
+//import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
+//import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+//import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+//import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+//import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
+//import org.springframework.stereotype.Service;
+//import reactor.core.publisher.Mono;
+//import tools.jackson.databind.JsonNode;
+//
+//import java.time.LocalDate;
+//
+//@Service
+//public class OrderService {
+//
+//    private static final Logger log =
+//            LoggerFactory.getLogger(OrderService.class);
+//
+//    private final ScripMasterService scripMasterService;
+//    private final TokenManager tokenManager;
+//    private final OrderValidationService validationService;
+//    private final OrderCalculationService calculationService;
+//    private final OrderExecutionService executionService;
+//    private final OrderPollingService pollingService;
+//    private final OrderRegistry orderRegistry;
+//    private final SlOrderStore slOrderStore;
+//    private final ApplicationProperties applicationProperties;
+//    private final OrderRequestFactory orderRequestFactory;
+//    private final BrokerApiClient brokerApiClient;
+//
+//    public OrderService(
+//            ScripMasterService scripMasterService,
+//            TokenManager tokenManager,
+//            OrderValidationService validationService,
+//            OrderCalculationService calculationService,
+//            OrderExecutionService executionService,
+//            OrderPollingService pollingService,
+//            OrderRegistry orderRegistry,
+//            SlOrderStore slOrderStore,
+//            ApplicationProperties applicationProperties,
+//            OrderRequestFactory orderRequestFactory,
+//            BrokerApiClient brokerApiClient
+//    ) {
+//        this.scripMasterService = scripMasterService;
+//        this.tokenManager = tokenManager;
+//        this.validationService = validationService;
+//        this.calculationService = calculationService;
+//        this.executionService = executionService;
+//        this.pollingService = pollingService;
+//        this.orderRegistry = orderRegistry;
+//        this.slOrderStore = slOrderStore;
+//        this.applicationProperties = applicationProperties;
+//        this.orderRequestFactory = orderRequestFactory;
+//        this.brokerApiClient = brokerApiClient;
+//    }
+//
+//    // ----------------------------------------------------
+//    // ENTRY POINT FROM WEBHOOK / CONTROLLER
+//    // ----------------------------------------------------
+//
+//    public Mono<OrderResponse> chartinkBuyOrder(WebhookRequest webhook) {
+//
+//        return Mono.defer(() -> {
+//
+//            // 1️⃣ Extract & validate basic input
+//            String stockName =
+//                    webhook.getStocks().split(",")[0].trim();
+//
+//            double triggerPrice =
+//                    Double.parseDouble(
+//                            webhook.getTrigger_prices().split(",")[0].trim()
+//                    );
+//
+//            String jwtToken = tokenManager.getValidJwtToken();
+//            validationService.validateToken(jwtToken);
+//
+//            // 2️⃣ Resolve symbol token
+//            String symbolToken =
+//                    scripMasterService.getTokenForName(stockName);
+//            validationService.validateSymbol(symbolToken, stockName);
+//
+//            // 3️⃣ Get RMS & calculate quantity
+//            var rms = scripMasterService.getRmsData();
+//            validationService.validateRms(rms);
+//
+//            int quantity = calculationService.calculateQuantity(
+//                    Double.parseDouble(rms.getAvailablecash()),
+//                    triggerPrice
+//            );
+//
+////            final int quantity = 1;
+//
+//            log.info("📊 Calculated quantity={} for stock={}",
+//                    quantity, stockName);
+//
+//            // 4️⃣ Place BUY order
+//            return executionService
+//                    .placeBuyOrder(
+//                            stockName,
+//                            symbolToken,
+//                            quantity,
+//                            String.valueOf(triggerPrice),
+//                            jwtToken
+//                    )
+//                    .flatMap(buyResp ->
+//                            handleBuyOrder(
+//                                    buyResp,
+//                                    stockName,
+//                                    symbolToken,
+//                                    quantity,
+//                                    jwtToken
+//                            )
+//                    );
+//        });
+//    }
+//
+//
+//    // ----------------------------------------------------
+//    // BUY → WAIT → SELL + SL
+//    // ----------------------------------------------------
+//
+//    private Mono<OrderResponse> handleBuyOrder(
+//            OrderResponse buyResponse,
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            String jwtToken
+//    ) {
+//        String buyOrderId = buyResponse.getData().getOrderid();
+//
+//        log.info("⏳ Waiting for BUY order {} to complete", buyOrderId);
+//
+//        return pollingService
+//                .waitUntilCompleted(buyOrderId, jwtToken)
+//                .flatMap(executedPrice -> {
+//
+//                    log.info("✅ BUY completed at price={}", executedPrice);
+//
+//                    double sellPrice =
+//                            calculationService.calculateProfitPrice(executedPrice);
+//
+//                    double slPrice =
+//                            calculationService.calculateStopLossPrice(executedPrice);
+//
+//                    // Place SELL & SL in parallel
+//                    return Mono.zip(
+//                            executionService.placeSellOrder(
+//                                    stockName,
+//                                    symbolToken,
+//                                    quantity,
+//                                    sellPrice,
+//                                    jwtToken
+//                            ),
+//                            executionService.placeStopLossOrder(
+//                                    stockName,
+//                                    symbolToken,
+//                                    quantity,
+//                                    slPrice,
+//                                    jwtToken
+//                            )
+//                    ).flatMap(tuple -> {
+//
+//                        String sellOrderId =
+//                                tuple.getT1().getData().getOrderid();
+//                        String slOrderId =
+//                                tuple.getT2().getData().getOrderid();
+//
+//                        // ✅ Create full OrderContext
+//                        OrderContext ctx = new OrderContext(
+//                                buyOrderId,
+//                                sellOrderId,
+//                                slOrderId,
+//                                stockName,
+//                                symbolToken,
+//                                quantity,
+//                                "NORMAL",
+//                                "STOPLOSS"
+//                        );
+//
+//                        // ✅ Register ONCE
+//                        orderRegistry.register(ctx);
+//
+//                        String key = "NSE:" + stockName + ":" + LocalDate.now();
+//
+//                        // Optional persistence
+//                        SlOrderMeta meta = new SlOrderMeta(
+//                                buyOrderId,
+//                                slOrderId,
+//                                quantity,
+//                                slPrice,        // triggerPrice
+//                                symbolToken
+//                        );
+//
+//                        slOrderStore.put(key, meta);
+//
+//                        log.info(
+//                                "🎯 Order chain registered | BUY={} SELL={} SL={}",
+//                                buyOrderId, sellOrderId, slOrderId
+//                        );
+//
+//                        return Mono.just(buyResponse);
+//                    });
+//                });
+//    }
+//
+//    public Mono<OrderResponse> placeWebhookOrder(WebhookRequest webhookRequest) {
+//
+//        // 1️⃣ Parse webhook
+//        String stockName = webhookRequest.getStocks().split(",")[0].trim();
+//        String priceStr = webhookRequest.getTrigger_prices().split(",")[0].trim();
+//        double triggerPrice = Double.parseDouble(priceStr);
+//
+//        // 2️⃣ Resolve symbol token
+//        String symbolToken = scripMasterService.getTokenForName(stockName);
+//        if (symbolToken == null) {
+//            return Mono.error(
+//                    new IllegalArgumentException("Symbol token not found for " + stockName)
+//            );
+//        }
+//
+//        // 3️⃣ Get RMS balance
+//        RmsData rms = scripMasterService.getRmsData();
+//        if (rms == null) {
+//            return Mono.error(new IllegalStateException("RMS data not available"));
+//        }
+//
+//        double availableCash =
+//                Double.parseDouble(rms.getAvailablecash())
+//                        * applicationProperties.getPercentBalanceUse();
+//
+//        if (availableCash <= applicationProperties.getBalanceMinimumAllowed()) {
+//            return Mono.error(
+//                    new IllegalStateException("Insufficient balance: " + availableCash)
+//            );
+//        }
+//
+//        // 4️⃣ Quantity calculation
+////        int quantity =
+////                (int) Math.floor(availableCash / triggerPrice)
+////                        - applicationProperties.getNumberOfStocksBuyLess();
+////
+////        if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+////            return Mono.error(
+////                    new IllegalStateException("Quantity too low: " + quantity)
+////            );
+////        }
+//        int quantity = calculationService.calculateQuantity(
+//                Double.parseDouble(rms.getAvailablecash()),
+//                triggerPrice
+//        );
+//
+//        // 5️⃣ JWT
+//        String jwtToken = tokenManager.getValidJwtToken();
+//        if (jwtToken == null) {
+//            return Mono.error(new IllegalStateException("JWT token missing"));
+//        }
+//
+//        // 6️⃣ Delegate execution
+//        return executionService
+//                .executeBracketFlow(
+//                        stockName,
+//                        symbolToken,
+//                        quantity,
+//                        priceStr,
+//                        jwtToken
+//                );
+//    }
+//
+//    public Mono<OrderResponse> chartinkModifyOrder(WebhookRequest webhookRequest) {
+//
+//        // 1️⃣ Parse stock
+//        String stockName =
+//                webhookRequest.getStocks().split(",")[0].trim();
+//
+//        // 2️⃣ Load existing SL metadata
+//        String key = "NSE:" + stockName + ":" + LocalDate.now();
+//        SlOrderMeta meta = slOrderStore.get(key);
+//
+//        if (meta == null) {
+//            return Mono.error(
+//                    new IllegalStateException("No SL order found for " + stockName)
+//            );
+//        }
+//
+//        // 3️⃣ JWT
+//        String jwtToken = tokenManager.getValidJwtToken();
+//        if (jwtToken == null) {
+//            return Mono.error(new IllegalStateException("JWT token missing"));
+//        }
+//
+//        // 4️⃣ New trigger price from webhook
+//        double webhookPrice =
+//                Double.parseDouble(
+//                        webhookRequest.getTrigger_prices().split(",")[0].trim()
+//                );
+//
+//        // 5️⃣ Apply SL calculation logic
+//        double newTriggerPrice =
+//                calculationService.calculateStopLossPrice(webhookPrice);
+//
+//        // 6️⃣ Create modify request via factory
+//        IOrderRequest modifyRequest =
+//                orderRequestFactory.modifyStopLossOrder(
+//                        stockName,
+//                        meta.getSymbolToken(),
+//                        meta.getQuantity(),
+//                        newTriggerPrice,
+//                        meta.getSlOrderId()
+//                );
+//
+//        // 7️⃣ Call broker
+//        return brokerApiClient.chartinkModifyOrder(modifyRequest, jwtToken);
+//    }
+//
+//    public Mono<JsonNode> getOrderStatus(String orderId) {
+//
+//        log.info("📄 Fetching order status for orderId={}", orderId);
+//
+//        if (orderId == null || orderId.isBlank()) {
+//            return Mono.error(
+//                    new IllegalArgumentException("orderId must not be blank")
+//            );
+//        }
+//
+//        // ✅ Always go through TokenManager
+//        String jwtToken = tokenManager.getValidJwtToken();
+//        if (jwtToken == null) {
+//            return Mono.error(
+//                    new IllegalStateException("JWT token unavailable")
+//            );
+//        }
+//
+//        return brokerApiClient
+//                .getIndividualOrderStatus(orderId, jwtToken)
+//                .doOnSuccess(resp ->
+//                        log.info("✅ Order status fetched for orderId={}", orderId)
+//                )
+//                .doOnError(err ->
+//                        log.error("❌ Failed to fetch order status for orderId={}",
+//                                orderId, err)
+//                );
+//    }
+//
+//}

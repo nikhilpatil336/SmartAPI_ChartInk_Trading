@@ -52,5 +52,15 @@ public class OrderStatusResponse {
     public void setData(OrderStatusData data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "OrderStatusResponse{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", errorcode='" + errorcode + '\'' +
+                ", data=" + data +
+                '}';
+    }
 }
 

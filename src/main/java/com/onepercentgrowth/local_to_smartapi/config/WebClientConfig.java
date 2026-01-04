@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.config;
 
+import com.onepercentgrowth.local_to_smartapi.properties.BrokerApiProperties;
 import io.netty.channel.ChannelOption;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +16,6 @@ public class WebClientConfig {
 
     private final BrokerApiProperties properties;
 
-    @Autowired
     public WebClientConfig(BrokerApiProperties properties) {
         this.properties = properties;
     }

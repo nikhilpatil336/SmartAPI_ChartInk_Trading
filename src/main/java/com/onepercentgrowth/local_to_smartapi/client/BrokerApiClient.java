@@ -1,6 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.client;
 
-import com.onepercentgrowth.local_to_smartapi.config.AngelApiProperties;
+import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
@@ -39,6 +39,8 @@ public class BrokerApiClient {
         this.angelConfig = angelConfig;
         this.tokenStorageService = tokenStorageService;
     }
+
+//--------------- Login and other Basic Methods --------------------------
 
     public Mono<LoginResponse> loginWithTotp(String clientCode, String mpin) {
 
@@ -84,6 +86,250 @@ public class BrokerApiClient {
             return Mono.error(new RuntimeException("Failed to generate TOTP", e));
         }
     }
+
+    public Mono<LoginResponse> generateTokens(String refreshToken, String authToken) {
+
+        log.info("Generating new JWT tokens for refreshToken={}", refreshToken);
+
+        return brokerWebClient.post()
+                .uri("/rest/auth/angelbroking/jwt/v1/generateTokens")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue("{\"refreshToken\":\"" + refreshToken + "\"}")
+                .retrieve()
+                .bodyToMono(LoginResponse.class)
+                .doOnSuccess(resp -> log.info("GenerateTokens Response: {}", resp))
+                .doOnError(err -> log.error("Error generating JWT Tokens: {}", err.getMessage(), err));
+    }
+
+    public int generateTotp(String secret) {
+
+        log.info("Generating TOTP manually...");
+
+        GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
+                .setTimeStepSizeInMillis(30000)   // 30 seconds
+                .build();
+
+        GoogleAuthenticator gAuth = new GoogleAuthenticator(config);
+        int code = gAuth.getTotpPassword(secret);
+
+        log.info("Generated TOTP = {}", code);
+        return code;
+    }
+
+    public Mono<LoginResponse> logout(String clientCode, String authToken) {
+
+        log.info("Logging out client={}", clientCode);
+
+        return brokerWebClient.post()
+                .uri("/rest/secure/angelbroking/user/v1/logout")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue("{\"clientcode\":\"" + clientCode + "\"}")
+                .retrieve()
+                .bodyToMono(LoginResponse.class)
+                .doOnSuccess(resp -> log.info("Logout Response: {}", resp))
+                .doOnError(err -> log.error("Logout failed: {}", err.getMessage(), err));
+    }
+
+
+//----------------- Startup and status related methods ------------------------
+
+    public Mono<List<Map<String, Object>>> downloadScripMaster(String accessToken) {
+
+        log.info("Starting ScripMaster download request...");
+
+        return brokerWebClient.get()
+                .uri("https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json")
+                .headers(headers -> {
+                    headers.add("Authorization", "Bearer " + accessToken);
+                    headers.add("Content-Type", "application/json");
+                    headers.add("Accept", "application/json");
+                    headers.add("X-UserType", "USER");
+                    headers.add("X-SourceID", "WEB");
+                    headers.add("X-ClientLocalIP", "127.0.0.1");
+                    headers.add("X-ClientPublicIP", "127.0.0.1");
+                    headers.add("X-MACAddress", "aa:bb:cc:dd:ee:ff");
+                    headers.add("X-PrivateKey", angelConfig.getPrivateKey());
+                })
+                .exchangeToFlux(response -> {
+
+                    log.info("Received HTTP status: {}", response.statusCode());
+
+                    if (response.statusCode().is2xxSuccessful()) {
+                        log.info("ScripMaster request successful. Parsing JSON...");
+                        return response.bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {});
+                    } else {
+                        log.error("ScripMaster download failed! HTTP Status: {}",
+                                response.statusCode());
+                        return response.createException().flatMapMany(Flux::error);
+                    }
+                })
+                .collectList()
+                .doOnSuccess(list -> {
+                    log.info("Successfully downloaded ScripMaster.");
+                    log.info("Total entries received: {}", list.size());
+                })
+                .doOnError(err -> {
+                    log.error("Error while downloading ScripMaster: {}", err.getMessage(), err);
+                });
+    }
+
+    public Flux<Map<String, Object>> downloadScripMasterStream(String accessToken) {
+
+        log.info("Starting ScripMaster STREAM download request...");
+
+        return brokerWebClient.get()
+                .uri("https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json")
+                .headers(headers -> {
+                    headers.add("Authorization", "Bearer " + accessToken);
+                    headers.add("Accept", "application/json");
+                    headers.add("X-UserType", "USER");
+                    headers.add("X-SourceID", "WEB");
+                    headers.add("X-ClientLocalIP", "127.0.0.1");
+                    headers.add("X-ClientPublicIP", "127.0.0.1");
+                    headers.add("X-MACAddress", "aa:bb:cc:dd:ee:ff");
+                    headers.add("X-PrivateKey", angelConfig.getPrivateKey());
+                })
+                .exchangeToFlux(response -> {
+
+                    log.info("Received HTTP status: {}", response.statusCode());
+
+                    if (response.statusCode().is2xxSuccessful()) {
+                        log.info("ScripMaster STREAM parsing started...");
+                        return response.bodyToFlux(
+                                new ParameterizedTypeReference<Map<String, Object>>() {}
+                        );
+                    } else {
+                        log.error("ScripMaster download failed! HTTP Status: {}",
+                                response.statusCode());
+                        return response.createException().flatMapMany(Flux::error);
+                    }
+                })
+                .doOnComplete(() -> log.info("ScripMaster STREAM completed"))
+                .doOnError(err ->
+                        log.error("Error during ScripMaster STREAM", err)
+                );
+    }
+
+
+    public Mono<RmsResponse> fetchRmsBalance(String authToken) {
+
+        return brokerWebClient
+                .get()   // RMS needs GET
+                .uri("/rest/secure/angelbroking/user/v1/getRMS")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .bodyToMono(RmsResponse.class)
+                .doOnSuccess(resp -> log.info("RMS Response: {}", resp))
+                .doOnError(err -> log.error("Error fetching RMS: {}", err.getMessage(), err));
+    }
+
+    public Mono<OrderBookResponse_v2> getOrderBook(String token) {
+        return brokerWebClient.get()
+                .uri("/rest/secure/angelbroking/order/v1/getOrderBook")
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .bodyToMono(OrderBookResponse_v2.class);
+    }
+
+    public Mono<TradeBookResponse> getTradeBook(String token) {
+        return brokerWebClient.get()
+                .uri("/rest/secure/angelbroking/order/v1/getTradeBook")
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .bodyToMono(TradeBookResponse.class);
+    }
+
+    public Mono<JsonNode> getIndividualOrderStatus(String orderId, String authToken) {
+
+        log.info("Fetching order status for orderId={}", orderId);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        return brokerWebClient.get()
+                .uri("/rest/secure/angelbroking/order/v1/details/{orderId}", orderId)
+                .header("Authorization", "Bearer " + authToken)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .exchangeToMono(response -> {
+
+                    String contentType = response.headers()
+                            .contentType()
+                            .map(MediaType::toString)
+                            .orElse("UNKNOWN");
+
+                    log.info("AngelOne Content-Type: {}", contentType);
+
+                    return response.bodyToMono(String.class)
+                            .flatMap(body -> {
+
+                                log.debug("RAW ANGELONE RESPONSE:\n{}", body);
+
+                                // ❌ HTML response (session expired, WAF, Cloudflare, etc.)
+                                if (contentType.contains(MediaType.TEXT_HTML_VALUE)) {
+                                    return Mono.error(
+                                            new RuntimeException(
+                                                    "AngelOne returned HTML instead of JSON. Possible auth/session issue."
+                                            )
+                                    );
+                                }
+
+                                // ✅ JSON → parse to JsonNode
+                                try {
+                                    JsonNode jsonNode = objectMapper.readTree(body);
+                                    return Mono.just(jsonNode);
+                                } catch (Exception e) {
+                                    return Mono.error(
+                                            new RuntimeException("Failed to parse AngelOne JSON response", e)
+                                    );
+                                }
+                            });
+                });
+    }
+
+
+//------------------------- Order related methods -----------------------------
 
     public Mono<OrderResponse> placeOrder(BracketOrderRequest orderRequest, String authToken) {
 
@@ -151,12 +397,12 @@ public class BrokerApiClient {
                 .doOnError(err -> log.error("Error Modifying order: {}", err.getMessage(), err));
     }
 
-    public Mono<LoginResponse> generateTokens(String refreshToken, String authToken) {
+    public Mono<OrderResponse> chartinkCancelOrder(IOrderRequest cancelOrderRequest, String authToken) {
 
-        log.info("Generating new JWT tokens for refreshToken={}", refreshToken);
+        log.info("Cancelling order: {}", cancelOrderRequest);
 
         return brokerWebClient.post()
-                .uri("/rest/auth/angelbroking/jwt/v1/generateTokens")
+                .uri("/rest/secure/angelbroking/order/v1/cancelOrder")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
@@ -166,137 +412,11 @@ public class BrokerApiClient {
                 .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
                 .header("X-MACAddress", angelConfig.getClientMacAddress())
                 .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .bodyValue("{\"refreshToken\":\"" + refreshToken + "\"}")
+                .bodyValue(cancelOrderRequest)
                 .retrieve()
-                .bodyToMono(LoginResponse.class)
-                .doOnSuccess(resp -> log.info("GenerateTokens Response: {}", resp))
-                .doOnError(err -> log.error("Error generating JWT Tokens: {}", err.getMessage(), err));
-    }
-
-    public Mono<LoginResponse> logout(String clientCode, String authToken) {
-
-        log.info("Logging out client={}", clientCode);
-
-        return brokerWebClient.post()
-                .uri("/rest/secure/angelbroking/user/v1/logout")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .bodyValue("{\"clientcode\":\"" + clientCode + "\"}")
-                .retrieve()
-                .bodyToMono(LoginResponse.class)
-                .doOnSuccess(resp -> log.info("Logout Response: {}", resp))
-                .doOnError(err -> log.error("Logout failed: {}", err.getMessage(), err));
-    }
-
-    public Mono<List<Map<String, Object>>> downloadScripMaster(String accessToken) {
-
-        log.info("➡ Starting ScripMaster download request...");
-
-        return brokerWebClient.get()
-                .uri("https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json")
-                .headers(headers -> {
-                    headers.add("Authorization", "Bearer " + accessToken);
-                    headers.add("Content-Type", "application/json");
-                    headers.add("Accept", "application/json");
-                    headers.add("X-UserType", "USER");
-                    headers.add("X-SourceID", "WEB");
-                    headers.add("X-ClientLocalIP", "127.0.0.1");
-                    headers.add("X-ClientPublicIP", "127.0.0.1");
-                    headers.add("X-MACAddress", "aa:bb:cc:dd:ee:ff");
-                    headers.add("X-PrivateKey", angelConfig.getPrivateKey());
-                })
-                .exchangeToFlux(response -> {
-
-                    log.info("⬅ Received HTTP status: {}", response.statusCode());
-
-                    if (response.statusCode().is2xxSuccessful()) {
-                        log.info("✔ ScripMaster request successful. Parsing JSON...");
-                        return response.bodyToFlux(new ParameterizedTypeReference<Map<String, Object>>() {});
-                    } else {
-                        log.error("❌ ScripMaster download failed! HTTP Status: {}",
-                                response.statusCode());
-                        return response.createException().flatMapMany(Flux::error);
-                    }
-                })
-                .collectList()
-                .doOnSuccess(list -> {
-                    log.info("✔ Successfully downloaded ScripMaster.");
-                    log.info("📦 Total entries received: {}", list.size());
-                })
-                .doOnError(err -> {
-                    log.error("❌ Error while downloading ScripMaster: {}", err.getMessage(), err);
-                });
-    }
-
-    public int generateTotp(String secret) {
-
-        log.info("Generating TOTP manually...");
-
-        GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
-                .setTimeStepSizeInMillis(30000)   // 30 seconds
-                .build();
-
-        GoogleAuthenticator gAuth = new GoogleAuthenticator(config);
-        int code = gAuth.getTotpPassword(secret);
-
-        log.info("Generated TOTP = {}", code);
-        return code;
-    }
-
-    public Mono<RmsResponse> fetchRmsBalance(String authToken) {
-
-        return brokerWebClient
-                .get()   // RMS needs GET
-                .uri("/rest/secure/angelbroking/user/v1/getRMS")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .retrieve()
-                .bodyToMono(RmsResponse.class)
-                .doOnSuccess(resp -> log.info("✔ RMS Response: {}", resp))
-                .doOnError(err -> log.error("❌ Error fetching RMS: {}", err.getMessage(), err));
-    }
-
-    public Mono<OrderBookResponse_v2> getOrderBook(String token) {
-        return brokerWebClient.get()
-                .uri("/rest/secure/angelbroking/order/v1/getOrderBook")
-                .header("Authorization", "Bearer " + token)
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .retrieve()
-                .bodyToMono(OrderBookResponse_v2.class);
-    }
-
-    public Mono<TradeBookResponse> getTradeBook(String token) {
-        return brokerWebClient.get()
-                .uri("/rest/secure/angelbroking/order/v1/getTradeBook")
-                .header("Authorization", "Bearer " + token)
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .retrieve()
-                .bodyToMono(TradeBookResponse.class);
+                .bodyToMono(OrderResponse.class)
+                .doOnSuccess(resp -> log.info("Cancel Order Response: {}", resp))
+                .doOnError(err -> log.error("Error cancelling order: {}", err.getMessage(), err));
     }
 
 //    public Mono<OrderStatusResponse> getIndividualOrderStatus(String orderId, String authToken) {
@@ -362,59 +482,4 @@ public class BrokerApiClient {
 //                            });
 //                });
 //    }
-
-
-    public Mono<JsonNode> getIndividualOrderStatus(String orderId, String authToken) {
-
-        log.info("Fetching order status for orderId={}", orderId);
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        return brokerWebClient.get()
-                .uri("/rest/secure/angelbroking/order/v1/details/{orderId}", orderId)
-                .header("Authorization", "Bearer " + authToken)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .exchangeToMono(response -> {
-
-                    String contentType = response.headers()
-                            .contentType()
-                            .map(MediaType::toString)
-                            .orElse("UNKNOWN");
-
-                    log.info("AngelOne Content-Type: {}", contentType);
-
-                    return response.bodyToMono(String.class)
-                            .flatMap(body -> {
-
-                                log.debug("RAW ANGELONE RESPONSE:\n{}", body);
-
-                                // ❌ HTML response (session expired, WAF, Cloudflare, etc.)
-                                if (contentType.contains(MediaType.TEXT_HTML_VALUE)) {
-                                    return Mono.error(
-                                            new RuntimeException(
-                                                    "AngelOne returned HTML instead of JSON. Possible auth/session issue."
-                                            )
-                                    );
-                                }
-
-                                // ✅ JSON → parse to JsonNode
-                                try {
-                                    JsonNode jsonNode = objectMapper.readTree(body);
-                                    return Mono.just(jsonNode);
-                                } catch (Exception e) {
-                                    return Mono.error(
-                                            new RuntimeException("Failed to parse AngelOne JSON response", e)
-                                    );
-                                }
-                            });
-                });
-    }
-
-
 }

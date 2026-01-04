@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.config;
+package com.onepercentgrowth.local_to_smartapi.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -15,6 +15,8 @@ public class AngelApiProperties {
     private String sourceId;
     private String userType;
     private String totpCode;
+    private String clientId;
+    private String password;
 
     // Getters and Setters
     public String getBaseUrl() { return baseUrl; }
@@ -40,4 +42,18 @@ public class AngelApiProperties {
 
     public String getTotpCode() { return totpCode; }
     public void setTotpCode(String totpCode) { this.totpCode = totpCode; }
+
+    public String getClientId() {
+        return clientId;
+    }
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 }

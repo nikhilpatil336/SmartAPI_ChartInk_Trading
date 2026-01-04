@@ -1,29 +1,14 @@
 package com.onepercentgrowth.local_to_smartapi.config;
 
 import com.onepercentgrowth.local_to_smartapi.model.LoginRequest;
-import com.onepercentgrowth.local_to_smartapi.model.SlOrderMeta;
+import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.service.LoginService;
-import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
-import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
-import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
-import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.util.Map;
 
 //@Service
 //public class TokenManagerService {
@@ -182,20 +167,23 @@ import java.util.Map;
 //}
 
 @Service
-public class TokenManagerService {
+public class TokenManager {
 
     private static final Logger log =
-            LoggerFactory.getLogger(TokenManagerService.class);
+            LoggerFactory.getLogger(TokenManager.class);
 
     private final TokenStorageService tokenStorageService;
     private final LoginService loginService;
+    private final AngelApiProperties angelApiProperties;
 
-    public TokenManagerService(
+    public TokenManager(
             TokenStorageService tokenStorageService,
-            LoginService loginService
+            LoginService loginService,
+            AngelApiProperties angelApiProperties
     ) {
         this.tokenStorageService = tokenStorageService;
         this.loginService = loginService;
+        this.angelApiProperties = angelApiProperties;
     }
 
     @PostConstruct
@@ -220,9 +208,8 @@ public class TokenManagerService {
 
     private Mono<Void> refreshTokens() {
         return loginService
-                .loginWithTotp(new LoginRequest("AACA450749", "6200"))
+                .loginWithTotp(new LoginRequest(angelApiProperties.getClientId(), angelApiProperties.getPassword()))
                 .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
                 .then();
     }
 }
-

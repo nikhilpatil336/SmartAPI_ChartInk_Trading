@@ -61,4 +61,14 @@ public class OrderStatusData {
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
+
+    @Override
+    public String toString() {
+        return "OrderStatusData{" +
+                "orderid='" + orderid + '\'' +
+                ", orderstatus='" + orderstatus + '\'' +
+                ", avgprice=" + avgprice +
+                ", quantity=" + quantity +
+                '}';
+    }
 }

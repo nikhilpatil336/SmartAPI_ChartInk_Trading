@@ -11,6 +11,13 @@ public class OrderResponse {
 
         public String getOrderid() { return orderid; }
         public void setOrderid(String orderid) { this.orderid = orderid; }
+
+        @Override
+        public String toString() {
+            return "Data{" +
+                    "orderid='" + orderid + '\'' +
+                    '}';
+        }
     }
 
     public boolean isStatus() {

@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.config;
+package com.onepercentgrowth.local_to_smartapi.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -7,6 +7,11 @@ import org.springframework.validation.annotation.Validated;
 @Component
 @ConfigurationProperties(prefix = "myapp")
 public class ApplicationProperties {
+
+    private String tokenFilePath;
+    private String scripmasterFilePath;
+    private String filteredScripmasterFilePath;
+    private String slOrderstoreFilePath;
     private double balanceMinimumAllowed;
     private int stockBuyMinimumQuantityRequired;
     private double profitPercentageMultiplier;
@@ -14,6 +19,8 @@ public class ApplicationProperties {
     private long orderBookRetryMilliseconds;
     private double percentBalanceUse;
     private int numberOfStocksBuyLess;
+    private boolean fixedQuantityFlag;
+    private int fixedQuantity;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -69,5 +76,53 @@ public class ApplicationProperties {
 
     public void setNumberOfStocksBuyLess(int numberOfStocksBuyLess) {
         this.numberOfStocksBuyLess = numberOfStocksBuyLess;
+    }
+
+    public boolean isFixedQuantityFlag() {
+        return fixedQuantityFlag;
+    }
+
+    public void setFixedQuantityFlag(boolean fixedQuantityFlag) {
+        this.fixedQuantityFlag = fixedQuantityFlag;
+    }
+
+    public int getFixedQuantity() {
+        return fixedQuantity;
+    }
+
+    public void setFixedQuantity(int fixedQuantity) {
+        this.fixedQuantity = fixedQuantity;
+    }
+
+    public String getTokenFilePath() {
+        return tokenFilePath;
+    }
+
+    public void setTokenFilePath(String tokenFilePath) {
+        this.tokenFilePath = tokenFilePath;
+    }
+
+    public String getScripmasterFilePath() {
+        return scripmasterFilePath;
+    }
+
+    public void setScripmasterFilePath(String scripmasterFilePath) {
+        this.scripmasterFilePath = scripmasterFilePath;
+    }
+
+    public String getFilteredScripmasterFilePath() {
+        return filteredScripmasterFilePath;
+    }
+
+    public void setFilteredScripmasterFilePath(String filteredScripmasterFilePath) {
+        this.filteredScripmasterFilePath = filteredScripmasterFilePath;
+    }
+
+    public String getSlOrderstoreFilePath() {
+        return slOrderstoreFilePath;
+    }
+
+    public void setSlOrderstoreFilePath(String slOrderstoreFilePath) {
+        this.slOrderstoreFilePath = slOrderstoreFilePath;
     }
 }

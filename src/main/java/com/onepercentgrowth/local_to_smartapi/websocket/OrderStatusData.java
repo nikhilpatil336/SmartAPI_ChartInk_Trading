@@ -27,6 +27,9 @@ public class OrderStatusData {
     @JsonProperty("price")
     private String price;
 
+    @JsonProperty("triggerprice")
+    private String triggerprice;
+
     @JsonProperty("quantity")
     private String quantity;
 
@@ -38,6 +41,9 @@ public class OrderStatusData {
 
     @JsonProperty("updatetime")
     private String updatetime;
+
+    @JsonProperty("variety")
+    private String variety;
 
     public String getOrderid() {
         return orderid;
@@ -127,5 +133,37 @@ public class OrderStatusData {
         this.updatetime = updatetime;
     }
 
-    // getters & setters
+    public String getVariety() {
+        return variety;
+    }
+
+    public void setVariety(String variety) {
+        this.variety = variety;
+    }
+
+    public String getTriggerprice() {
+        return triggerprice;
+    }
+
+    public void setTriggerprice(String triggerprice) {
+        this.triggerprice = triggerprice;
+    }
+
+    @Override
+    public String toString() {
+        return "OrderStatusData{" +
+                "orderid='" + orderid + '\'' +
+                ", status='" + status + '\'' +
+                ", orderstatus='" + orderstatus + '\'' +
+                ", tradingsymbol='" + tradingsymbol + '\'' +
+                ", transactiontype='" + transactiontype + '\'' +
+                ", exchange='" + exchange + '\'' +
+                ", price='" + price + '\'' +
+                ", quantity='" + quantity + '\'' +
+                ", filledshares='" + filledshares + '\'' +
+                ", unfilledshares='" + unfilledshares + '\'' +
+                ", updatetime='" + updatetime + '\'' +
+                ", variety='" + variety + '\'' +
+                '}';
+    }
 }

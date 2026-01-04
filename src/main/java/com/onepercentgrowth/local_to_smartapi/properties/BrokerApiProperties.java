@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.config;
+package com.onepercentgrowth.local_to_smartapi.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

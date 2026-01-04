@@ -61,4 +61,15 @@ public class OrderStatusResponse {
     public void setOrderStatusData(OrderStatusData orderStatusData) {
         this.orderStatusData = orderStatusData;
     }
+
+    @Override
+    public String toString() {
+        return "OrderStatusResponse{" +
+                "userId='" + userId + '\'' +
+                ", statusCode='" + statusCode + '\'' +
+                ", orderStatus='" + orderStatus + '\'' +
+                ", errorMessage='" + errorMessage + '\'' +
+                ", orderStatusData=" + orderStatusData +
+                '}';
+    }
 }

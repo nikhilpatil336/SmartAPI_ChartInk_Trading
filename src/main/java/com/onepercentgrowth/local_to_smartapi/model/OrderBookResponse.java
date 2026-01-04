@@ -16,4 +16,13 @@ public class OrderBookResponse {
 
     public List<Object> getData() { return data; }
     public void setData(List<Object> data) { this.data = data; }
+
+    @Override
+    public String toString() {
+        return "OrderBookResponse{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", data=" + data +
+                '}';
+    }
 }

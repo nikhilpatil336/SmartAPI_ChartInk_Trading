@@ -2,6 +2,12 @@ package com.onepercentgrowth.local_to_smartapi.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.yourapp.websocket.model.OrderStatusResponse;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
+import com.onepercentgrowth.local_to_smartapi.service.OrderService;
+import lombok.extern.java.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
@@ -9,68 +15,103 @@ import java.util.concurrent.*;
 
 public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderStatusWebSocketHandler.class);
+
     private final ObjectMapper mapper = new ObjectMapper();
     private ScheduledExecutorService heartbeatExecutor;
     private WebSocketSession session;
 
+    @Autowired
+    private OrderEventQueue eventQueue;
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         this.session = session;
-        System.out.println("✅ Connected to Order Status WebSocket");
+        log.info("Connected to Order Status WebSocket");
 
         startHeartbeat();
     }
 
+//    @Override
+//    protected void handleTextMessage(WebSocketSession session, TextMessage message)
+//            throws Exception {
+//
+//        try {
+//            String payload = message.getPayload();
+//
+//            if ("pong".equalsIgnoreCase(payload)) {
+//                return;
+//            }
+//
+//            OrderStatusResponse response =
+//                    mapper.readValue(payload, OrderStatusResponse.class);
+//
+//            // 1️⃣ Connection / handshake
+//            if ("AB00".equals(response.getOrderStatus())) {
+//                System.out.println("🔐 Order WS authenticated successfully");
+//                return;
+//            }
+//
+//            // 2️⃣ Actual order update
+//            if (response.getOrderStatusData() != null) {
+//                System.out.println("📦 Order Update Received");
+//                System.out.println("   Order ID: " +
+//                        response.getOrderStatusData().getOrderid());
+//                System.out.println("   Status: " +
+//                        response.getOrderStatusData().getStatus());
+//                return;
+//            }
+//
+//            // 3️⃣ Error case
+//            if (response.getErrorMessage() != null) {
+//                System.err.println("❌ WS Error: " + response.getErrorMessage());
+//            }
+//
+//        } catch (Exception e) {
+//            // NEVER crash the socket
+//            System.err.println("⚠ Failed to parse WS message: " + e.getMessage());
+//        }
+//    }
+
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message)
-            throws Exception {
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
 
         try {
             String payload = message.getPayload();
 
-            if ("pong".equalsIgnoreCase(payload)) {
-                return;
-            }
+            if ("pong".equalsIgnoreCase(payload)) return;
 
             OrderStatusResponse response =
                     mapper.readValue(payload, OrderStatusResponse.class);
 
-            // 1️⃣ Connection / handshake
+            log.info("websocket response: {}", response);
+//            log.info("websocket response status: {}", response.getOrderStatusData().getStatus());
+
+            // Handshake / auth
             if ("AB00".equals(response.getOrderStatus())) {
-                System.out.println("🔐 Order WS authenticated successfully");
+                log.info("Order WS authenticated");
                 return;
             }
 
-            // 2️⃣ Actual order update
+            // Only enqueue real order events
             if (response.getOrderStatusData() != null) {
-                System.out.println("📦 Order Update Received");
-                System.out.println("   Order ID: " +
-                        response.getOrderStatusData().getOrderid());
-                System.out.println("   Status: " +
-                        response.getOrderStatusData().getStatus());
-                return;
-            }
-
-            // 3️⃣ Error case
-            if (response.getErrorMessage() != null) {
-                System.err.println("❌ WS Error: " + response.getErrorMessage());
+                eventQueue.publish(response);
             }
 
         } catch (Exception e) {
-            // NEVER crash the socket
-            System.err.println("⚠ Failed to parse WS message: " + e.getMessage());
+            log.error("Failed WS message: " + e.getMessage());
         }
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        System.out.println("❌ WebSocket closed: " + status);
+        log.info("WebSocket closed: " + status);
         stopHeartbeat();
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        System.err.println("🚨 WebSocket error: " + exception.getMessage());
+        log.error("WebSocket error: " + exception.getMessage());
     }
 
     /* ---------------- Heartbeat ---------------- */
@@ -83,7 +124,7 @@ public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage("ping"));
                 }
             } catch (Exception e) {
-                System.err.println("Heartbeat failed: " + e.getMessage());
+                log.error("Heartbeat failed: " + e.getMessage());
             }
         }, 10, 10, TimeUnit.SECONDS);
     }

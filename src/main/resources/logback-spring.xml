@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ===== LOG FILE LOCATION for My PC windowns system ===== -->
+    <property name="LOG_PATH" value="D:/1 percent growth trading/logs"/>
+
+    <!-- ===== LOG FILE LOCATION Raspberry pi linux system ===== -->
+<!--    <property name="LOG_PATH" value="/home/trade_conf/logs"/>-->
+
+
+    <property name="LOG_FILE" value="${LOG_PATH}/application.log"/>
+
+
+
+    <!-- ===== LOG PATTERN ===== -->
+    <!--<property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36}.%M:%L - %msg%n"/>-->
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %class{0}.%replace(%method){'lambda\\$|\\$\\d+',''}:%L - %msg%n"/>
+
+    <!-- ===== CONSOLE APPENDER ===== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== FILE APPENDER (DAILY ROLLING) ===== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- Current log file -->
+        <file>${LOG_FILE}</file>
+
+        <!-- Daily rolling policy -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Log file name pattern -->
+            <fileNamePattern>
+                ${LOG_PATH}/application.%d{yyyy-MM-dd}.log
+            </fileNamePattern>
+
+            <!-- Keep logs for 30 days -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===== ROOT LOGGER ===== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

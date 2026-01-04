@@ -38,4 +38,13 @@ public class OrderBookResponse_v2 {
     public void setData(List<OrderStatusItem> data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "OrderBookResponse_v2{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", data=" + data +
+                '}';
+    }
 }
