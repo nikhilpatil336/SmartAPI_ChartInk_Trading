@@ -67,6 +67,8 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             int quantity,
             double triggerPrice
     ) {
+        log.info("Trigger price for stoploss is {}", triggerPrice);
+
         ChartinkMIS_SL_OrderRequest req = new ChartinkMIS_SL_OrderRequest();
         req.setVariety("STOPLOSS");
         req.setTradingsymbol(stockName + "-EQ");

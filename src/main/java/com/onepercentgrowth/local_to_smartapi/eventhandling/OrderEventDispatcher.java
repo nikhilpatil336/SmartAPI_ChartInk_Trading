@@ -65,7 +65,7 @@ public class OrderEventDispatcher {
     }
 
     private void process(OrderStatusResponse event) {
-        String status = event.getOrderStatusData().getOrderstatus();
+        String status = event.getOrderStatusData().getStatus();
 
         OrderStatusHandler handler =
                 handlers.get(status.toUpperCase());

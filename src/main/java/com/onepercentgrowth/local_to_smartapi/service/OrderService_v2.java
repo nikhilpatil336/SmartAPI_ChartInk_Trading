@@ -329,7 +329,7 @@ public class OrderService_v2 {
                         price
                 );
 
-        log.info("buy order request: {}", buyOrder);
+//        log.info("buy order request: {}", buyOrder);
 
         return brokerApiClient.chartinkPlaceOrder(buyOrder, jwtToken)
                 .doOnSuccess(resp -> {

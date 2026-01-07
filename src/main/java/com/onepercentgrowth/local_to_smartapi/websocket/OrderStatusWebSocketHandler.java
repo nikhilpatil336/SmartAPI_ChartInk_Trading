@@ -77,9 +77,12 @@ public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
 
         try {
+
             String payload = message.getPayload();
 
             if ("pong".equalsIgnoreCase(payload)) return;
+
+            log.info("websocket raw text payload: {}", payload);
 
             OrderStatusResponse response =
                     mapper.readValue(payload, OrderStatusResponse.class);

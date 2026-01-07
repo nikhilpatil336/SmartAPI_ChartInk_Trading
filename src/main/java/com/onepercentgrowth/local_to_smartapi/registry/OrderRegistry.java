@@ -3,7 +3,9 @@ package com.onepercentgrowth.local_to_smartapi.registry;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -66,6 +68,33 @@ public class OrderRegistry {
         if (ctx.getStopLossOrderId() != null) {
             bySlId.put(ctx.getStopLossOrderId(), ctx);
         }
+    }
+
+    public void registerSell(OrderContext ctx) {
+        if (ctx.getSellOrderId() != null) {
+            bySellId.put(ctx.getSellOrderId(), ctx);
+        }
+    }
+
+    public void registerStopLoss(OrderContext ctx) {
+        if (ctx.getStopLossOrderId() != null) {
+            bySlId.put(ctx.getStopLossOrderId(), ctx);
+        }
+    }
+
+
+    public Optional<OrderContext> getByAnyOrderId(String orderId) {
+
+        OrderContext ctx = byBuyId.get(orderId);
+        if (ctx != null) return Optional.of(ctx);
+
+        ctx = bySellId.get(orderId);
+        if (ctx != null) return Optional.of(ctx);
+
+        ctx = bySlId.get(orderId);
+        if (ctx != null) return Optional.of(ctx);
+
+        return Optional.empty();
     }
 
     public Optional<OrderContext> getByBuyId(String buyOrderId) {

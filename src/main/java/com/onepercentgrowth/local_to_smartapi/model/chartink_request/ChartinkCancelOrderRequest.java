@@ -4,7 +4,7 @@ public class ChartinkCancelOrderRequest implements IOrderRequest{
     private String variety;   // e.g. "NORMAL"
     private String orderid;
 
-    public ChartinkCancelOrderRequest(String variety, String orderid) {
+    public ChartinkCancelOrderRequest( String orderid, String variety) {
         this.variety = variety;
         this.orderid = orderid;
     }
@@ -23,5 +23,13 @@ public class ChartinkCancelOrderRequest implements IOrderRequest{
 
     public void setOrderid(String orderid) {
         this.orderid = orderid;
+    }
+
+    @Override
+    public String toString() {
+        return "ChartinkCancelOrderRequest{" +
+                "variety='" + variety + '\'' +
+                ", orderid='" + orderid + '\'' +
+                '}';
     }
 }

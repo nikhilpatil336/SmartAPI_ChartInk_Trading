@@ -198,7 +198,7 @@ public class OrderExecutionService {
     public Mono<OrderResponse> placeCancelOrder(String orderId, String variety, String jwtToken) {
         IOrderRequest cancelOrder = orderRequestFactory.createCancelOrder(orderId, variety);
 
-        log.info("Placing CANCEL order: {}", cancelOrder);
+        log.info("Placing CANCEL order: {}", cancelOrder.toString());
 
         return brokerApiClient.chartinkCancelOrder(cancelOrder, jwtToken);
     }

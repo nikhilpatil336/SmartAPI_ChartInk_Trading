@@ -135,14 +135,27 @@ public class FilledOrderHandler implements OrderStatusHandler {
         String orderId =
                 response.getOrderStatusData().getOrderid();
 
-        orderRegistry.getByBuyId(orderId)
-                .ifPresent(ctx -> {
+//        orderRegistry.getByBuyId(orderId)
+//                .ifPresent(ctx -> {
+//                    log.info("Retrieved object from registry: {}", ctx);
+//                    strategies.stream()
+//                            .filter(s -> s.supports(ctx, response))
+//                            .findFirst()
+//                            .ifPresent(s -> s.onFilled(ctx, response));
+//                });
+
+        orderRegistry.getByAnyOrderId(orderId)
+                .ifPresentOrElse(ctx -> {
+
                     log.info("Retrieved object from registry: {}", ctx);
+
                     strategies.stream()
                             .filter(s -> s.supports(ctx, response))
                             .findFirst()
                             .ifPresent(s -> s.onFilled(ctx, response));
-                });
+
+                }, () -> log.warn("No OrderContext found for orderId={}", orderId));
+
     }
 }
 

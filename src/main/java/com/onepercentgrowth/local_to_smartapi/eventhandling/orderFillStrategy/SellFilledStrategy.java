@@ -28,54 +28,82 @@ public class SellFilledStrategy implements OrderFillStrategy {
 
     @Override
     public boolean supports(OrderContext ctx, OrderStatusResponse response) {
-        return response.getOrderStatusData().getTransactiontype().equals("SELL")
-                && ctx.getSellOrderId().equals(
-                response.getOrderStatusData().getOrderid()
-        );
+        return "SELL".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
+                && response.getOrderStatusData().getOrderid().equals(ctx.getSellOrderId());
     }
+
+//    @Override
+//    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
+//
+//        log.info("order type got hit was: {}", response.getOrderStatusData().getVariety());
+//        log.info("Context Object is: {}", ctx.toString());
+//
+//        if (response.getOrderStatusData().getVariety().equalsIgnoreCase("NORMAL")) {
+//            log.info("inside stoploss.");
+//            orderRegistry.getBySlId(response.getOrderStatusData().getOrderid())
+//                    .ifPresent(x -> {
+//                                String jwtToken =
+//                                        tokenManager.getValidJwtToken();
+//
+//                                String sellOrderID = ctx.getSellOrderId();
+//                                String sellVariety = ctx.getSellVariety();
+//
+//                                Mono<OrderResponse> sellMono =
+//                                        executionService
+//                                                .placeCancelOrder(
+//                                                        sellOrderID,
+//                                                        sellVariety,
+//                                                        jwtToken
+//                                                )
+//                                                .retry(3);
+//                            }
+//                    );
+//        } else if (response.getOrderStatusData().getVariety().equalsIgnoreCase("SELL")) {
+//            log.info("inside sell.");
+//            orderRegistry.getBySlId(response.getOrderStatusData().getOrderid())
+//                    .ifPresent(x -> {
+//                                String jwtToken =
+//                                        tokenManager.getValidJwtToken();
+//
+//                                String stopLossOrderID = ctx.getStopLossOrderId();
+//                                String stopLossVariety = ctx.getStopLossVariety();
+//
+//                                Mono<OrderResponse> sellMono =
+//                                        executionService
+//                                                .placeCancelOrder(
+//                                                        stopLossOrderID,
+//                                                        stopLossVariety,
+//                                                        jwtToken
+//                                                )
+//                                                .retry(3);
+//                            }
+//                    );
+//        }
+//    }
 
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
-        if (response.getOrderStatusData().getVariety().equalsIgnoreCase("STOPLOSS")) {
-            orderRegistry.getBySlId(response.getOrderStatusData().getOrderid())
-                    .ifPresent(x -> {
-                                String jwtToken =
-                                        tokenManager.getValidJwtToken();
+        log.info("SELL filled for {}", ctx.getTradingSymbol());
 
-                                String sellOrderID = ctx.getSellOrderId();
-                                String sellVariety = ctx.getSellVariety();
+        String stopLossOrderId = ctx.getStopLossOrderId();
+        String stopLossVariety = ctx.getStopLossVariety();
 
-                                Mono<OrderResponse> sellMono =
-                                        executionService
-                                                .placeCancelOrder(
-                                                        sellOrderID,
-                                                        sellVariety,
-                                                        jwtToken
-                                                )
-                                                .retry(3);
-                            }
-                    );
-        } else if (response.getOrderStatusData().getVariety().equalsIgnoreCase("SELL")) {
-            orderRegistry.getBySlId(response.getOrderStatusData().getOrderid())
-                    .ifPresent(x -> {
-                                String jwtToken =
-                                        tokenManager.getValidJwtToken();
-
-                                String stopLossOrderID = ctx.getStopLossOrderId();
-                                String stopLossVariety = ctx.getStopLossVariety();
-
-                                Mono<OrderResponse> sellMono =
-                                        executionService
-                                                .placeCancelOrder(
-                                                        stopLossOrderID,
-                                                        stopLossVariety,
-                                                        jwtToken
-                                                )
-                                                .retry(3);
-                            }
-                    );
+        if (stopLossOrderId == null) {
+            log.warn("No SL order to cancel for {}", ctx.getBuyOrderId());
+            return;
         }
+
+        String jwtToken = tokenManager.getValidJwtToken();
+
+        executionService
+                .placeCancelOrder(stopLossOrderId, stopLossVariety, jwtToken)
+                .retry(3)
+                .doOnSuccess(resp -> {
+                    log.info("STOPLOSS cancelled for buyOrder={}", ctx.getBuyOrderId());
+                    orderRegistry.remove(ctx); // trade is complete
+                })
+                .subscribe();
     }
 }
 
