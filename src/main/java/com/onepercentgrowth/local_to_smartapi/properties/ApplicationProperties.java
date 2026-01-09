@@ -4,6 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.LocalTime;
+
 @Component
 @ConfigurationProperties(prefix = "myapp")
 public class ApplicationProperties {
@@ -21,6 +23,10 @@ public class ApplicationProperties {
     private int numberOfStocksBuyLess;
     private boolean fixedQuantityFlag;
     private int fixedQuantity;
+    private boolean tradingWindowEnable;
+    private LocalTime tradingWindowStartTime;
+    private LocalTime tradingWindowEndTime;
+    private String tradingWindowTimeZone;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -124,5 +130,37 @@ public class ApplicationProperties {
 
     public void setSlOrderstoreFilePath(String slOrderstoreFilePath) {
         this.slOrderstoreFilePath = slOrderstoreFilePath;
+    }
+
+    public boolean isTradingWindowEnable() {
+        return tradingWindowEnable;
+    }
+
+    public void setTradingWindowEnable(boolean tradingWindowEnable) {
+        this.tradingWindowEnable = tradingWindowEnable;
+    }
+
+    public LocalTime getTradingWindowStartTime() {
+        return tradingWindowStartTime;
+    }
+
+    public void setTradingWindowStartTime(LocalTime tradingWindowStartTime) {
+        this.tradingWindowStartTime = tradingWindowStartTime;
+    }
+
+    public LocalTime getTradingWindowEndTime() {
+        return tradingWindowEndTime;
+    }
+
+    public void setTradingWindowEndTime(LocalTime tradingWindowEndTime) {
+        this.tradingWindowEndTime = tradingWindowEndTime;
+    }
+
+    public String getTradingWindowTimeZone() {
+        return tradingWindowTimeZone;
+    }
+
+    public void setTradingWindowTimeZone(String tradingWindowTimeZone) {
+        this.tradingWindowTimeZone = tradingWindowTimeZone;
     }
 }
