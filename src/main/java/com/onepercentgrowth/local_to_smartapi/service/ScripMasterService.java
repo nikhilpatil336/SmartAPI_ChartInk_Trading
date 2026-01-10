@@ -27,7 +27,7 @@ public class ScripMasterService {
     private final ScripMasterStorageService scripMasterStorageService;
     private volatile Map<String, String> nseEquityMap = new HashMap<>();
     private volatile List<Map<String, Object>> rawScripList = null;
-    private volatile RmsData rmsData = null;
+//    private volatile RmsData rmsData = null;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ScripMasterService(BrokerApiClient brokerApiClient,
@@ -175,46 +175,46 @@ public class ScripMasterService {
         return rawScripList;
     }
 
-    private void saveFile(String path, Object model) {
-        try {
-            new File(path).getParentFile().mkdirs();
-            objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValue(new File(path), model);
-            log.info("Saved {}", path);
-        } catch (Exception e) {
-            log.error("Failed saving {}", path, e);
-        }
-    }
+//    private void saveFile(String path, Object model) {
+//        try {
+//            new File(path).getParentFile().mkdirs();
+//            objectMapper.writerWithDefaultPrettyPrinter()
+//                    .writeValue(new File(path), model);
+//            log.info("Saved {}", path);
+//        } catch (Exception e) {
+//            log.error("Failed saving {}", path, e);
+//        }
+//    }
 
-    public Mono<RmsResponse> getCurrentBalance() {
-        String jwtToken = tokenStorageService.getJwtToken();
-
-        if (jwtToken == null) {
-            return Mono.error(new RuntimeException("No JWT token found. Please log in."));
-        }
-
-        return brokerApiClient.fetchRmsBalance(jwtToken)
-                .doOnNext(rmsResponse -> {
-                    if (rmsResponse != null && rmsResponse.getData() != null) {
-                        this.rmsData = rmsResponse.getData(); // store for later use
-                        log.info("Stored RMS data locally: {}", rmsData);
-                    } else {
-                        log.warn("RMS response data is null");
-                    }
-                });
-    }
+//    public Mono<RmsResponse> getCurrentBalance() {
+//        String jwtToken = tokenStorageService.getJwtToken();
+//
+//        if (jwtToken == null) {
+//            return Mono.error(new RuntimeException("No JWT token found. Please log in."));
+//        }
+//
+//        return brokerApiClient.fetchRmsBalance(jwtToken)
+//                .doOnNext(rmsResponse -> {
+//                    if (rmsResponse != null && rmsResponse.getData() != null) {
+//                        this.rmsData = rmsResponse.getData(); // store for later use
+//                        log.info("Stored RMS data locally: {}", rmsData);
+//                    } else {
+//                        log.warn("RMS response data is null");
+//                    }
+//                });
+//    }
 
     public String getTokenForName(String name) {
         return nseEquityMap.get(name);
     }
 
-    public RmsData getRmsData() {
-        return rmsData;
-    }
-
-    public void setRmsData(RmsData rmsData) {
-        this.rmsData = rmsData;
-    }
+//    public RmsData getRmsData() {
+//        return rmsData;
+//    }
+//
+//    public void setRmsData(RmsData rmsData) {
+//        this.rmsData = rmsData;
+//    }
 
 
 }

@@ -1,6 +1,9 @@
 package com.onepercentgrowth.local_to_smartapi.controller;
 
+import com.onepercentgrowth.local_to_smartapi.model.RmsData;
 import com.onepercentgrowth.local_to_smartapi.model.RmsResponse;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
+import com.onepercentgrowth.local_to_smartapi.service.RmsService;
 import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,9 +17,11 @@ import java.util.Map;
 public class ScripMasterController {
 
     private final ScripMasterService scripMasterService;
+    private final RmsService rmsService;
 
-    public ScripMasterController(ScripMasterService scripMasterService) {
+    public ScripMasterController(ScripMasterService scripMasterService, RmsService rmsService) {
         this.scripMasterService = scripMasterService;
+        this.rmsService = rmsService;
     }
 
     @GetMapping("/nse/download")
@@ -25,7 +30,7 @@ public class ScripMasterController {
     }
 
     @GetMapping("/rms/balance")
-    public Mono<RmsResponse> getRmsBalance() {
-        return scripMasterService.getCurrentBalance();
+    public Mono<RmsData> getRmsBalance() {
+        return rmsService.refreshNow();
     }
 }

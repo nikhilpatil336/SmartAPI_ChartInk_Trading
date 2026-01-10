@@ -4,6 +4,7 @@ import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderCalculationService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
@@ -11,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
 
 @Component
 public class BuyFilledStrategy implements OrderFillStrategy {
@@ -21,12 +24,20 @@ public class BuyFilledStrategy implements OrderFillStrategy {
     private final OrderExecutionService executionService;
     private final OrderCalculationService calculationService;
     private final TokenManager tokenManager;
+    private final BalanceService balanceService;
 
-    public BuyFilledStrategy(OrderExecutionService orderExecutionService, OrderCalculationService orderCalculationService, TokenManager tokenManager, OrderRegistry orderRegistry) {
-        this.executionService = orderExecutionService;
-        this.calculationService = orderCalculationService;
+    public BuyFilledStrategy(
+            OrderExecutionService executionService,
+            OrderCalculationService calculationService,
+            TokenManager tokenManager,
+            OrderRegistry orderRegistry,
+            BalanceService balanceService
+    ) {
+        this.executionService = executionService;
+        this.calculationService = calculationService;
         this.tokenManager = tokenManager;
         this.orderRegistry = orderRegistry;
+        this.balanceService = balanceService;
     }
 
     @Override
@@ -37,109 +48,6 @@ public class BuyFilledStrategy implements OrderFillStrategy {
         );
     }
 
-//    @Override
-//    public void onFilled(OrderContext ctx1, OrderStatusResponse response) {
-//
-////        double executedPrice =
-////                Double.parseDouble(response.getOrderStatusData().getPrice());
-////
-////        String jwtToken = tokenManager.getValidJwtToken();
-////
-////        double sellPrice =
-////                calculationService.calculateProfitPrice(executedPrice);
-////        double slPrice =
-////                calculationService.calculateStopLossPrice(executedPrice);
-////
-////        Mono<OrderResponse> sellMono =
-////                executionService.placeSellOrder(
-////                        ctx.getTradingSymbol(),
-////                        ctx.getSymbolToken(),
-////                        ctx.getQuantity(),
-////                        sellPrice,
-////                        jwtToken
-////                );
-////
-////        Mono<OrderResponse> slMono =
-////                executionService.placeStopLossOrder(
-////                        ctx.getTradingSymbol(),
-////                        ctx.getSymbolToken(),
-////                        ctx.getQuantity(),
-////                        slPrice,
-////                        jwtToken
-////                );
-////
-////        Mono.zip(sellMono, slMono)
-////                .doOnSuccess(tuple -> {
-////                    ctx.setSellOrderId(tuple.getT1().getData().getOrderid());
-////                    ctx.setStopLossOrderId(tuple.getT2().getData().getOrderid());
-////                })
-////                .subscribe();
-////    }
-//        String buyOrderId =
-//                response.getOrderStatusData().getOrderid();
-//
-//        double executedPrice =
-//                Double.parseDouble(
-//                        response.getOrderStatusData().getPrice()
-//                );
-//
-//        orderRegistry.getByBuyId(buyOrderId)
-//                .ifPresent(ctx -> {
-//
-//                    String jwtToken =
-//                            tokenManager.getValidJwtToken();
-//
-//                    double sellPrice =
-//                            calculationService
-//                                    .calculateProfitPrice(executedPrice);
-//
-//                    double slPrice =
-//                            calculationService
-//                                    .calculateStopLossPrice(executedPrice);
-//
-//                    Mono<OrderResponse> sellMono =
-//                            executionService
-//                                    .placeSellOrder(
-//                                            ctx.getTradingSymbol(),
-//                                            ctx.getSymbolToken(),
-//                                            ctx.getQuantity(),
-//                                            sellPrice,
-//                                            jwtToken
-//                                    )
-//                                    .retry(3);
-//
-//                    Mono<OrderResponse> slMono =
-//                            executionService
-//                                    .placeStopLossOrder(
-//                                            ctx.getTradingSymbol(),
-//                                            ctx.getSymbolToken(),
-//                                            ctx.getQuantity(),
-//                                            slPrice,
-//                                            jwtToken
-//                                    )
-//                                    .retry(3);
-//
-//                    Mono.zip(sellMono, slMono)
-//                            .doOnSuccess(tuple -> {
-//
-//                                ctx.setSellOrderId(
-//                                        tuple.getT1().getData().getOrderid()
-//                                );
-//                                ctx.setStopLossOrderId(
-//                                        tuple.getT2().getData().getOrderid()
-//                                );
-//
-//                                ctx.setSellVariety("NORMAL");
-//                                ctx.setStopLossVariety("STOPLOSS");
-//
-//                                log.info(
-//                                        "SELL and SL order successfully placed, current order context: {}",
-//                                        ctx.toString()
-//                                );
-//                            })
-//                            .subscribe();
-//                });
-//    }
 
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
@@ -200,6 +108,18 @@ public class BuyFilledStrategy implements OrderFillStrategy {
         // Fire both independently
         sellMono.subscribe();
         slMono.subscribe();
+
+        int quantity = ctx.getQuantity();
+
+        // 🔑 BALANCE UPDATE
+        balanceService.onBuy(
+                BigDecimal.valueOf(executedPrice),
+                quantity,
+                balanceService.getCurrentBalance()
+        );
+
+//        log.info("Balance updated after BUY: price={}, qty={}",
+//                executedPrice, quantity);
     }
 
 }

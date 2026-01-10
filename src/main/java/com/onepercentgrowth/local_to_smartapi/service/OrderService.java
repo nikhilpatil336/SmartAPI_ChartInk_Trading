@@ -40,9 +40,10 @@ public class OrderService {
     private ApplicationProperties applicationProperties;
     @Autowired
     private OrderRegistry orderRegistry;
-
     @Autowired
     private OrderRequestFactory orderRequestFactory;
+    @Autowired
+    private RmsService rmsService;
 
 
 //    public OrderService(BrokerApiClient brokerApiClient,
@@ -89,7 +90,8 @@ public class OrderService {
         }
 
         // 4. Get RMS balance
-        RmsData rmsData = scripMasterService.getRmsData();
+//        RmsData rmsData = scripMasterService.getRmsData();
+        RmsData rmsData = rmsService.getCachedRms();
         if (rmsData == null) {
             return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
         }
@@ -214,7 +216,8 @@ public class OrderService {
         }
 
         // 2. RMS balance
-        RmsData rmsData = scripMasterService.getRmsData();
+//        RmsData rmsData = scripMasterService.getRmsData();
+        RmsData rmsData = rmsService.getCachedRms();
         if (rmsData == null) {
             return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
         }

@@ -1,7 +1,9 @@
 package com.onepercentgrowth.local_to_smartapi.startupservice;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
+import com.onepercentgrowth.local_to_smartapi.service.RmsService;
 import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
@@ -24,6 +26,9 @@ public class ApplicationStartupService {
     private final SlOrderStore slOrderStore;
     private final OrderStatusWebSocketService orderStatusWebSocketService;
     private final TokenManager tokenManager;
+    private final RmsService rmsService;
+    private final BalanceService balanceService;
+
 
 
     @Value("${myapp.sl-orderstore-file-path}")
@@ -34,13 +39,17 @@ public class ApplicationStartupService {
             ScripMasterService scripMasterService,
             SlOrderStore slOrderStore,
             OrderStatusWebSocketService orderStatusWebSocketService,
-            TokenManager tokenManager
+            TokenManager tokenManager,
+            RmsService rmsService,
+            BalanceService balanceService
     ) {
         this.scripMasterStorageService = scripMasterStorageService;
         this.scripMasterService = scripMasterService;
         this.slOrderStore = slOrderStore;
         this.orderStatusWebSocketService = orderStatusWebSocketService;
         this.tokenManager = tokenManager;
+        this.rmsService = rmsService;
+        this.balanceService = balanceService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -82,12 +91,24 @@ public class ApplicationStartupService {
         orderStatusWebSocketService.start();
 
         // ---- RMS BALANCE ----
+//        log.info("Fetching RMS balance on startup");
+//
+//        Mono.fromRunnable(() -> tokenManager.getValidJwtToken())
+//                .then(scripMasterService.getCurrentBalance())
+//                .doOnSuccess(resp ->
+//                        log.info("RMS balance loaded successfully on startup")
+//                )
+//                .doOnError(err ->
+//                        log.error("Failed to fetch RMS on startup", err)
+//                )
+//                .subscribe();
+
         log.info("Fetching RMS balance on startup");
 
         Mono.fromRunnable(() -> tokenManager.getValidJwtToken())
-                .then(scripMasterService.getCurrentBalance())
-                .doOnSuccess(resp ->
-                        log.info("RMS balance loaded successfully on startup")
+                .then(rmsService.refreshNow())
+                .doOnSuccess(rms ->
+                        log.info("RMS loaded and balance synced on startup")
                 )
                 .doOnError(err ->
                         log.error("Failed to fetch RMS on startup", err)

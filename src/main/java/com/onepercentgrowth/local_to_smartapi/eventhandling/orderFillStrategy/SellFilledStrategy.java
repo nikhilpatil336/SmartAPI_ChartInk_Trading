@@ -4,12 +4,15 @@ import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
 
 @Component
 public class SellFilledStrategy implements OrderFillStrategy {
@@ -19,11 +22,18 @@ public class SellFilledStrategy implements OrderFillStrategy {
     private final OrderExecutionService executionService;
     private final TokenManager tokenManager;
     private final OrderRegistry orderRegistry;
+    private final BalanceService balanceService;
 
-    public SellFilledStrategy(OrderExecutionService executionService, TokenManager tokenManager, OrderRegistry orderRegistry) {
+    public SellFilledStrategy(
+            OrderExecutionService executionService,
+            TokenManager tokenManager,
+            OrderRegistry orderRegistry,
+            BalanceService balanceService
+    ) {
         this.executionService = executionService;
         this.tokenManager = tokenManager;
         this.orderRegistry = orderRegistry;
+        this.balanceService = balanceService;
     }
 
     @Override
@@ -104,6 +114,21 @@ public class SellFilledStrategy implements OrderFillStrategy {
                     orderRegistry.remove(ctx); // trade is complete
                 })
                 .subscribe();
+
+        double executedPrice =
+                Double.parseDouble(response.getOrderStatusData().getPrice());
+
+        int quantity = ctx.getQuantity();
+
+        // 🔑 BALANCE UPDATE
+        balanceService.onSell(
+                BigDecimal.valueOf(executedPrice),
+                quantity,
+                balanceService.getCurrentBalance()
+        );
+
+//        log.info("Balance updated after SELL: price={}, qty={}",
+//                executedPrice, quantity);
     }
 }
 

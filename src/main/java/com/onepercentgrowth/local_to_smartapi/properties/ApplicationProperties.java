@@ -27,6 +27,10 @@ public class ApplicationProperties {
     private LocalTime tradingWindowStartTime;
     private LocalTime tradingWindowEndTime;
     private String tradingWindowTimeZone;
+    private boolean rmsAutoRefreshEnable;
+    private boolean rmsFileOverwriteEnabled;
+    private int rmsRefreshIntervalMinutes;
+    private String rmsBalanceFilePath;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -162,5 +166,69 @@ public class ApplicationProperties {
 
     public void setTradingWindowTimeZone(String tradingWindowTimeZone) {
         this.tradingWindowTimeZone = tradingWindowTimeZone;
+    }
+
+//    public boolean isAutoRefreshEnabled() {
+//        return rmsAutoRefreshEnable;
+//    }
+//
+//    public void setAutoRefreshEnabled(boolean rmsAutoRefreshEnable) {
+//        this.rmsAutoRefreshEnable = rmsAutoRefreshEnable;
+//    }
+//
+//    public int getRefreshIntervalMinutes() {
+//        return rmsRefreshIntervalMinutes;
+//    }
+//
+//    public void setRefreshIntervalMinutes(int rmsRefreshIntervalMinutes) {
+//        this.rmsRefreshIntervalMinutes = rmsRefreshIntervalMinutes;
+//    }
+//
+//    public boolean isFileOverwriteEnabled() {
+//        return rmsFileOverwriteEnabled;
+//    }
+//
+//    public void setFileOverwriteEnabled(boolean fileOverwriteEnabled) {
+//        this.rmsFileOverwriteEnabled = rmsFileOverwriteEnabled;
+//    }
+//
+//    public String getRmsBalanceFilePath() {
+//        return rmsBalanceFilePath;
+//    }
+//
+//    public void setRmsBalanceFilePath(String rmsBalanceFilePath) {
+//        this.rmsBalanceFilePath = rmsBalanceFilePath;
+//    }
+
+    public boolean isRmsAutoRefreshEnable() {
+        return rmsAutoRefreshEnable;
+    }
+
+    public void setRmsAutoRefreshEnable(boolean rmsAutoRefreshEnable) {
+        this.rmsAutoRefreshEnable = rmsAutoRefreshEnable;
+    }
+
+    public boolean isRmsFileOverwriteEnabled() {
+        return rmsFileOverwriteEnabled;
+    }
+
+    public void setRmsFileOverwriteEnabled(boolean rmsFileOverwriteEnabled) {
+        this.rmsFileOverwriteEnabled = rmsFileOverwriteEnabled;
+    }
+
+    public int getRmsRefreshIntervalMinutes() {
+        return rmsRefreshIntervalMinutes;
+    }
+
+    public void setRmsRefreshIntervalMinutes(int rmsRefreshIntervalMinutes) {
+        this.rmsRefreshIntervalMinutes = rmsRefreshIntervalMinutes;
+    }
+
+    public String getRmsBalanceFilePath() {
+        return rmsBalanceFilePath;
+    }
+
+    public void setRmsBalanceFilePath(String rmsBalanceFilePath) {
+        this.rmsBalanceFilePath = rmsBalanceFilePath;
     }
 }

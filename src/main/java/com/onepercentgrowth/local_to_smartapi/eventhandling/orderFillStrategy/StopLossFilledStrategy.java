@@ -3,11 +3,14 @@ package com.onepercentgrowth.local_to_smartapi.eventhandling.orderFillStrategy;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
 
 @Component
 public class StopLossFilledStrategy implements OrderFillStrategy {
@@ -39,15 +42,18 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
     private final OrderExecutionService executionService;
     private final TokenManager tokenManager;
     private final OrderRegistry orderRegistry;
+    private final BalanceService balanceService;
 
     public StopLossFilledStrategy(
             OrderExecutionService executionService,
             TokenManager tokenManager,
-            OrderRegistry orderRegistry
+            OrderRegistry orderRegistry,
+            BalanceService balanceService
     ) {
         this.executionService = executionService;
         this.tokenManager = tokenManager;
         this.orderRegistry = orderRegistry;
+        this.balanceService = balanceService;
     }
 
     @Override
@@ -79,6 +85,21 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
                     orderRegistry.remove(ctx); // trade is complete
                 })
                 .subscribe();
+
+        double executedPrice =
+                Double.parseDouble(response.getOrderStatusData().getPrice());
+
+        int quantity = ctx.getQuantity();
+
+        // 🔑 BALANCE UPDATE
+        balanceService.onSell(
+                BigDecimal.valueOf(executedPrice),
+                quantity,
+                balanceService.getCurrentBalance()
+        );
+
+//        log.warn("STOPLOSS hit, balance updated: price={}, qty={}",
+//                executedPrice, quantity);
     }
 }
 

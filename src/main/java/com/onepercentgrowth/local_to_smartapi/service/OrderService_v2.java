@@ -26,6 +26,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 
@@ -55,6 +56,8 @@ public class OrderService_v2 {
     private TokenManager tokenManager;
     @Autowired
     private OrderEventQueue orderEventQueue;
+    @Autowired
+    private BalanceService balanceService;
 
 //  ------------------- 1st version of buy order --------------------------------
 
@@ -71,28 +74,63 @@ public class OrderService_v2 {
         }
 
         // 2. RMS balance
-        RmsData rmsData = scripMasterService.getRmsData();
-        if (rmsData == null) {
-            return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
+//        RmsData rmsData = scripMasterService.getRmsData();
+//        if (rmsData == null) {
+//            return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
+//        }
+//
+////        Double availableCash = (Double.parseDouble(rmsData.getAvailablecash())*applicationProperties.getPercentBalanceUse());
+//        Double availableCash = (balanceService.getCurrentBalance()*applicationProperties.getPercentBalanceUse());
+////      ***************************
+////        availableCash = 10000.00;
+//
+//        if (availableCash <= applicationProperties.getBalanceMinimumAllowed()) {
+//            return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
+//        }
+//
+//        // 3. Quantity
+//        int quantity = (int) (Math.floor(availableCash / triggerPrice)-applicationProperties.getNumberOfStocksBuyLess());
+//
+////        if(quantity > 1)
+////            quantity -= applicationProperties.getNumberOfStocksBuyLess();
+//
+//        if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+//            return Mono.error(new RuntimeException("Not enough cash to buy " + applicationProperties.getStockBuyMinimumQuantityRequired()+1 + " shares."));
+//        }
+
+        BigDecimal usableCash =
+                balanceService.getUsableBalance(
+                        applicationProperties.getPercentBalanceUse()
+                );
+
+        if (usableCash.doubleValue()
+                <= applicationProperties.getBalanceMinimumAllowed()) {
+
+            return Mono.error(
+                    new RuntimeException(
+                            "Insufficient balance: " + usableCash
+                    )
+            );
         }
 
-        Double availableCash = (Double.parseDouble(rmsData.getAvailablecash())*applicationProperties.getPercentBalanceUse());
-//      ***************************
-//        availableCash = 10000.00;
-
-        if (availableCash <= applicationProperties.getBalanceMinimumAllowed()) {
-            return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
-        }
-
-        // 3. Quantity
-        int quantity = (int) (Math.floor(availableCash / triggerPrice)-applicationProperties.getNumberOfStocksBuyLess());
-
-//        if(quantity > 1)
-//            quantity -= applicationProperties.getNumberOfStocksBuyLess();
+        int quantity =
+                (int) Math.floor(
+                        usableCash.doubleValue() / triggerPrice
+                ) - applicationProperties.getNumberOfStocksBuyLess();
 
         if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
-            return Mono.error(new RuntimeException("Not enough cash to buy " + applicationProperties.getStockBuyMinimumQuantityRequired()+1 + " shares."));
+            return Mono.error(
+                    new RuntimeException(
+                            "Not enough cash to buy minimum quantity"
+                    )
+            );
         }
+
+        // 🔐 HARD RISK CHECK
+        balanceService.assertSufficientFunds(
+                BigDecimal.valueOf(triggerPrice),
+                quantity
+        );
 
         // 4. JWT
         String jwtToken = tokenStorageService.getJwtToken();
@@ -296,28 +334,44 @@ public class OrderService_v2 {
             );
         }
 
-        RmsData rmsData = scripMasterService.getRmsData();
-        if (rmsData == null) {
-            return Mono.error(
-                    new IllegalStateException("RMS not available")
-            );
-        }
+//        RmsData rmsData = scripMasterService.getRmsData();
+//        if (rmsData == null) {
+//            return Mono.error(
+//                    new IllegalStateException("RMS not available")
+//            );
+//        }
 
-        double usableCash =
-                Double.parseDouble(rmsData.getAvailablecash())
-                        * applicationProperties.getPercentBalanceUse();
+        BigDecimal usableCash =
+                balanceService.getUsableBalance(
+                        applicationProperties.getPercentBalanceUse()
+                );
 
         int calculatedQuantity =
                 orderCalculationService.calculateQuantity(
-                        usableCash,
+                        usableCash.doubleValue(),
                         triggerPrice
                 );
+
+//        double usableCash =
+//                Double.parseDouble(rmsData.getAvailablecash())
+//                        * applicationProperties.getPercentBalanceUse();
+//
+//        int calculatedQuantity =
+//                orderCalculationService.calculateQuantity(
+//                        usableCash,
+//                        triggerPrice
+//                );
 
         if(applicationProperties.isFixedQuantityFlag() && calculatedQuantity  > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
             calculatedQuantity = applicationProperties.getFixedQuantity();
         }
         final int quantity = calculatedQuantity;
+
+        balanceService.assertSufficientFunds(
+                BigDecimal.valueOf(triggerPrice),
+                quantity
+        );
 
         String jwtToken = tokenManager.getValidJwtToken();
 
