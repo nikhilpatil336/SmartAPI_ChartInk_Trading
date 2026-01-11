@@ -419,6 +419,31 @@ public class BrokerApiClient {
                 .doOnError(err -> log.error("Error cancelling order: {}", err.getMessage(), err));
     }
 
+    public Mono<Map<String, Object>> fetchNseIntradayLeverage(String authToken) {
+
+        log.info("Fetching NSE Intraday leverage");
+
+        return brokerWebClient
+                .get()
+                .uri("/rest/secure/angelbroking/marketData/v1/nseIntraday")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .doOnSuccess(resp ->
+                        log.info("NSE Intraday leverage fetched successfully")
+                )
+                .doOnError(err ->
+                        log.error("Failed to fetch NSE Intraday leverage", err)
+                );
+    }
+
 //    public Mono<OrderStatusResponse> getIndividualOrderStatus(String orderId, String authToken) {
 //
 ////        OrderStatusRequest request = new OrderStatusRequest(orderId);

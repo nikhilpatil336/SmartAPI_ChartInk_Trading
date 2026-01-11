@@ -168,11 +168,12 @@ public class ScripMasterService {
                                     return true;
                                 }
                                 return fnoSet.contains(
-                                        item.get("name").toString()
+                                        normalize(item.get("symbol").toString().replace("-EQ", ""))
                                 );
                             })
                             .collect(Collectors.toMap(
-                                    item -> item.get("name").toString(),
+//                                    item -> item.get("name").toString(),
+                                    item -> normalize(item.get("symbol").toString().replace("-EQ", "")),
                                     item -> item.get("token").toString(),
                                     (a, b) -> a
                             ));
@@ -267,5 +268,7 @@ public class ScripMasterService {
 //        this.rmsData = rmsData;
 //    }
 
-
+    private String normalize(String s) {
+        return s == null ? null : s.trim().toUpperCase();
+    }
 }

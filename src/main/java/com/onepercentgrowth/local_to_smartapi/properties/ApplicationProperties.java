@@ -34,6 +34,10 @@ public class ApplicationProperties {
     private boolean scripmasterOnlyFnoStocks;
     private boolean scripmasterEnableFnoUniverse;
     private String scripmasterFnoListFilePath;
+    private boolean leverageEnable;
+    private boolean leverageUniverse;
+    private String leverageExchange;
+    private String leverageListFilePath;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -225,5 +229,37 @@ public class ApplicationProperties {
 
     public void setScripmasterFnoListFilePath(String scripmasterFnoListFilePath) {
         this.scripmasterFnoListFilePath = scripmasterFnoListFilePath;
+    }
+
+    public boolean isLeverageEnable() {
+        return leverageEnable;
+    }
+
+    public void setLeverageEnable(boolean leverageEnable) {
+        this.leverageEnable = leverageEnable;
+    }
+
+    public boolean isLeverageUniverse() {
+        return leverageUniverse;
+    }
+
+    public void setLeverageUniverse(boolean leverageUniverse) {
+        this.leverageUniverse = leverageUniverse;
+    }
+
+    public String getLeverageExchange() {
+        return leverageExchange;
+    }
+
+    public void setLeverageExchange(String leverageExchange) {
+        this.leverageExchange = leverageExchange;
+    }
+
+    public String getLeverageListFilePath() {
+        return leverageListFilePath;
+    }
+
+    public void setLeverageListFilePath(String leverageListFilePath) {
+        this.leverageListFilePath = leverageListFilePath;
     }
 }

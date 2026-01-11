@@ -1,10 +1,9 @@
 package com.onepercentgrowth.local_to_smartapi.startupservice;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
-import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
-import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
-import com.onepercentgrowth.local_to_smartapi.service.RmsService;
-import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.service.*;
+import com.onepercentgrowth.local_to_smartapi.storage.LeverageStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
 import org.slf4j.Logger;
@@ -28,8 +27,8 @@ public class ApplicationStartupService {
     private final TokenManager tokenManager;
     private final RmsService rmsService;
     private final BalanceService balanceService;
-
-
+    private final LeverageStorageService leverageStorageService;
+    private final LeverageService leverageService;
 
     @Value("${myapp.sl-orderstore-file-path}")
     private String slOrderBaseDir;
@@ -41,7 +40,9 @@ public class ApplicationStartupService {
             OrderStatusWebSocketService orderStatusWebSocketService,
             TokenManager tokenManager,
             RmsService rmsService,
-            BalanceService balanceService
+            BalanceService balanceService,
+            LeverageStorageService leverageStorageService,
+            LeverageService leverageService
     ) {
         this.scripMasterStorageService = scripMasterStorageService;
         this.scripMasterService = scripMasterService;
@@ -50,6 +51,8 @@ public class ApplicationStartupService {
         this.tokenManager = tokenManager;
         this.rmsService = rmsService;
         this.balanceService = balanceService;
+        this.leverageStorageService = leverageStorageService;
+        this.leverageService = leverageService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -114,6 +117,16 @@ public class ApplicationStartupService {
                         log.error("Failed to fetch RMS on startup", err)
                 )
                 .subscribe();
+
+        leverageStorageService.load();
+
+        if (leverageStorageService.isFileFromToday()) {
+            leverageService.loadFromCache();
+        } else {
+            leverageService.refreshNow()
+                    .doOnError(e -> log.error("Leverage refresh failed", e))
+                    .subscribe();
+        }
     }
 }
 

@@ -43,7 +43,8 @@ public class FnoUniverseService {
                         "NFO".equals(item.get("exch_seg")) &&
                                 "FUTSTK".equals(item.get("instrumenttype"))
                 )
-                .map(item -> item.get("name").toString())
+//                .map(item -> item.get("name").toString())
+                .map(item -> item.get("symbol").toString().toUpperCase())
                 .collect(Collectors.toSet());
 
         storageService.saveFnoUniverse(fnoSet);
@@ -61,6 +62,10 @@ public class FnoUniverseService {
         cachedFnoSet = storageService.loadFnoUniverse();
         log.info("Loaded cached FNO universe. Size={}", cachedFnoSet.size());
         return cachedFnoSet;
+    }
+
+    private String normalize(String s) {
+        return s.trim().toUpperCase();
     }
 }
 
