@@ -31,6 +31,9 @@ public class ApplicationProperties {
     private boolean rmsFileOverwriteEnabled;
     private int rmsRefreshIntervalMinutes;
     private String rmsBalanceFilePath;
+    private boolean scripmasterOnlyFnoStocks;
+    private boolean scripmasterEnableFnoUniverse;
+    private String scripmasterFnoListFilePath;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -168,38 +171,6 @@ public class ApplicationProperties {
         this.tradingWindowTimeZone = tradingWindowTimeZone;
     }
 
-//    public boolean isAutoRefreshEnabled() {
-//        return rmsAutoRefreshEnable;
-//    }
-//
-//    public void setAutoRefreshEnabled(boolean rmsAutoRefreshEnable) {
-//        this.rmsAutoRefreshEnable = rmsAutoRefreshEnable;
-//    }
-//
-//    public int getRefreshIntervalMinutes() {
-//        return rmsRefreshIntervalMinutes;
-//    }
-//
-//    public void setRefreshIntervalMinutes(int rmsRefreshIntervalMinutes) {
-//        this.rmsRefreshIntervalMinutes = rmsRefreshIntervalMinutes;
-//    }
-//
-//    public boolean isFileOverwriteEnabled() {
-//        return rmsFileOverwriteEnabled;
-//    }
-//
-//    public void setFileOverwriteEnabled(boolean fileOverwriteEnabled) {
-//        this.rmsFileOverwriteEnabled = rmsFileOverwriteEnabled;
-//    }
-//
-//    public String getRmsBalanceFilePath() {
-//        return rmsBalanceFilePath;
-//    }
-//
-//    public void setRmsBalanceFilePath(String rmsBalanceFilePath) {
-//        this.rmsBalanceFilePath = rmsBalanceFilePath;
-//    }
-
     public boolean isRmsAutoRefreshEnable() {
         return rmsAutoRefreshEnable;
     }
@@ -230,5 +201,29 @@ public class ApplicationProperties {
 
     public void setRmsBalanceFilePath(String rmsBalanceFilePath) {
         this.rmsBalanceFilePath = rmsBalanceFilePath;
+    }
+
+    public boolean isScripmasterOnlyFnoStocks() {
+        return scripmasterOnlyFnoStocks;
+    }
+
+    public void setScripmasterOnlyFnoStocks(boolean scripmasterOnlyFnoStocks) {
+        this.scripmasterOnlyFnoStocks = scripmasterOnlyFnoStocks;
+    }
+
+    public boolean isScripmasterEnableFnoUniverse() {
+        return scripmasterEnableFnoUniverse;
+    }
+
+    public void setScripmasterEnableFnoUniverse(boolean scripmasterEnableFnoUniverse) {
+        this.scripmasterEnableFnoUniverse = scripmasterEnableFnoUniverse;
+    }
+
+    public String getScripmasterFnoListFilePath() {
+        return scripmasterFnoListFilePath;
+    }
+
+    public void setScripmasterFnoListFilePath(String scripmasterFnoListFilePath) {
+        this.scripmasterFnoListFilePath = scripmasterFnoListFilePath;
     }
 }

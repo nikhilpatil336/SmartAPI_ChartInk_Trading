@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ScripMasterStorageService {
@@ -159,6 +160,38 @@ public class ScripMasterStorageService {
     public void setCachedFilteredList(Map<String, String> cachedFilteredList) {
         this.cachedFilteredList = cachedFilteredList;
     }
+
+    public void saveFnoUniverse(Set<String> fnoSet) {
+        try {
+            File file = new File(applicationProperties.getScripmasterFnoListFilePath());
+            file.getParentFile().mkdirs();
+
+            objectMapper.writeValue(file,
+                    new FnoUniverseModel(fnoSet, System.currentTimeMillis()));
+        } catch (Exception e) {
+            log.error("Failed to save FNO universe", e);
+        }
+    }
+
+    public Set<String> loadFnoUniverse() {
+        File file = new File(applicationProperties.getScripmasterFnoListFilePath());
+        if (!file.exists()) return Set.of();
+
+        try {
+            FnoUniverseModel model =
+                    objectMapper.readValue(file, FnoUniverseModel.class);
+            return model.items();
+        } catch (Exception e) {
+            log.error("Failed to load FNO universe", e);
+            return Set.of();
+        }
+    }
+
+    private record FnoUniverseModel(
+            Set<String> items,
+            long lastUpdatedEpoch
+    ) {}
+
 
     /** Internal storage model */
     private record ScripFileModel(

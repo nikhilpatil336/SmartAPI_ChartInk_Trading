@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.service;
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.model.RmsData;
 import com.onepercentgrowth.local_to_smartapi.model.RmsResponse;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,16 +27,20 @@ public class ScripMasterService {
     private final BrokerApiClient brokerApiClient;
     private final TokenStorageService tokenStorageService;
     private final ScripMasterStorageService scripMasterStorageService;
+    private final ApplicationProperties applicationProperties;
+    private final FnoUniverseService fnoUniverseService;
     private volatile Map<String, String> nseEquityMap = new HashMap<>();
     private volatile List<Map<String, Object>> rawScripList = null;
 //    private volatile RmsData rmsData = null;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ScripMasterService(BrokerApiClient brokerApiClient,
-                              TokenStorageService tokenStorageService, ScripMasterStorageService scripMasterStorageService) {
+                              TokenStorageService tokenStorageService, ScripMasterStorageService scripMasterStorageService, ApplicationProperties applicationProperties, FnoUniverseService fnoUniverseService) {
         this.brokerApiClient = brokerApiClient;
         this.tokenStorageService = tokenStorageService;
         this.scripMasterStorageService = scripMasterStorageService;
+        this.applicationProperties = applicationProperties;
+        this.fnoUniverseService = fnoUniverseService;
     }
 
     public Mono<Map<String, String>> fetchNseScripMaster() {
@@ -108,6 +114,32 @@ public class ScripMasterService {
 //                });
 //    }
 
+//    public Mono<Map<String, String>> downloadFilteredScripMaster() {
+//
+//        String token = tokenStorageService.getJwtToken();
+//        if (token == null) {
+//            return Mono.error(new RuntimeException("Login required"));
+//        }
+//
+//        return brokerApiClient
+//                .downloadScripMasterStream(token)
+//                .filter(item -> "NSE".equals(item.get("exch_seg")))
+//                .filter(item -> {
+//                    String symbol = (String) item.get("symbol");
+//                    return symbol != null && symbol.endsWith("-EQ");
+//                })
+//                .collect(Collectors.toMap(
+//                        item -> item.get("name").toString(),
+//                        item -> item.get("token").toString(),
+//                        (a, b) -> a
+//                ))
+//                .doOnSuccess(map -> {
+//                    this.nseEquityMap = map;
+//                    scripMasterStorageService.saveFilteredScripMaster(map);
+//                    log.info("Filtered NSE EQ count={}", map.size());
+//                });
+//    }
+
     public Mono<Map<String, String>> downloadFilteredScripMaster() {
 
         String token = tokenStorageService.getJwtToken();
@@ -117,22 +149,41 @@ public class ScripMasterService {
 
         return brokerApiClient
                 .downloadScripMasterStream(token)
-                .filter(item -> "NSE".equals(item.get("exch_seg")))
-                .filter(item -> {
-                    String symbol = (String) item.get("symbol");
-                    return symbol != null && symbol.endsWith("-EQ");
+                .collectList()   // collect ONCE per day
+                .map(rawList -> {
+
+                    // ---------- 1️⃣ Build / load FNO universe ----------
+                    Set<String> fnoSet = fnoUniverseService
+                            .buildAndPersistIfEnabled(rawList);
+
+                    // ---------- 2️⃣ Filter NSE EQ ----------
+                    return rawList.stream()
+                            .filter(item -> "NSE".equals(item.get("exch_seg")))
+                            .filter(item -> {
+                                String symbol = (String) item.get("symbol");
+                                return symbol != null && symbol.endsWith("-EQ");
+                            })
+                            .filter(item -> {
+                                if (!applicationProperties.isScripmasterOnlyFnoStocks()) {
+                                    return true;
+                                }
+                                return fnoSet.contains(
+                                        item.get("name").toString()
+                                );
+                            })
+                            .collect(Collectors.toMap(
+                                    item -> item.get("name").toString(),
+                                    item -> item.get("token").toString(),
+                                    (a, b) -> a
+                            ));
                 })
-                .collect(Collectors.toMap(
-                        item -> item.get("name").toString(),
-                        item -> item.get("token").toString(),
-                        (a, b) -> a
-                ))
                 .doOnSuccess(map -> {
                     this.nseEquityMap = map;
                     scripMasterStorageService.saveFilteredScripMaster(map);
                     log.info("Filtered NSE EQ count={}", map.size());
                 });
     }
+
 
 
 
