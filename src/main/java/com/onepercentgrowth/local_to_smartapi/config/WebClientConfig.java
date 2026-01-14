@@ -114,14 +114,20 @@ import java.time.Duration;
 public class WebClientConfig {
 
     private final BrokerApiProperties properties;
-    private final TokenManager tokenManager;
+//    private final TokenManager tokenManager;
+
+//    public WebClientConfig(
+//            BrokerApiProperties properties,
+//            TokenManager tokenManager
+//    ) {
+//        this.properties = properties;
+//        this.tokenManager = tokenManager;
+//    }
 
     public WebClientConfig(
-            BrokerApiProperties properties,
-            TokenManager tokenManager
+            BrokerApiProperties properties
     ) {
         this.properties = properties;
-        this.tokenManager = tokenManager;
     }
 
     @Bean
@@ -136,19 +142,19 @@ public class WebClientConfig {
         return WebClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .filter(authRetryFilter())
+//                .filter(authRetryFilter())
                 .build();
     }
 
-    private ExchangeFilterFunction authRetryFilter() {
-        return (request, next) ->
-                next.exchange(request)
-                        .onErrorResume(
-                                AuthExpiredException.class,
-                                ex -> tokenManager.refreshTokens()
-                                        .then(next.exchange(request))
-                        );
-    }
+//    private ExchangeFilterFunction authRetryFilter() {
+//        return (request, next) ->
+//                next.exchange(request)
+//                        .onErrorResume(
+//                                AuthExpiredException.class,
+//                                ex -> tokenManager.refreshTokens()
+//                                        .then(next.exchange(request))
+//                        );
+//    }
 }
 
 

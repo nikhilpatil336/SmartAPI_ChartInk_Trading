@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.client;
 
+import com.onepercentgrowth.local_to_smartapi.exceptions.AuthExpiredException;
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
@@ -42,7 +43,7 @@ public class BrokerApiClient {
 
 //--------------- Login and other Basic Methods --------------------------
 
-    public Mono<LoginResponse> loginWithTotp(String clientCode, String mpin) {
+    /*public Mono<LoginResponse> loginWithTotp(String clientCode, String mpin) {
 
         try {
             log.info("Generating TOTP for client={}", clientCode);
@@ -85,6 +86,51 @@ public class BrokerApiClient {
             log.error("Error generating TOTP: {}", e.getMessage(), e);
             return Mono.error(new RuntimeException("Failed to generate TOTP", e));
         }
+    }*/
+
+    public Mono<LoginResponse> login(LoginRequest request) {
+
+        log.info("Calling Angel login API for client={}", request.getClientcode());
+
+        return brokerWebClient.post()
+                .uri("/rest/auth/angelbroking/user/v1/loginByPassword")
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(LoginResponse.class)
+                .doOnError(err ->
+                        log.error("Angel login API failed", err)
+                );
+    }
+
+    public Mono<LoginResponse> refreshTokens(String refreshToken, String authToken) {
+
+        log.info("Calling Angel token refresh API");
+
+        return brokerWebClient.post()
+                .uri("/rest/auth/angelbroking/jwt/v1/generateTokens")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(Map.of("refreshToken", refreshToken))
+                .retrieve()
+                .bodyToMono(LoginResponse.class)
+                .doOnError(err ->
+                        log.error("Angel token refresh API failed", err)
+                );
     }
 
     public Mono<LoginResponse> generateTokens(String refreshToken, String authToken) {
@@ -227,7 +273,7 @@ public class BrokerApiClient {
     }
 
 
-    public Mono<RmsResponse> fetchRmsBalance(String authToken) {
+   /* public Mono<RmsResponse> fetchRmsBalance(String authToken) {
 
         return brokerWebClient
                 .get()   // RMS needs GET
@@ -244,7 +290,31 @@ public class BrokerApiClient {
                 .bodyToMono(RmsResponse.class)
                 .doOnSuccess(resp -> log.info("RMS Response: {}", resp))
                 .doOnError(err -> log.error("Error fetching RMS: {}", err.getMessage()));
+    }*/
+
+    public Mono<RmsResponse> fetchRmsBalance(String authToken) {
+
+        return brokerWebClient
+                .get()   // RMS needs GET
+                .uri("/rest/secure/angelbroking/user/v1/getRMS")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .onStatus(
+                        status -> status.value() == 401 || status.value() == 403,
+                        resp -> Mono.error(new AuthExpiredException("JWT expired"))
+                )
+                .bodyToMono(RmsResponse.class)
+                .doOnSuccess(resp -> log.info("RMS Response: {}", resp))
+                .doOnError(err -> log.error("Error fetching RMS: {}", err.getMessage()));
     }
+
 
     public Mono<OrderBookResponse_v2> getOrderBook(String token) {
         return brokerWebClient.get()

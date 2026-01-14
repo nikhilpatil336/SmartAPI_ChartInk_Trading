@@ -182,6 +182,7 @@ public class TokenManager {
     private final TokenStorageService tokenStorageService;
     private final LoginService loginService;
     private final AngelApiProperties angelApiProperties;
+    private final Object loginLock = new Object();
 //    private final TokenScheduler tokenScheduler;
 
     public TokenManager(
@@ -195,26 +196,6 @@ public class TokenManager {
         this.angelApiProperties = angelApiProperties;
 //        this.tokenScheduler = tokenScheduler;
     }
-
-//    @PostConstruct
-//    public void init() {
-//        tokenStorageService.loadTokensFromFile();
-//
-//        if (isTokenExpired()) {
-//            refreshTokens().block();
-//        }
-//    }
-
-//    @PostConstruct
-//    public void init() {
-//        tokenStorageService.loadTokensFromFile();
-//
-//        if (isTokenExpired()) {
-//            refreshTokens()
-//                    .subscribeOn(Schedulers.boundedElastic())
-//                    .subscribe();
-//        }
-//    }
 
     @PostConstruct
     public void init() {
@@ -252,15 +233,6 @@ public class TokenManager {
         return tokenStorageService.isTokenExpired();
     }
 
-//    public Mono<Void> refreshTokens() {
-//        return loginService
-//                .loginWithTotp(new LoginRequest(angelApiProperties.getClientId(), angelApiProperties.getPassword()))
-//                .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
-//                .then();
-//    }
-
-    private final Object loginLock = new Object();
-
     public Mono<Void> refreshTokens() {
         return Mono.defer(() -> {
             synchronized (loginLock) {
@@ -295,9 +267,4 @@ public class TokenManager {
                 .doOnError(e -> log.error("Token refresh failed", e))
                 .block();
     }
-
-    private boolean isTokenExpiredSoon() {
-        return tokenStorageService.willExpireIn(Duration.ofMinutes(5));
-    }
-
 }
