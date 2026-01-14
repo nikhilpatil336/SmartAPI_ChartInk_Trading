@@ -253,7 +253,7 @@ public class ApplicationStartupService {
                         log.info("RMS loaded and balance synced on startup")
                 )
                 .doOnError(err ->
-                        log.error("Failed to fetch RMS on startup", err)
+                        log.error("Failed to fetch RMS on startup: {}", err.getMessage())
                 )
                 .subscribe();
 

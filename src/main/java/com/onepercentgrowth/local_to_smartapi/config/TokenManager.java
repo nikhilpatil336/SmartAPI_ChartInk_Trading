@@ -205,23 +205,38 @@ public class TokenManager {
 //        }
 //    }
 
+//    @PostConstruct
+//    public void init() {
+//        tokenStorageService.loadTokensFromFile();
+//
+//        if (isTokenExpired()) {
+//            refreshTokens()
+//                    .subscribeOn(Schedulers.boundedElastic())
+//                    .subscribe();
+//        }
+//    }
+
     @PostConstruct
     public void init() {
         tokenStorageService.loadTokensFromFile();
 
         if (isTokenExpired()) {
-            refreshTokens()
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .subscribe();
+            refreshTokens().block(); // ✅ block here
         }
     }
 
-    public synchronized String getValidJwtToken() {
-        if (isTokenExpired()) {
-            refreshTokens().block();
+    public String getValidJwtToken() {
+        String token = tokenStorageService.getJwtToken();
+
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT token not initialized. Application startup login failed."
+            );
         }
-        return tokenStorageService.getJwtToken();
+
+        return token;
     }
+
 
     public Mono<String> getValidJwtTokenAsync() {
 
@@ -237,20 +252,48 @@ public class TokenManager {
         return tokenStorageService.isTokenExpired();
     }
 
+//    public Mono<Void> refreshTokens() {
+//        return loginService
+//                .loginWithTotp(new LoginRequest(angelApiProperties.getClientId(), angelApiProperties.getPassword()))
+//                .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
+//                .then();
+//    }
+
+    private final Object loginLock = new Object();
+
     public Mono<Void> refreshTokens() {
-        return loginService
-                .loginWithTotp(new LoginRequest(angelApiProperties.getClientId(), angelApiProperties.getPassword()))
-                .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
-                .then();
+        return Mono.defer(() -> {
+            synchronized (loginLock) {
+                if (!isTokenExpired()) {
+                    return Mono.empty();
+                }
+
+                return loginService
+                        .loginWithTotp(new LoginRequest(
+                                angelApiProperties.getClientId(),
+                                angelApiProperties.getPassword()
+                        ))
+                        .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
+                        .then();
+            }
+        });
     }
 
     @Scheduled(fixedDelay = 15 * 60 * 1000)
     public void refreshIfNeeded() {
-        if (isTokenExpiredSoon()) {
-            refreshTokens()
-                    .doOnError(e -> log.error("Scheduled token refresh failed", e))
-                    .subscribe();
+
+        if (!tokenStorageService.willExpireIn(Duration.ofMinutes(5))) {
+            return;
         }
+
+        log.info("JWT expiring soon → refreshing using refresh token");
+
+        loginService.refreshTokens(
+                        tokenStorageService.getRefreshToken(),
+                        tokenStorageService.getJwtToken()
+                )
+                .doOnError(e -> log.error("Token refresh failed", e))
+                .block();
     }
 
     private boolean isTokenExpiredSoon() {
