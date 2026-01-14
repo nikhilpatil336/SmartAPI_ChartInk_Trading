@@ -23,10 +23,10 @@ public class WebSocketClientConfig {
         return new StandardWebSocketClient();
     }
 
-    @Bean
-    public WebSocketHandler orderStatusWebSocketHandler() {
-        return new OrderStatusWebSocketHandler();
-    }
+//    @Bean
+//    public WebSocketHandler orderStatusWebSocketHandler() {
+//        return new OrderStatusWebSocketHandler();
+//    }
 
 //    @Bean
 //    public WebSocketConnectionManager orderStatusConnectionManager(

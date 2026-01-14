@@ -140,54 +140,80 @@ public class ScripMasterService {
 //                });
 //    }
 
-    public Mono<Map<String, String>> downloadFilteredScripMaster() {
-
-        String token = tokenStorageService.getJwtToken();
-        if (token == null) {
-            return Mono.error(new RuntimeException("Login required"));
-        }
-
-        return brokerApiClient
-                .downloadScripMasterStream(token)
-                .collectList()   // collect ONCE per day
-                .map(rawList -> {
-
-                    // ---------- 1️⃣ Build / load FNO universe ----------
-                    Set<String> fnoSet = fnoUniverseService
-                            .buildAndPersistIfEnabled(rawList);
-
-                    // ---------- 2️⃣ Filter NSE EQ ----------
-                    return rawList.stream()
-                            .filter(item -> "NSE".equals(item.get("exch_seg")))
-                            .filter(item -> {
-                                String symbol = (String) item.get("symbol");
-                                return symbol != null && symbol.endsWith("-EQ");
-                            })
-                            .filter(item -> {
-                                if (!applicationProperties.isScripmasterOnlyFnoStocks()) {
-                                    return true;
-                                }
-                                return fnoSet.contains(
-                                        normalize(item.get("symbol").toString().replace("-EQ", ""))
-                                );
-                            })
-                            .collect(Collectors.toMap(
-//                                    item -> item.get("name").toString(),
-                                    item -> normalize(item.get("symbol").toString().replace("-EQ", "")),
-                                    item -> item.get("token").toString(),
-                                    (a, b) -> a
-                            ));
-                })
-                .doOnSuccess(map -> {
-                    this.nseEquityMap = map;
-                    scripMasterStorageService.saveFilteredScripMaster(map);
-                    log.info("Filtered NSE EQ count={}", map.size());
-                });
-    }
-
-
-
-
+//    public Mono<Map<String, String>> downloadFilteredScripMaster() {
+//
+//        String token = tokenStorageService.getJwtToken();
+//        if (token == null) {
+//            return Mono.error(new RuntimeException("Login required"));
+//        }
+//
+//        return brokerApiClient
+//                .downloadScripMasterStream(token)
+//                .collectList()   // collect ONCE per day
+//                .map(rawList -> {
+//
+//                    // ---------- 1️⃣ Build / load FNO universe ----------
+////                    Set<String> fnoSet =
+////                            fnoUniverseService.loadIfPresent();
+//
+//                    boolean fnoListIsPresent =
+//                            fnoUniverseService.loadIfPresent();
+//
+//                    if (applicationProperties.isScripmasterOnlyFnoStocks()
+//                            && !fnoListIsPresent) {
+//
+////                        build the list here and store it locally
+//                        rawList.stream()
+//                        .filter(item -> "NSE".equals(item.get("exch_seg")))
+//                        .filter(item -> {
+//                            String symbol = (String) item.get("symbol");
+//                            return symbol != null && symbol.endsWith("-EQ");
+//                        })
+//                        .collect(Collectors.toMap(
+//                                item -> item.get("name").toString(),
+//                                item -> item.get("token").toString(),
+//                                (a, b) -> a
+//                        ))
+//                        .then(map -> {
+//                            this.nseEquityMap = map;
+//                            scripMasterStorageService.saveFilteredScripMaster(map);
+//                            log.info("Filtered NSE EQ count={}", map.size());
+//                        });
+//
+//                        log.warn(
+//                                "FNO-only mode ENABLED but FNO universe is EMPTY. " +
+//                                        "Filtered NSE EQ result may be empty."
+//                        );
+//                    }
+//
+//                    // ---------- 2️⃣ Filter NSE EQ ----------
+//                    return rawList.stream()
+//                            .filter(item -> "NSE".equals(item.get("exch_seg")))
+//                            .filter(item -> {
+//                                String symbol = (String) item.get("symbol");
+//                                return symbol != null && symbol.endsWith("-EQ");
+//                            })
+//                            .filter(item -> {
+//                                if (!applicationProperties.isScripmasterOnlyFnoStocks()) {
+//                                    return true;
+//                                }
+//                                return fnoSet.contains(
+//                                        normalize(item.get("symbol").toString().replace("-EQ", ""))
+//                                );
+//                            })
+//                            .collect(Collectors.toMap(
+////                                    item -> item.get("name").toString(),
+//                                    item -> normalize(item.get("symbol").toString().replace("-EQ", "")),
+//                                    item -> item.get("token").toString(),
+//                                    (a, b) -> a
+//                            ));
+//                })
+//                .doOnSuccess(map -> {
+//                    this.nseEquityMap = map;
+//                    scripMasterStorageService.saveFilteredScripMaster(map);
+//                    log.info("Filtered NSE EQ count={}", map.size());
+//                });
+//    }
 
     public Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
 
@@ -270,5 +296,10 @@ public class ScripMasterService {
 
     private String normalize(String s) {
         return s == null ? null : s.trim().toUpperCase();
+    }
+
+    public void clearRaw() {
+        this.rawScripList = null;
+        System.gc(); // optional but useful on RPi
     }
 }

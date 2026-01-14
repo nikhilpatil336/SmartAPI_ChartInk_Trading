@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
@@ -133,6 +134,11 @@ public class TokenStorageService {
     public boolean isTokenExpired() {
         long now = System.currentTimeMillis();
         return now >= expiresAtEpoch;
+    }
+
+    public boolean willExpireIn(Duration duration) {
+        long now = System.currentTimeMillis();
+        return expiresAtEpoch - now <= duration.toMillis();
     }
 
 

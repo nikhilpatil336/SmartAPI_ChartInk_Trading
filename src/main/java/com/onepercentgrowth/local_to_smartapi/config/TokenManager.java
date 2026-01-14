@@ -2,13 +2,19 @@ package com.onepercentgrowth.local_to_smartapi.config;
 
 import com.onepercentgrowth.local_to_smartapi.model.LoginRequest;
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
+//import com.onepercentgrowth.local_to_smartapi.scheduler.TokenScheduler;
 import com.onepercentgrowth.local_to_smartapi.service.LoginService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import java.time.Duration;
 
 //@Service
 //public class TokenManagerService {
@@ -167,6 +173,7 @@ import reactor.core.publisher.Mono;
 //}
 
 @Service
+@EnableScheduling
 public class TokenManager {
 
     private static final Logger log =
@@ -175,23 +182,37 @@ public class TokenManager {
     private final TokenStorageService tokenStorageService;
     private final LoginService loginService;
     private final AngelApiProperties angelApiProperties;
+//    private final TokenScheduler tokenScheduler;
 
     public TokenManager(
             TokenStorageService tokenStorageService,
             LoginService loginService,
             AngelApiProperties angelApiProperties
+//            TokenScheduler tokenScheduler
     ) {
         this.tokenStorageService = tokenStorageService;
         this.loginService = loginService;
         this.angelApiProperties = angelApiProperties;
+//        this.tokenScheduler = tokenScheduler;
     }
+
+//    @PostConstruct
+//    public void init() {
+//        tokenStorageService.loadTokensFromFile();
+//
+//        if (isTokenExpired()) {
+//            refreshTokens().block();
+//        }
+//    }
 
     @PostConstruct
     public void init() {
         tokenStorageService.loadTokensFromFile();
 
         if (isTokenExpired()) {
-            refreshTokens().block();
+            refreshTokens()
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe();
         }
     }
 
@@ -202,14 +223,38 @@ public class TokenManager {
         return tokenStorageService.getJwtToken();
     }
 
+    public Mono<String> getValidJwtTokenAsync() {
+
+        if (!isTokenExpired()) {
+            return Mono.just(tokenStorageService.getJwtToken());
+        }
+
+        return refreshTokens()
+                .then(Mono.fromSupplier(tokenStorageService::getJwtToken));
+    }
+
     private boolean isTokenExpired() {
         return tokenStorageService.isTokenExpired();
     }
 
-    private Mono<Void> refreshTokens() {
+    public Mono<Void> refreshTokens() {
         return loginService
                 .loginWithTotp(new LoginRequest(angelApiProperties.getClientId(), angelApiProperties.getPassword()))
                 .doOnNext(resp -> tokenStorageService.storeTokens(resp.getData()))
                 .then();
     }
+
+    @Scheduled(fixedDelay = 15 * 60 * 1000)
+    public void refreshIfNeeded() {
+        if (isTokenExpiredSoon()) {
+            refreshTokens()
+                    .doOnError(e -> log.error("Scheduled token refresh failed", e))
+                    .subscribe();
+        }
+    }
+
+    private boolean isTokenExpiredSoon() {
+        return tokenStorageService.willExpireIn(Duration.ofMinutes(5));
+    }
+
 }

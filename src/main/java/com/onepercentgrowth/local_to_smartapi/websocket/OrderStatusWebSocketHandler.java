@@ -8,11 +8,13 @@ import lombok.extern.java.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.concurrent.*;
 
+@Component
 public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(OrderStatusWebSocketHandler.class);
@@ -108,8 +110,9 @@ public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        log.info("WebSocket closed: " + status);
+        log.info("WebSocket closed: {}", status);
         stopHeartbeat();
+        this.session = null;
     }
 
     @Override

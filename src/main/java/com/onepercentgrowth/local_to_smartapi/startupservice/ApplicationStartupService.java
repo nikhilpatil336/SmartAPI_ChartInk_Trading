@@ -14,6 +14,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 public class ApplicationStartupService {
 
@@ -29,6 +33,8 @@ public class ApplicationStartupService {
     private final BalanceService balanceService;
     private final LeverageStorageService leverageStorageService;
     private final LeverageService leverageService;
+    private final FnoUniverseService fnoUniverseService;
+    private final ApplicationProperties applicationProperties;
 
     @Value("${myapp.sl-orderstore-file-path}")
     private String slOrderBaseDir;
@@ -42,7 +48,9 @@ public class ApplicationStartupService {
             RmsService rmsService,
             BalanceService balanceService,
             LeverageStorageService leverageStorageService,
-            LeverageService leverageService
+            LeverageService leverageService,
+            FnoUniverseService fnoUniverseService,
+            ApplicationProperties applicationProperties
     ) {
         this.scripMasterStorageService = scripMasterStorageService;
         this.scripMasterService = scripMasterService;
@@ -53,6 +61,8 @@ public class ApplicationStartupService {
         this.balanceService = balanceService;
         this.leverageStorageService = leverageStorageService;
         this.leverageService = leverageService;
+        this.fnoUniverseService = fnoUniverseService;
+        this.applicationProperties = applicationProperties;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -60,34 +70,161 @@ public class ApplicationStartupService {
 
         log.info("Application startup sequence initiated");
 
-        // ---- Scrip master ----
-//        scripMasterStorageService.loadFromFile();
+//        // ---- Scrip master ----
+////        scripMasterStorageService.loadFromFile();
+////
+////        if (scripMasterStorageService.getCachedRawList() != null &&
+////                scripMasterStorageService.isFileFromToday()) {
+////
+////            scripMasterService.setRawScripList(
+////                    scripMasterStorageService.getCachedRawList()
+////            );
+////        } else {
+////            scripMasterService.setRawScripList(scripMasterService.downloadRawScripMaster().block());
+////        }
 //
-//        if (scripMasterStorageService.getCachedRawList() != null &&
+////        Set<String> fnoSet = fnoUniverseService.loadCached();
+////        log.info("FNO universe loaded on startup. Size={}", fnoSet.size());
+//
+//        scripMasterStorageService.loadFilteredScripmasterFromFile();
+//
+//        if (scripMasterStorageService.getCachedFilteredList() != null &&
 //                scripMasterStorageService.isFileFromToday()) {
 //
-//            scripMasterService.setRawScripList(
-//                    scripMasterStorageService.getCachedRawList()
+//            scripMasterService.setNseEquityMap(
+//                    scripMasterStorageService.getCachedFilteredList()
 //            );
 //        } else {
-//            scripMasterService.setRawScripList(scripMasterService.downloadRawScripMaster().block());
+//            scripMasterService.setNseEquityMap(scripMasterService.downloadFilteredScripMaster().block());
 //        }
 
-        scripMasterStorageService.loadFilteredScripmasterFromFile();
+//        boolean fnoLoaded = fnoUniverseService.loadIfPresent();
 
-        if (scripMasterStorageService.getCachedFilteredList() != null &&
-                scripMasterStorageService.isFileFromToday()) {
+        // --------------------------------------------------
+        // 2️⃣ Scrip master
+        // --------------------------------------------------
+
+//        scripMasterStorageService.loadFilteredScripmasterFromFile();
+//
+//        if (scripMasterStorageService.getCachedFilteredList() != null &&
+//                scripMasterStorageService.isFileFromToday()) {
+//
+//            log.info("Using cached filtered ScripMaster");
+//
+//            scripMasterService.setNseEquityMap(
+//                    scripMasterStorageService.getCachedFilteredList()
+//            );
+//
+//            // Build FNO ONLY if file was missing
+//            if (!fnoLoaded) {
+//                fnoUniverseService.buildAndPersist(
+//                        scripMasterStorageService.getCachedFilteredList()
+//                );
+//            }
+//
+//        } else {
+//
+//            log.warn("Filtered ScripMaster missing or stale. Downloading...");
+//
+//            Map<String, String> filtered =
+//                    scripMasterService.downloadFilteredScripMaster().block();
+//
+//            scripMasterService.setNseEquityMap(filtered);
+//
+//            // Build FNO ONLY if file was missing
+//            if (!fnoLoaded) {
+//                fnoUniverseService.buildAndPersist(filtered);
+//            }
+//        }
+
+        log.info("Startup: ScripMaster + FNO initialization");
+
+        // 1️⃣ Try loading derived artifacts
+        scripMasterStorageService.loadFilteredScripmasterFromFile();
+        boolean filteredOk =
+                scripMasterStorageService.getCachedFilteredList() != null &&
+                        scripMasterStorageService.isFileFromToday();
+
+        boolean fnoOk = fnoUniverseService.loadIfPresent();
+
+        // 2️⃣ If both are OK → use them
+        if (filteredOk && fnoOk) {
+
+            log.info("Using cached Filtered ScripMaster and FNO universe");
 
             scripMasterService.setNseEquityMap(
                     scripMasterStorageService.getCachedFilteredList()
             );
         } else {
-            scripMasterService.setNseEquityMap(scripMasterService.downloadFilteredScripMaster().block());
+
+            // 3️⃣ Else → RAW FLOW
+            log.warn("Derived data missing. Downloading RAW ScripMaster");
+
+            scripMasterService
+                    .downloadRawScripMaster()
+                    .doOnSuccess(rawList -> {
+
+                        // Build filtered NSE EQ
+//                    Map<String, String> filtered =
+//                            scripMasterService.filterOnlyEquityNse(rawList);
+//
+//                    scripMasterService.setNseEquityMap(filtered);
+//                    scripMasterStorageService.saveFilteredScripMaster(filtered);
+//
+//                    // Build FNO universe (from RAW)
+//                    fnoUniverseService.buildFromRaw(rawList);
+//
+//                    // IMPORTANT: drop RAW list
+//                    scripMasterService.clearRaw();
+//
+//                    log.info("Startup build complete");
+
+                        fnoUniverseService.buildFromRaw(rawList);
+                        Set<String> fnoUniverse = fnoUniverseService.loadCached();
+
+                        // 2️⃣ Build NSE Equity map
+                        Map<String, String> equityMap =
+                                scripMasterService.filterOnlyEquityNse(rawList);
+
+                        // 3️⃣ Apply scripmasterOnlyFnoStocks logic
+                        if (applicationProperties.isScripmasterOnlyFnoStocks()) {
+
+                            log.info("Filtering ScripMaster to ONLY FNO stocks");
+
+                            equityMap = equityMap.entrySet()
+                                    .stream()
+                                    .filter(e ->
+                                            fnoUniverse.contains(
+                                                    e.getKey().trim().toUpperCase()
+                                            )
+                                    )
+                                    .collect(Collectors.toMap(
+                                            Map.Entry::getKey,
+                                            Map.Entry::getValue
+                                    ));
+
+                            log.info("ScripMaster after FNO filter size={}", equityMap.size());
+                        } else {
+                            log.info("ScripMaster contains ALL NSE equity stocks");
+                        }
+
+                        // 4️⃣ Save final ScripMaster
+                        scripMasterService.setNseEquityMap(equityMap);
+                        scripMasterStorageService.saveFilteredScripMaster(equityMap);
+
+                        // 5️⃣ Cleanup
+                        scripMasterService.clearRaw();
+
+                        log.info("Startup build complete");
+
+                    })
+                    .doOnError(e -> log.error("Startup failed", e))
+                    .subscribe();
         }
 
         // ---- SL Order store ----
-        slOrderStore.init(slOrderBaseDir);
-        slOrderStore.loadFromFile();
+//        slOrderStore.init(slOrderBaseDir);
+//        slOrderStore.loadFromFile();
 
         // ---- WebSocket ----
         log.info("Starting Order Status WebSocket");
@@ -105,6 +242,8 @@ public class ApplicationStartupService {
 //                        log.error("Failed to fetch RMS on startup", err)
 //                )
 //                .subscribe();
+
+
 
         log.info("Fetching RMS balance on startup");
 

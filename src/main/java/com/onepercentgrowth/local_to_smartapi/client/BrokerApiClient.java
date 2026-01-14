@@ -72,13 +72,13 @@ public class BrokerApiClient {
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(LoginResponse.class)
-                    .doOnSuccess(resp -> {
-                        log.info("LoginWithTotp Response: {}", resp);
-                        if (resp != null && resp.getData() != null) {
-                            tokenStorageService.storeTokens(resp.getData());
-                            log.info("Tokens stored successfully and written to file for client={}", clientCode);
-                        }
-                    })
+//                    .doOnSuccess(resp -> {
+//                        log.info("LoginWithTotp Response: {}", resp);
+//                        if (resp != null && resp.getData() != null) {
+//                            tokenStorageService.storeTokens(resp.getData());
+//                            log.info("Tokens stored successfully and written to file for client={}", clientCode);
+//                        }
+//                    })
                     .doOnError(err -> log.error("LoginWithTotp failed: {}", err.getMessage(), err));
 
         } catch (Exception e) {
@@ -243,7 +243,7 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(RmsResponse.class)
                 .doOnSuccess(resp -> log.info("RMS Response: {}", resp))
-                .doOnError(err -> log.error("Error fetching RMS: {}", err.getMessage(), err));
+                .doOnError(err -> log.error("Error fetching RMS: {}", err.getMessage()));
     }
 
     public Mono<OrderBookResponse_v2> getOrderBook(String token) {
