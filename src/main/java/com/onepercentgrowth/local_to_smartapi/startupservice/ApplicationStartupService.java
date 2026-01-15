@@ -259,7 +259,7 @@ public class ApplicationStartupService {
 
         leverageStorageService.load();
 
-        if (leverageStorageService.isFileFromToday()) {
+        if (leverageStorageService.getCached() != null && leverageStorageService.isFileFromToday()) {
             leverageService.loadFromCache();
         } else {
             leverageService.refreshNow()
