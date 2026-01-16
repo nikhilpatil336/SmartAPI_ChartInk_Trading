@@ -2,6 +2,7 @@ package com.onepercentgrowth.local_to_smartapi.factory;
 
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.*;
 import com.onepercentgrowth.local_to_smartapi.service.OrderService_v2;
+import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     ) {
         ChartInkMISBuyOrderRequest req = new ChartInkMISBuyOrderRequest();
         req.setVariety("NORMAL");
-        req.setTradingsymbol(stockName + "-EQ");
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setTransactiontype("BUY");
         req.setExchange("NSE");
@@ -43,7 +44,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     ) {
         ChartinkMISSellOrderRequest req = new ChartinkMISSellOrderRequest();
         req.setVariety("NORMAL");
-        req.setTradingsymbol(stockName + "-EQ");
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setTransactiontype("SELL");
         req.setExchange("NSE");
@@ -71,7 +72,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
 
         ChartinkMIS_SL_OrderRequest req = new ChartinkMIS_SL_OrderRequest();
         req.setVariety("STOPLOSS");
-        req.setTradingsymbol(stockName + "-EQ");
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setTransactiontype("SELL");
         req.setExchange("NSE");

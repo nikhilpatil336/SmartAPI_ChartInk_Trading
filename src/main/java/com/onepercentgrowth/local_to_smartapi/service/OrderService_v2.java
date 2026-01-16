@@ -9,6 +9,7 @@ import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
+import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartInkMISBuyOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMISSellOrderRequest;
@@ -58,6 +59,8 @@ public class OrderService_v2 {
     private OrderEventQueue orderEventQueue;
     @Autowired
     private BalanceService balanceService;
+    @Autowired
+    private LeverageService leverageService;
 
 //  ------------------- 1st version of buy order --------------------------------
 
@@ -113,10 +116,27 @@ public class OrderService_v2 {
             );
         }
 
-        int quantity =
-                (int) Math.floor(
-                        usableCash.doubleValue() / triggerPrice
-                ) - applicationProperties.getNumberOfStocksBuyLess();
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int maxLeverage = (int) leverageService.get(stockName).multiplier();
+
+        if(leverageMultiplier < 1)
+            throw new IllegalArgumentException("Invalid Leverage Multiplier");
+
+        if(leverageMultiplier > maxLeverage)
+            leverageMultiplier = maxLeverage;
+
+        double calculateQuantity = usableCash.doubleValue() / triggerPrice;
+        double quantityAfterLeverage = calculateQuantity * leverageMultiplier;
+        int absQuantity = (int) Math.floor(Math.abs(quantityAfterLeverage));
+//        double currentBalance = usableCash.doubleValue() - (triggerPrice * (double) absQuantity / leverageMultiplier);
+//        double rmsBalance = usableCash.doubleValue() - (absQuantity * (triggerPrice / maxLeverage));
+
+        int quantity = absQuantity - applicationProperties.getNumberOfStocksBuyLess();
+
+//        int quantity =
+//                (int) Math.floor(
+//                        usableCash.doubleValue() / triggerPrice
+//                ) - applicationProperties.getNumberOfStocksBuyLess();
 
         if (quantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
             return Mono.error(
@@ -325,7 +345,7 @@ public class OrderService_v2 {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
-        double triggerPrice = Double.parseDouble(price);
+        double triggerPrice = Utility.roundToTick(Double.parseDouble(price));
 
         String symbolToken = scripMasterService.getTokenForName(stockName);
         if (symbolToken == null) {
@@ -334,43 +354,70 @@ public class OrderService_v2 {
             );
         }
 
-//        RmsData rmsData = scripMasterService.getRmsData();
-//        if (rmsData == null) {
-//            return Mono.error(
-//                    new IllegalStateException("RMS not available")
-//            );
-//        }
+        BigDecimal usableCash = balanceService.getUsableBalance();
 
-        BigDecimal usableCash =
-                balanceService.getUsableBalance(
-                        applicationProperties.getPercentBalanceUse()
-                );
+        log.info(
+                "Chartink BUY received | stock={} | triggerPrice={} | usableCash={}",
+                stockName,
+                triggerPrice,
+                usableCash
+        );
+
+        if (usableCash.doubleValue()
+                <= applicationProperties.getBalanceMinimumAllowed()) {
+
+            return Mono.error(
+                    new RuntimeException(
+                            "Insufficient balance: " + usableCash
+                    )
+            );
+        }
+
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int maxLeverage = (int) leverageService.get(stockName).multiplier();
+
+        if (leverageMultiplier < 1)
+            throw new IllegalArgumentException("Invalid Leverage Multiplier");
+
+        if (leverageMultiplier > maxLeverage)
+            leverageMultiplier = maxLeverage;
 
         int calculatedQuantity =
                 orderCalculationService.calculateQuantity(
                         usableCash.doubleValue(),
-                        triggerPrice
+                        triggerPrice,
+                        leverageMultiplier,
+                        maxLeverage
                 );
 
-//        double usableCash =
-//                Double.parseDouble(rmsData.getAvailablecash())
-//                        * applicationProperties.getPercentBalanceUse();
-//
-//        int calculatedQuantity =
-//                orderCalculationService.calculateQuantity(
-//                        usableCash,
-//                        triggerPrice
-//                );
+//        double calculateQuantity = usableCash.doubleValue() / triggerPrice;
+//        double quantityAfterLeverage = calculateQuantity * leverageMultiplier;
+//        int absQuantity = (int) Math.floor(Math.abs(quantityAfterLeverage));
+//        double currentBalance = usableCash.doubleValue() - (triggerPrice * (double) absQuantity / leverageMultiplier);
+//        double rmsBalance = usableCash.doubleValue() - (absQuantity * (triggerPrice / maxLeverage));
 
-        if(applicationProperties.isFixedQuantityFlag() && calculatedQuantity  > applicationProperties.getFixedQuantity()) {
+        int quantityAfterBuyingLess = calculatedQuantity - applicationProperties.getNumberOfStocksBuyLess();
+
+        if (applicationProperties.isFixedQuantityFlag() && quantityAfterBuyingLess > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
-            calculatedQuantity = applicationProperties.getFixedQuantity();
+            quantityAfterBuyingLess = applicationProperties.getFixedQuantity();
         }
-        final int quantity = calculatedQuantity;
+        final int quantity = quantityAfterBuyingLess;
+
+        log.info(
+                "BUY calc | stock={} | leverage={}/{} | qtyCalculated={} | qtyFinal={} | buyLess={} | fixedQtyFlag={}",
+                stockName,
+                leverageMultiplier,
+                maxLeverage,
+                calculatedQuantity,
+                quantity,
+                applicationProperties.getNumberOfStocksBuyLess(),
+                applicationProperties.isFixedQuantityFlag()
+        );
 
         balanceService.assertSufficientFunds(
                 BigDecimal.valueOf(triggerPrice),
-                quantity
+                quantity / leverageMultiplier
         );
 
         String jwtToken = tokenManager.getValidJwtToken();
@@ -383,81 +430,23 @@ public class OrderService_v2 {
                         price
                 );
 
+        log.info(
+                "Placing BUY order | stock={} | price={} | qty={} | marginUsed={} | usableCash={}",
+                stockName,
+                triggerPrice,
+                quantity,
+                BigDecimal.valueOf(triggerPrice)
+                        .multiply(BigDecimal.valueOf(quantity))
+                        .divide(BigDecimal.valueOf(leverageMultiplier)),
+                usableCash
+        );
+
+
 //        log.info("buy order request: {}", buyOrder);
 
         return brokerApiClient.chartinkPlaceOrder(buyOrder, jwtToken)
                 .doOnSuccess(resp -> {
-
-//                    ObjectMapper mapper = new ObjectMapper();
-//
-//                    /* Root JSON */
-//                    ObjectNode rootNode = mapper.createObjectNode();
-//
-//// map from OrderResponse
-//                    rootNode.put("user-id", "Your_client_code");
-//                    rootNode.put("status-code", resp.isStatus() ? "200" : "500");
-//                    rootNode.put("order-status", resp.isStatus() ? "SUCCESS" : "FAILED");
-//                    rootNode.put("error-message", resp.getMessage() != null ? resp.getMessage() : "");
-//
-//                    /* orderData JSON */
-//                    ObjectNode orderData = mapper.createObjectNode();
-//
-//// values coming from OrderResponse
-//                    orderData.put("orderid", resp.getData() != null ? resp.getData().getOrderid() : "");
-//                    orderData.put("text", resp.getMessage() != null ? resp.getMessage() : "");
-//
-//// static / default values (because OrderResponse does NOT have them)
-//                    orderData.put("variety", "NORMAL");
-//                    orderData.put("ordertype", "LIMIT");
-//                    orderData.put("producttype", "DELIVERY");
-//                    orderData.put("transactiontype", "BUY");
-//                    orderData.put("exchange", "NSE");
-//                    orderData.put("duration", "DAY");
-//
-//// numeric defaults
-//                    orderData.put("price", webhookRequest.getTrigger_prices());
-//                    orderData.put("triggerprice", webhookRequest.getTrigger_prices());
-//                    orderData.put("squareoff", 0);
-//                    orderData.put("stoploss", 0);
-//                    orderData.put("trailingstoploss", 0);
-//                    orderData.put("averageprice", webhookRequest.getTrigger_prices());
-//                    orderData.put("strikeprice", -1);
-//
-//// empty fields
-//                    orderData.put("quantity", quantity);
-//                    orderData.put("disclosedquantity", "0");
-//                    orderData.put("tradingsymbol", "");
-//                    orderData.put("symboltoken", "");
-//                    orderData.put("instrumenttype", "");
-//                    orderData.put("optiontype", "");
-//                    orderData.put("expirydate", "");
-//                    orderData.put("lotsize", "0");
-//                    orderData.put("cancelsize", "0");
-//                    orderData.put("filledshares", "0");
-//                    orderData.put("unfilledshares", "0");
-////                    orderData.put("status", resp.isStatus() ? "FILLED" : "REJECTED");
-////                    orderData.put("orderstatus", resp.isStatus() ? "FILLED" : "REJECTED");
-//                    orderData.put("status", "COMPLETE");
-//                    orderData.put("orderstatus", "COMPLETE");
-//                    orderData.put("updatetime", "");
-//                    orderData.put("exchtime", "");
-//                    orderData.put("exchorderupdatetime", "");
-//                    orderData.put("fillid", "");
-//                    orderData.put("filltime", "");
-//                    orderData.put("parentorderid", "");
-//
-//                    /* attach orderData */
-//                    rootNode.set("orderData", orderData);
-//
-//                    /* convert to JSON string */
-//                    try {
-//                        String requestJson = mapper.writeValueAsString(rootNode);
-//                    } catch (JsonProcessingException e) {
-//                        throw new RuntimeException(e);
-//                    }
-
                     String buyOrderId = resp.getData().getOrderid();
-
                     OrderContext ctx =
                             new OrderContext(
                                     buyOrderId,
@@ -469,17 +458,6 @@ public class OrderService_v2 {
                     orderRegistry.registerBuy(ctx);
 
                     log.info("Buy order registered in order registry: {}", ctx);
-
-//                    try {
-//                        OrderStatusResponse orderStatusResponse =
-//                                mapper.treeToValue(rootNode, OrderStatusResponse.class);
-//
-//                        orderEventQueue.publish(orderStatusResponse);
-//                    } catch (JsonProcessingException e) {
-//                        throw new RuntimeException(e);
-//                    }
                 });
     }
-
-
 }

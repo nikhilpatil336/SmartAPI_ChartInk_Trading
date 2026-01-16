@@ -21,6 +21,7 @@ public class ApplicationProperties {
     private long orderBookRetryMilliseconds;
     private double percentBalanceUse;
     private int numberOfStocksBuyLess;
+    private int leverageMultiplierToUse;
     private boolean fixedQuantityFlag;
     private int fixedQuantity;
     private boolean tradingWindowEnable;
@@ -261,5 +262,13 @@ public class ApplicationProperties {
 
     public void setLeverageListFilePath(String leverageListFilePath) {
         this.leverageListFilePath = leverageListFilePath;
+    }
+
+    public int getLeverageMultiplierToUse() {
+        return leverageMultiplierToUse;
+    }
+
+    public void setLeverageMultiplierToUse(int leverageMultiplierToUse) {
+        this.leverageMultiplierToUse = leverageMultiplierToUse;
     }
 }

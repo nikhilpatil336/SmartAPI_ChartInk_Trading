@@ -1,6 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,12 +32,29 @@ public class OrderCalculationService {
         return qty;
     }
 
+    public int calculateQuantity(double usableCash, double triggerPrice, int leverageMultiplier, int maxLeverage) {
+//        double usableCash = availableCash * applicationProperties.getPercentBalanceUse();
+//        int qty = (int) Math.floor(usableCash / triggerPrice)
+//                - applicationProperties.getNumberOfStocksBuyLess();
+
+        double calculateQuantity = usableCash / triggerPrice;
+        double quantityAfterLeverage = calculateQuantity * leverageMultiplier;
+        int absQuantity = (int) Math.floor(Math.abs(quantityAfterLeverage));
+
+        log.info("Calculated quantity based on available cash and stock price: {}", absQuantity);
+
+        if (absQuantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+            throw new IllegalStateException("Insufficient quantity");
+        }
+        return absQuantity;
+    }
+
     public double calculateProfitPrice(double executedPrice) {
-        return executedPrice * applicationProperties.getProfitPercentageMultiplier();
+        return Utility.roundUpToTick(executedPrice * applicationProperties.getProfitPercentageMultiplier());
     }
 
     public double calculateStopLossPrice(double executedPrice) {
-        return executedPrice * applicationProperties.getStoplossPercentageMultiplier();
+        return Utility.roundDownToTick(executedPrice * applicationProperties.getStoplossPercentageMultiplier());
     }
 }
 

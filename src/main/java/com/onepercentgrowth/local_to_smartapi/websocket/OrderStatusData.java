@@ -45,6 +45,9 @@ public class OrderStatusData {
     @JsonProperty("variety")
     private String variety;
 
+    @JsonProperty("symboltoken")
+    private String symboltoken;
+
     public String getOrderid() {
         return orderid;
     }
@@ -149,6 +152,14 @@ public class OrderStatusData {
         this.triggerprice = triggerprice;
     }
 
+    public String getSymboltoken() {
+        return symboltoken;
+    }
+
+    public void setSymboltoken(String symboltoken) {
+        this.symboltoken = symboltoken;
+    }
+
     @Override
     public String toString() {
         return "OrderStatusData{" +
@@ -159,11 +170,13 @@ public class OrderStatusData {
                 ", transactiontype='" + transactiontype + '\'' +
                 ", exchange='" + exchange + '\'' +
                 ", price='" + price + '\'' +
+                ", triggerprice='" + triggerprice + '\'' +
                 ", quantity='" + quantity + '\'' +
                 ", filledshares='" + filledshares + '\'' +
                 ", unfilledshares='" + unfilledshares + '\'' +
                 ", updatetime='" + updatetime + '\'' +
                 ", variety='" + variety + '\'' +
+                ", symboltoken='" + symboltoken + '\'' +
                 '}';
     }
 }

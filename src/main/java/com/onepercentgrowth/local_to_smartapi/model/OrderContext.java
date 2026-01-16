@@ -13,6 +13,10 @@ public class OrderContext {
     private String sellVariety;
     private String stopLossVariety;
 
+    private double buyPrice;
+    private double sellPrice;
+    private double stoplossPrice;
+
     public OrderContext(
             String buyOrderId,
             String sellOrderId,
@@ -109,6 +113,47 @@ public class OrderContext {
         this.stopLossVariety = stopLossVariety;
     }
 
+    public double getBuyPrice() {
+        return buyPrice;
+    }
+
+    public void setBuyPrice(double buyPrice) {
+        this.buyPrice = buyPrice;
+    }
+
+    public double getSellPrice() {
+        return sellPrice;
+    }
+
+    public void setSellPrice(double sellPrice) {
+        this.sellPrice = sellPrice;
+    }
+
+    public double getStoplossPrice() {
+        return stoplossPrice;
+    }
+
+    public void setStoplossPrice(double stoplossPrice) {
+        this.stoplossPrice = stoplossPrice;
+    }
+
+    public void markSellPlaced(String sellOrderId, double sellPrice) {
+        if (this.sellOrderId != null) {
+            throw new IllegalStateException("SELL already placed for BUY " + buyOrderId);
+        }
+        this.sellOrderId = sellOrderId;
+        this.sellPrice = sellPrice;
+    }
+
+    public void markSlPlaced(String stopLossOrderId, double stoplossPrice) {
+        if (this.stopLossOrderId != null) {
+            throw new IllegalStateException("STOPLOSS already placed for BUY " + buyOrderId);
+        }
+        this.stopLossOrderId = stopLossOrderId;
+        this.stoplossPrice = stoplossPrice;
+    }
+
+
     @Override
     public String toString() {
         return "OrderContext{" +
@@ -120,6 +165,9 @@ public class OrderContext {
                 ", quantity=" + quantity +
                 ", sellVariety='" + sellVariety + '\'' +
                 ", stopLossVariety='" + stopLossVariety + '\'' +
+                ", buyPrice=" + buyPrice +
+                ", sellPrice=" + sellPrice +
+                ", stoplossPrice=" + stoplossPrice +
                 '}';
     }
 }

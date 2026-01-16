@@ -30,17 +30,6 @@ public class TestController {
         orderEventQueue.publish(response);
     }
 
-//    @PostMapping("/testSellandStoploss")
-//    public void testSellandStoploss(@RequestBody String payload) throws JsonProcessingException {
-//
-//        OrderStatusResponse response =
-//                mapper.readValue(payload, OrderStatusResponse.class);
-//
-//        orderRegistry.registerBuy(new OrderContext(response.getOrderStatusData().getOrderid(), response.getOrderStatusData().getTradingsymbol(), "3499", Integer.parseInt(response.getOrderStatusData().getQuantity())));
-//
-//        orderEventQueue.publish(response);
-//    }
-
     @PostMapping("/testSellandStoploss")
     public void testSellandStoploss(@RequestBody OrderStatusResponse response) {
 
@@ -48,23 +37,23 @@ public class TestController {
             throw new IllegalArgumentException("orderStatusData missing in payload");
         }
 
-        OrderContext orderContext = new OrderContext(
-                "260106000810894",   // buyOrderId
-                "260106000810939",   // sellOrderId
-                "260106000811022",   // stopLossOrderId
-                "TATASTEEL",         // tradingSymbol
-                "3499",              // symbolToken
-                1,                   // quantity
-                "NORMAL",            // sellVariety
-                "STOPLOSS"           // stopLossVariety
-        );
+        if(response.getOrderStatusData().getTransactiontype().equalsIgnoreCase("BUY"))
+        {
+            OrderContext orderContext = new OrderContext(
+                    "260106000810894",   // buyOrderId
+                    "260106000810939",   // sellOrderId
+                    "260106000811022",   // stopLossOrderId
+                    response.getOrderStatusData().getTradingsymbol(),         // tradingSymbol
+                    response.getOrderStatusData().getSymboltoken(),              // symbolToken
+                    Integer.parseInt(response.getOrderStatusData().getQuantity()),                   // quantity
+                    "NORMAL",            // sellVariety
+                    "STOPLOSS"           // stopLossVariety
+            );
 
-        // Register full context in registry
-        orderRegistry.register(orderContext);
+            orderRegistry.registerBuy(orderContext);
+        }
 
         // Publish incoming event
         orderEventQueue.publish(response);
     }
-
-
 }
