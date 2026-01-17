@@ -89,8 +89,11 @@ public class SellFilledStrategy implements OrderFillStrategy {
                 })
                 .subscribe();
 
-        double executedPrice =
-                Double.parseDouble(response.getOrderStatusData().getPrice());
+//        double executedPrice =
+//                Double.parseDouble(response.getOrderStatusData().getPrice());
+
+        BigDecimal executedPrice =
+                new BigDecimal(response.getOrderStatusData().getPrice());
 
 //        int quantity = ctx.getQuantity();
         int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
@@ -100,8 +103,8 @@ public class SellFilledStrategy implements OrderFillStrategy {
 
         // 🔑 BALANCE UPDATE
         balanceService.onSell(
-                BigDecimal.valueOf(executedPrice),
-                BigDecimal.valueOf(ctx.getBuyPrice()),
+                executedPrice,
+                ctx.getBuyPrice(),
                 quantity,
                 applicationProperties.getLeverageMultiplierToUse(),
                 balanceService.getUsableBalance(),

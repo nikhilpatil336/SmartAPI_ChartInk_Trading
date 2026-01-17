@@ -67,7 +67,7 @@ public class BuyFilledStrategy implements OrderFillStrategy {
         BigDecimal executedPrice =
                 new BigDecimal(response.getOrderStatusData().getPrice());
 
-        ctx.setBuyPrice(executedPrice.doubleValue());
+        ctx.setBuyPrice(executedPrice);
 
         log.info(
                 "BUY filled | stock={} | orderId={} | qty={} | executedPrice={}",
@@ -91,7 +91,7 @@ public class BuyFilledStrategy implements OrderFillStrategy {
 
         StopLossPrice slPrice =
                 calculationService.calculateStopLossPrice(
-                        BigDecimal.valueOf(ctx.getBuyPrice()),
+                        ctx.getBuyPrice(),
                         BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
                         BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
                 );

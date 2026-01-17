@@ -431,7 +431,7 @@ public class OrderService_v2 {
                         stockName,
                         symbolToken,
                         quantity,
-                        price
+                        triggerPrice.toString()
                 );
 
         log.info(

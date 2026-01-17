@@ -1,5 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
+import java.math.BigDecimal;
+
 public class OrderContext {
 
     private String buyOrderId;
@@ -13,9 +15,9 @@ public class OrderContext {
     private String sellVariety;
     private String stopLossVariety;
 
-    private double buyPrice;
-    private double sellPrice;
-    private double stoplossPrice;
+    private BigDecimal buyPrice;
+    private BigDecimal sellPrice;
+    private BigDecimal stoplossPrice;
 
     private int lastBuyFilledQty = 0;
     private int lastSellFilledQty = 0;
@@ -120,27 +122,52 @@ public class OrderContext {
         this.stopLossVariety = stopLossVariety;
     }
 
-    public double getBuyPrice() {
+//    public double getBuyPrice() {
+//        return buyPrice;
+//    }
+//
+//    public void setBuyPrice(double buyPrice) {
+//        this.buyPrice = buyPrice;
+//    }
+//
+//    public double getSellPrice() {
+//        return sellPrice;
+//    }
+//
+//    public void setSellPrice(double sellPrice) {
+//        this.sellPrice = sellPrice;
+//    }
+//
+//    public double getStoplossPrice() {
+//        return stoplossPrice;
+//    }
+//
+//    public void setStoplossPrice(double stoplossPrice) {
+//        this.stoplossPrice = stoplossPrice;
+//    }
+
+
+    public BigDecimal getBuyPrice() {
         return buyPrice;
     }
 
-    public void setBuyPrice(double buyPrice) {
+    public void setBuyPrice(BigDecimal buyPrice) {
         this.buyPrice = buyPrice;
     }
 
-    public double getSellPrice() {
+    public BigDecimal getSellPrice() {
         return sellPrice;
     }
 
-    public void setSellPrice(double sellPrice) {
+    public void setSellPrice(BigDecimal sellPrice) {
         this.sellPrice = sellPrice;
     }
 
-    public double getStoplossPrice() {
+    public BigDecimal getStoplossPrice() {
         return stoplossPrice;
     }
 
-    public void setStoplossPrice(double stoplossPrice) {
+    public void setStoplossPrice(BigDecimal stoplossPrice) {
         this.stoplossPrice = stoplossPrice;
     }
 

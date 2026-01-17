@@ -91,8 +91,11 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
                 })
                 .subscribe();
 
-        double executedPrice =
-                Double.parseDouble(response.getOrderStatusData().getPrice());
+//        double executedPrice =
+//                Double.parseDouble(response.getOrderStatusData().getPrice());
+
+        BigDecimal executedPrice =
+                new BigDecimal(response.getOrderStatusData().getPrice());
 
 //        int quantity = ctx.getQuantity();
         int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
@@ -101,8 +104,8 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
                 Utility.normalize(ctx.getTradingSymbol());
 
         balanceService.onSell(
-                BigDecimal.valueOf(executedPrice),
-                BigDecimal.valueOf(ctx.getBuyPrice()),
+                executedPrice,
+                ctx.getBuyPrice(),
                 quantity,
                 applicationProperties.getLeverageMultiplierToUse(),
                 balanceService.getUsableBalance(),
