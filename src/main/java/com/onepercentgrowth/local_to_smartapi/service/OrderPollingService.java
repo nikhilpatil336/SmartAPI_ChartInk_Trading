@@ -5,7 +5,6 @@ import com.onepercentgrowth.local_to_smartapi.model.OrderResult;
 import com.onepercentgrowth.local_to_smartapi.model.OrderStatusItem;
 import com.onepercentgrowth.local_to_smartapi.model.OrderBookResponse_v2;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
-import com.onepercentgrowth.local_to_smartapi.startupservice.ApplicationStartupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

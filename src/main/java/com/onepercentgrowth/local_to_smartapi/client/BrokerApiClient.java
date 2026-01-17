@@ -401,27 +401,27 @@ public class BrokerApiClient {
 
 //------------------------- Order related methods -----------------------------
 
-    public Mono<OrderResponse> placeOrder(BracketOrderRequest orderRequest, String authToken) {
-
-        log.info("Placing order: {}", orderRequest);
-
-        return brokerWebClient.post()
-                .uri("/rest/secure/angelbroking/order/v1/placeOrder")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
-                .bodyValue(orderRequest)
-                .retrieve()
-                .bodyToMono(OrderResponse.class)
-                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
-                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
-    }
+//    public Mono<OrderResponse> placeOrder(BracketOrderRequest orderRequest, String authToken) {
+//
+//        log.info("Placing order: {}", orderRequest);
+//
+//        return brokerWebClient.post()
+//                .uri("/rest/secure/angelbroking/order/v1/placeOrder")
+//                .header("Authorization", "Bearer " + authToken)
+//                .header("Content-Type", "application/json")
+//                .header("Accept", "application/json")
+//                .header("X-UserType", angelConfig.getUserType())
+//                .header("X-SourceID", angelConfig.getSourceId())
+//                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+//                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+//                .header("X-MACAddress", angelConfig.getClientMacAddress())
+//                .header("X-PrivateKey", angelConfig.getPrivateKey())
+//                .bodyValue(orderRequest)
+//                .retrieve()
+//                .bodyToMono(OrderResponse.class)
+//                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+//                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+//    }
 
     public Mono<OrderResponse> chartinkPlaceOrder(IOrderRequest orderRequest, String authToken) {
 

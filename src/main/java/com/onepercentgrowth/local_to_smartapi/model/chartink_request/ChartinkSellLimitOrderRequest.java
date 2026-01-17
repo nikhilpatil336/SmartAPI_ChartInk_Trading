@@ -1,40 +1,39 @@
 package com.onepercentgrowth.local_to_smartapi.model.chartink_request;
 
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
+public class ChartinkSellLimitOrderRequest implements IOrderRequest {
 
-public class ChartInkMISBuyOrderRequest implements IOrderRequest {
-
-    public String disclosedquantity;
-
-    public String duration;
+    public String variety;
 
     public String tradingsymbol;
 
-    public String variety;
+    public String symboltoken;
+
+    public String transactiontype;
+
+    public String exchange;
 
     public String ordertype;
 
     public String producttype;
 
-    public String exchange;
+    public String duration;
 
-    public String transactiontype;
+    public String price;
+
+    public String squareoff;
+
+    public String stoploss;
 
     public String quantity;
 
-    public String symboltoken;
+
+    public String disclosedquantity;
 
     public String scripconsent;
 
-//    public String squareoff;
-//
-//    public String stoploss;
-//
-//    public String triggerprice;
-//
-    public String price;
-//
-//    public String orderid;
+    public String triggerprice;
+
+    public String orderid;
 //
 //    public String symbol;
 //
@@ -50,10 +49,10 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
 //
 //    public String lotsize;
 
-    public ChartInkMISBuyOrderRequest() {
+    public ChartinkSellLimitOrderRequest() {
     }
 
-    public ChartInkMISBuyOrderRequest(String disclosedquantity, String duration, String tradingsymbol, String variety, String ordertype, String triggerprice, String text, String price, String status, String producttype, String exchange, String orderid, String symbol, String updatetime, String exchangetimestamp, String exchangeupdatetimestamp, String averageprice, String transactiontype, String quantity, String squareoff, String stoploss, String trailingstoploss, String symboltoken, String instrumenttype, String strikeprice, String optiontype, String expirydate, String lotsize, String cancelsize, String filledshares, String orderstatus, String unfilledshares, String fillid, String filltime, String uniqueorderid, String scripconsent) {
+    public ChartinkSellLimitOrderRequest(String disclosedquantity, String duration, String tradingsymbol, String variety, String ordertype, String triggerprice, String text, String price, String status, String producttype, String exchange, String orderid, String symbol, String updatetime, String exchangetimestamp, String exchangeupdatetimestamp, String averageprice, String transactiontype, String quantity, String squareoff, String stoploss, String trailingstoploss, String symboltoken, String instrumenttype, String strikeprice, String optiontype, String expirydate, String lotsize, String cancelsize, String filledshares, String orderstatus, String unfilledshares, String fillid, String filltime, String uniqueorderid, String scripconsent) {
         this.disclosedquantity = disclosedquantity;
         this.duration = duration;
         this.tradingsymbol = tradingsymbol;
@@ -65,12 +64,12 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
         this.quantity = quantity;
         this.symboltoken = symboltoken;
         this.scripconsent = scripconsent;
-//        this.triggerprice = triggerprice;
+        this.triggerprice = triggerprice;
         this.price = price;
 //        this.symbol = symbol;
-//        this.squareoff = squareoff;
-//        this.stoploss = stoploss;
-//        this.orderid = orderid;
+        this.squareoff = squareoff;
+        this.stoploss = stoploss;
+        this.orderid = orderid;
 //        this.trailingstoploss = trailingstoploss;
 //        this.instrumenttype = instrumenttype;
 //        this.strikeprice = strikeprice;
@@ -167,30 +166,30 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
         this.scripconsent = scripconsent;
     }
 
-//    public String getSquareoff() {
-//        return squareoff;
-//    }
-//
-//    public void setSquareoff(String squareoff) {
-//        this.squareoff = squareoff;
-//    }
-//
-//    public String getStoploss() {
-//        return stoploss;
-//    }
-//
-//    public void setStoploss(String stoploss) {
-//        this.stoploss = stoploss;
-//    }
-//
-//    public String getTriggerprice() {
-//        return triggerprice;
-//    }
-//
-//    public void setTriggerprice(String triggerprice) {
-//        this.triggerprice = triggerprice;
-//    }
-//
+    public String getSquareoff() {
+        return squareoff;
+    }
+
+    public void setSquareoff(String squareoff) {
+        this.squareoff = squareoff;
+    }
+
+    public String getStoploss() {
+        return stoploss;
+    }
+
+    public void setStoploss(String stoploss) {
+        this.stoploss = stoploss;
+    }
+
+    public String getTriggerprice() {
+        return triggerprice;
+    }
+
+    public void setTriggerprice(String triggerprice) {
+        this.triggerprice = triggerprice;
+    }
+
     public String getPrice() {
         return price;
     }
@@ -198,14 +197,14 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
     public void setPrice(String price) {
         this.price = price;
     }
-//
-//    public String getOrderid() {
-//        return orderid;
-//    }
-//
-//    public void setOrderid(String orderid) {
-//        this.orderid = orderid;
-//    }
+
+    public String getOrderid() {
+        return orderid;
+    }
+
+    public void setOrderid(String orderid) {
+        this.orderid = orderid;
+    }
 
     //
 //    public String getSymbol() {
@@ -267,7 +266,7 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
 
     @Override
     public String toString() {
-        return "ChartInkMISBuyOrderRequest{" +
+        return "ChartinkMISSellOrderRequest{" +
                 "disclosedquantity='" + disclosedquantity + '\'' +
                 ", duration='" + duration + '\'' +
                 ", tradingsymbol='" + tradingsymbol + '\'' +
@@ -279,12 +278,12 @@ public class ChartInkMISBuyOrderRequest implements IOrderRequest {
                 ", quantity='" + quantity + '\'' +
                 ", symboltoken='" + symboltoken + '\'' +
                 ", scripconsent='" + scripconsent + '\'' +
-//                ", triggerprice='" + triggerprice + '\'' +
+                ", triggerprice='" + triggerprice + '\'' +
                 ", price='" + price + '\'' +
 //                ", symbol='" + symbol + '\'' +
-//                ", squareoff='" + squareoff + '\'' +
-//                ", stoploss='" + stoploss + '\'' +
-//                ", orderid='" + orderid + '\'' +
+                ", squareoff='" + squareoff + '\'' +
+                ", stoploss='" + stoploss + '\'' +
+                ", orderid='" + orderid + '\'' +
 //                ", trailingstoploss='" + trailingstoploss + '\'' +
 //                ", instrumenttype='" + instrumenttype + '\'' +
 //                ", strikeprice='" + strikeprice + '\'' +

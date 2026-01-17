@@ -3,7 +3,6 @@ package com.onepercentgrowth.local_to_smartapi.storage;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -94,27 +93,6 @@ public class ScripMasterStorageService {
             log.error("Failed to load ScripMaster file: {}", e.getMessage(), e);
         }
     }
-
-//    public synchronized void loadFilteredScripmasterFromFile() {
-//        try {
-//            File file = new File(applicationProperties.getFilteredScripmasterFilePath());
-//
-//            if (!file.exists()) {
-//                log.warn("ScripMaster file does not exist.");
-//                return;
-//            }
-//
-//            ScripFileModel model = objectMapper.readValue(file, ScripFileModel.class);
-//
-//            this.cachedRawList = model.items();
-//            this.lastUpdatedEpoch = model.lastUpdatedEpoch();
-//
-//            log.info("ScripMaster loaded from {}", applicationProperties.getFilteredScripmasterFilePath());
-//
-//        } catch (Exception e) {
-//            log.error("Failed to load ScripMaster file: {}", e.getMessage(), e);
-//        }
-//    }
 
     public synchronized void loadFilteredScripmasterFromFile() {
         try {

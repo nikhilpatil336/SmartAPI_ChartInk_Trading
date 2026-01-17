@@ -11,6 +11,14 @@ public interface OrderRequestFactory {
             String price
     );
 
+    IOrderRequest modifyBuyOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            String price,
+            String orderId
+    );
+
     IOrderRequest createSellLimitOrder(
             String stockName,
             String symbolToken,
@@ -18,12 +26,21 @@ public interface OrderRequestFactory {
             double price
     );
 
-    IOrderRequest createStopLossMarketOrder(
+    public IOrderRequest modifySellLimitOrder(
             String stockName,
             String symbolToken,
             int quantity,
-            double triggerPrice
+            double triggerPrice,
+            String orderId,
+            double limitPrice
     );
+
+//    IOrderRequest createStopLossMarketOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double triggerPrice
+//    );
 
     IOrderRequest createStopLossLimitOrder(
             String stockName,
@@ -33,13 +50,14 @@ public interface OrderRequestFactory {
             double limitPrice
     );
 
-    IOrderRequest modifyStopLossOrder(
-            String stockName,
-            String symbolToken,
-            int quantity,
-            double triggerPrice,
-            String orderId
-    );
+
+//    IOrderRequest modifyStopLossOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double triggerPrice,
+//            String orderId
+//    );
 
     public IOrderRequest modifyLimitStopLossOrder(
             String stockName,

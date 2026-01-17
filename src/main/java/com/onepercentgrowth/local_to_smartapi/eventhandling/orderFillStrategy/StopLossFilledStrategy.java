@@ -100,15 +100,6 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
         String normalizedSymbol =
                 Utility.normalize(ctx.getTradingSymbol());
 
-        // 🔑 BALANCE UPDATE
-//        balanceService.onSLSell(
-//                BigDecimal.valueOf(executedPrice),
-//                quantity,
-//                balanceService.getUsableBalance(),
-//                leverageService.get(normalizedSymbol).multiplier(),
-//                ctx.getBuyPrice()
-//        );
-
         balanceService.onSell(
                 BigDecimal.valueOf(executedPrice),
                 BigDecimal.valueOf(ctx.getBuyPrice()),

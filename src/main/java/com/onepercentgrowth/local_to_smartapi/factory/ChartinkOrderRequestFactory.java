@@ -18,7 +18,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             int quantity,
             String price
     ) {
-        ChartInkMISBuyOrderRequest req = new ChartInkMISBuyOrderRequest();
+        ChartInkBuyLimitOrderRequest req = new ChartInkBuyLimitOrderRequest();
         req.setVariety("NORMAL");
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
@@ -35,13 +35,40 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     }
 
     @Override
+    public IOrderRequest modifyBuyOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            String price,
+            String orderId // The unique ID returned during placement [10, 12]
+    ) {
+        // Note: Use the appropriate request class for modifications
+        ChartInkBuyLimitOrderRequest req = new ChartInkBuyLimitOrderRequest();
+
+        req.setOrderid(orderId); // Mandatory for modification [12, 13]
+        req.setVariety("NORMAL"); // Must match the original order variety [12]
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
+        req.setSymboltoken(symbolToken);
+        req.setExchange("NSE");
+
+        // New parameters to be updated
+        req.setOrdertype("LIMIT");
+        req.setProducttype("INTRADAY");
+        req.setDuration("DAY");
+        req.setQuantity(String.valueOf(quantity)); // New quantity [12]
+        req.setPrice(price); // New limit price [12]
+
+        return req;
+    }
+
+    @Override
     public IOrderRequest createSellLimitOrder(
             String stockName,
             String symbolToken,
             int quantity,
             double price
     ) {
-        ChartinkMISSellOrderRequest req = new ChartinkMISSellOrderRequest();
+        ChartinkSellLimitOrderRequest req = new ChartinkSellLimitOrderRequest();
         req.setVariety("NORMAL");
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
@@ -61,29 +88,63 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     }
 
     @Override
-    public IOrderRequest createStopLossMarketOrder(
+    public IOrderRequest modifySellLimitOrder(
             String stockName,
             String symbolToken,
             int quantity,
-            double triggerPrice
+            double triggerPrice, // Used for SL orders, otherwise 0
+            String orderId,
+            double limitPrice
     ) {
-        log.info("Trigger price for stoploss market order is {}", triggerPrice);
+        ChartinkSellLimitOrderRequest req = new ChartinkSellLimitOrderRequest();
 
-        ChartinkMIS_SL_Market_OrderRequest req = new ChartinkMIS_SL_Market_OrderRequest();
-        req.setVariety("STOPLOSS");
+        // Mandatory field for modification [8, 9]
+        req.setOrderid(orderId);
+
+        // variety must match the original order variety [8]
+        req.setVariety("NORMAL");
+
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
-        req.setTransactiontype("SELL");
         req.setExchange("NSE");
-        req.setOrdertype("STOPLOSS_MARKET");
+
+        // Updated parameters [8, 9]
+        req.setOrdertype("LIMIT");
         req.setProducttype("INTRADAY");
         req.setDuration("DAY");
         req.setQuantity(String.valueOf(quantity));
+        req.setPrice(String.valueOf(limitPrice)); // The new execution price
+
+        // For standard LIMIT orders, triggerprice is usually 0 [5, 7]
         req.setTriggerprice(String.valueOf(triggerPrice));
-        req.setDisclosedquantity("0");
-        req.setScripconsent("yes");
+
         return req;
     }
+
+//    @Override
+//    public IOrderRequest createStopLossMarketOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double triggerPrice
+//    ) {
+//        log.info("Trigger price for stoploss market order is {}", triggerPrice);
+//
+//        ChartinkMIS_SL_Market_OrderRequest req = new ChartinkMIS_SL_Market_OrderRequest();
+//        req.setVariety("STOPLOSS");
+//        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
+//        req.setSymboltoken(symbolToken);
+//        req.setTransactiontype("SELL");
+//        req.setExchange("NSE");
+//        req.setOrdertype("STOPLOSS_MARKET");
+//        req.setProducttype("INTRADAY");
+//        req.setDuration("DAY");
+//        req.setQuantity(String.valueOf(quantity));
+//        req.setTriggerprice(String.valueOf(triggerPrice));
+//        req.setDisclosedquantity("0");
+//        req.setScripconsent("yes");
+//        return req;
+//    }
 
     @Override
     public IOrderRequest createStopLossLimitOrder(
@@ -112,21 +173,21 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
         return req;
     }
 
-    @Override
-    public IOrderRequest modifyStopLossOrder(
-            String stockName,
-            String symbolToken,
-            int quantity,
-            double triggerPrice,
-            String orderId
-    ) {
-        ChartinkMIS_SL_Market_OrderRequest req =
-                (ChartinkMIS_SL_Market_OrderRequest)
-                        createStopLossMarketOrder(stockName, symbolToken, quantity, triggerPrice);
-
-        req.setOrderid(orderId);
-        return req;
-    }
+//    @Override
+//    public IOrderRequest modifyStopLossOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double triggerPrice,
+//            String orderId
+//    ) {
+//        ChartinkMIS_SL_Market_OrderRequest req =
+//                (ChartinkMIS_SL_Market_OrderRequest)
+//                        createStopLossMarketOrder(stockName, symbolToken, quantity, triggerPrice);
+//
+//        req.setOrderid(orderId);
+//        return req;
+//    }
 
     @Override
     public IOrderRequest modifyLimitStopLossOrder(
@@ -137,18 +198,33 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             String orderId,
             double limitPrice
     ) {
-        IOrderRequest req =
-                        createStopLossLimitOrder(stockName, symbolToken, quantity, triggerPrice, limitPrice);
+        ChartinkMIS_SL_Limit_OrderRequest req = new ChartinkMIS_SL_Limit_OrderRequest();
 
-//        req.setOrderid(orderId);
+        // Mandatory field for modification [8, 9]
+        req.setOrderid(orderId);
+
+        // variety must match the original order variety [8]
+        req.setVariety("NORMAL");
+
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
+        req.setSymboltoken(symbolToken);
+        req.setExchange("NSE");
+
+        // Updated parameters [8, 9]
+        req.setOrdertype("LIMIT");
+        req.setProducttype("INTRADAY");
+        req.setDuration("DAY");
+        req.setQuantity(String.valueOf(quantity));
+        req.setPrice(String.valueOf(limitPrice)); // The new execution price
+
+        // For standard LIMIT orders, triggerprice is usually 0 [5, 7]
+        req.setTriggerprice(String.valueOf(triggerPrice));
         return req;
     }
 
     @Override
     public IOrderRequest createCancelOrder(String orderId, String variety) {
         ChartinkCancelOrderRequest request = new ChartinkCancelOrderRequest(orderId, variety);
-
-
 
         return request;
     }

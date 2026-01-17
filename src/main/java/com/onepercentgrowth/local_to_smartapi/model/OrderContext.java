@@ -17,6 +17,13 @@ public class OrderContext {
     private double sellPrice;
     private double stoplossPrice;
 
+    private int lastBuyFilledQty = 0;
+    private int lastSellFilledQty = 0;
+    private int lastStoplossFilledQty = 0;
+    private boolean sellPlaced = false;
+    private boolean slPlaced = false;
+
+
     public OrderContext(
             String buyOrderId,
             String sellOrderId,
@@ -137,22 +144,45 @@ public class OrderContext {
         this.stoplossPrice = stoplossPrice;
     }
 
-    public void markSellPlaced(String sellOrderId, double sellPrice) {
-        if (this.sellOrderId != null) {
-            throw new IllegalStateException("SELL already placed for BUY " + buyOrderId);
-        }
-        this.sellOrderId = sellOrderId;
-        this.sellPrice = sellPrice;
+    public int getLastBuyFilledQty() {
+        return lastBuyFilledQty;
     }
 
-    public void markSlPlaced(String stopLossOrderId, double stoplossPrice) {
-        if (this.stopLossOrderId != null) {
-            throw new IllegalStateException("STOPLOSS already placed for BUY " + buyOrderId);
-        }
-        this.stopLossOrderId = stopLossOrderId;
-        this.stoplossPrice = stoplossPrice;
+    public void setLastBuyFilledQty(int lastBuyFilledQty) {
+        this.lastBuyFilledQty = lastBuyFilledQty;
     }
 
+    public int getLastSellFilledQty() {
+        return lastSellFilledQty;
+    }
+
+    public void setLastSellFilledQty(int lastSellFilledQty) {
+        this.lastSellFilledQty = lastSellFilledQty;
+    }
+
+    public int getLastStoplossFilledQty() {
+        return lastStoplossFilledQty;
+    }
+
+    public void setLastStoplossFilledQty(int lastStoplossFilledQty) {
+        this.lastStoplossFilledQty = lastStoplossFilledQty;
+    }
+
+    public boolean isSellPlaced() {
+        return sellPlaced;
+    }
+
+    public void setSellPlaced(boolean sellPlaced) {
+        this.sellPlaced = sellPlaced;
+    }
+
+    public boolean isSlPlaced() {
+        return slPlaced;
+    }
+
+    public void setSlPlaced(boolean slPlaced) {
+        this.slPlaced = slPlaced;
+    }
 
     @Override
     public String toString() {
@@ -168,6 +198,11 @@ public class OrderContext {
                 ", buyPrice=" + buyPrice +
                 ", sellPrice=" + sellPrice +
                 ", stoplossPrice=" + stoplossPrice +
+                ", lastBuyFilledQty=" + lastBuyFilledQty +
+                ", lastSellFilledQty=" + lastSellFilledQty +
+                ", lastStoplossFilledQty=" + lastStoplossFilledQty +
+                ", sellPlaced=" + sellPlaced +
+                ", slPlaced=" + slPlaced +
                 '}';
     }
 }

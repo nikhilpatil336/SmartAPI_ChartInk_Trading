@@ -111,30 +111,30 @@ public class OrderExecutionService {
     // MODIFY STOP LOSS
     // ----------------------------------------------------
 
-    public Mono<OrderResponse> modifyStopLossOrder(
-            String stockName,
-            String symbolToken,
-            int quantity,
-            double newTriggerPrice,
-            String orderId,
-            String jwtToken
-    ) {
-        IOrderRequest modifyRequest =
-                orderRequestFactory.modifyStopLossOrder(
-                        stockName,
-                        symbolToken,
-                        quantity,
-                        newTriggerPrice,
-                        orderId
-                );
-
-        log.info("Modifying STOP LOSS order {} newTrigger={}",
-                orderId, newTriggerPrice);
-
-        return brokerApiClient
-                .chartinkModifyOrder(modifyRequest, jwtToken)
-                .flatMap(this::validateOrderResponse);
-    }
+//    public Mono<OrderResponse> modifyStopLossOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double newTriggerPrice,
+//            String orderId,
+//            String jwtToken
+//    ) {
+//        IOrderRequest modifyRequest =
+//                orderRequestFactory.modifyStopLossOrder(
+//                        stockName,
+//                        symbolToken,
+//                        quantity,
+//                        newTriggerPrice,
+//                        orderId
+//                );
+//
+//        log.info("Modifying STOP LOSS order {} newTrigger={}",
+//                orderId, newTriggerPrice);
+//
+//        return brokerApiClient
+//                .chartinkModifyOrder(modifyRequest, jwtToken)
+//                .flatMap(this::validateOrderResponse);
+//    }
 
 //    public Mono<OrderResponse> modifyLimitStopLossOrder(
 //            String stockName,

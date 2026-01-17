@@ -1,7 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
-import com.onepercentgrowth.local_to_smartapi.model.OrderBookResponse_v2;
 import com.onepercentgrowth.local_to_smartapi.model.OrderStatusItem;
 import com.onepercentgrowth.local_to_smartapi.model.TradeBookResponse;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;

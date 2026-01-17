@@ -1,8 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling.orderStatusHandler;
 
-import com.onepercentgrowth.local_to_smartapi.eventhandling.orderStatusHandler.OrderStatusHandler;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
-import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

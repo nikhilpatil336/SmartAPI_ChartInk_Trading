@@ -2,7 +2,6 @@ package com.onepercentgrowth.local_to_smartapi.config;
 
 import com.onepercentgrowth.local_to_smartapi.model.LoginRequest;
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
-//import com.onepercentgrowth.local_to_smartapi.scheduler.TokenScheduler;
 import com.onepercentgrowth.local_to_smartapi.service.LoginService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import jakarta.annotation.PostConstruct;
@@ -12,7 +11,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 

@@ -4,8 +4,8 @@ import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartInkMISBuyOrderRequest;
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMISSellOrderRequest;
+import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartInkBuyLimitOrderRequest;
+import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkSellLimitOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMIS_SL_Market_OrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
@@ -73,66 +73,66 @@ public class OrderService {
 //        return brokerApiClient.placeOrder(orderRequest, token);
 //    }
 
-    public Mono<OrderResponse> placeWebhookOrder(WebhookRequest webhookRequest) {
-
-        // 1. Extract first stock
-        String[] stocks = webhookRequest.getStocks().split(",");
-        String stockName = stocks[0].trim();
-
-        // 2. Extract first trigger price
-        String[] prices = webhookRequest.getTrigger_prices().split(",");
-        Double triggerPrice = Double.parseDouble(prices[0].trim());
-
-        // 3. Get token from NSE map
-        String symboltoken = scripMasterService.getTokenForName(stockName);
-        if (symboltoken == null) {
-            return Mono.error(new RuntimeException("TradingSymbol not found for stock: " + stockName));
-        }
-
-        // 4. Get RMS balance
-//        RmsData rmsData = scripMasterService.getRmsData();
-        RmsData rmsData = rmsService.getCachedRms();
-        if (rmsData == null) {
-            return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
-        }
-
-        Double availableCash = Double.parseDouble(rmsData.getAvailablecash());
-        availableCash = 10000.00;
-        if (availableCash <= 0) {
-            return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
-        }
-
-        // 5. Calculate quantity
-        int quantity = (int) Math.floor(availableCash / triggerPrice);
-        if (quantity <= 0) {
-            return Mono.error(new RuntimeException("Not enough cash to buy even 1 share."));
-        }
-
-        // 6. Get JWT token for order
-        String jwtToken = tokenStorageService.getJwtToken();
-        if (jwtToken == null) {
-            return Mono.error(new RuntimeException("User not logged in. No JWT token found."));
-        }
-
-//        OrderRequest_v2 orderRequest = new OrderRequest_v2();
-//        orderRequest.setExchange("NSE");
-//        orderRequest.setTradingsymbol(stockName+"-EQ");
-//        orderRequest.setSymboltoken(symboltoken);
-//        orderRequest.setOrdertype("MARKET");
-//        orderRequest.setProducttype("INTRADAY");
-//        orderRequest.setTransactiontype("BUY");
-//        orderRequest.setVariety("NORMAL");
-////        orderRequest.setVariety("ROBO");
-//        orderRequest.setDisclosedquantity(String.valueOf(0));
-//        orderRequest.setQuantity(String.valueOf(quantity));
-//        orderRequest.setScripconsent("yes");
-//        orderRequest.setDuration("DAY");
-
-        BracketOrderRequest orderRequest = createBracketOrderRequest(stockName, symboltoken, quantity, webhookRequest.getTrigger_prices());
-
-        // 8. Call API client
-        return brokerApiClient.placeOrder(orderRequest, jwtToken);
-    }
+//    public Mono<OrderResponse> placeWebhookOrder(WebhookRequest webhookRequest) {
+//
+//        // 1. Extract first stock
+//        String[] stocks = webhookRequest.getStocks().split(",");
+//        String stockName = stocks[0].trim();
+//
+//        // 2. Extract first trigger price
+//        String[] prices = webhookRequest.getTrigger_prices().split(",");
+//        Double triggerPrice = Double.parseDouble(prices[0].trim());
+//
+//        // 3. Get token from NSE map
+//        String symboltoken = scripMasterService.getTokenForName(stockName);
+//        if (symboltoken == null) {
+//            return Mono.error(new RuntimeException("TradingSymbol not found for stock: " + stockName));
+//        }
+//
+//        // 4. Get RMS balance
+////        RmsData rmsData = scripMasterService.getRmsData();
+//        RmsData rmsData = rmsService.getCachedRms();
+//        if (rmsData == null) {
+//            return Mono.error(new RuntimeException("RMS Data not available. Fetch balance first."));
+//        }
+//
+//        Double availableCash = Double.parseDouble(rmsData.getAvailablecash());
+//        availableCash = 10000.00;
+//        if (availableCash <= 0) {
+//            return Mono.error(new RuntimeException("Insufficient balance: " + availableCash));
+//        }
+//
+//        // 5. Calculate quantity
+//        int quantity = (int) Math.floor(availableCash / triggerPrice);
+//        if (quantity <= 0) {
+//            return Mono.error(new RuntimeException("Not enough cash to buy even 1 share."));
+//        }
+//
+//        // 6. Get JWT token for order
+//        String jwtToken = tokenStorageService.getJwtToken();
+//        if (jwtToken == null) {
+//            return Mono.error(new RuntimeException("User not logged in. No JWT token found."));
+//        }
+//
+////        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+////        orderRequest.setExchange("NSE");
+////        orderRequest.setTradingsymbol(stockName+"-EQ");
+////        orderRequest.setSymboltoken(symboltoken);
+////        orderRequest.setOrdertype("MARKET");
+////        orderRequest.setProducttype("INTRADAY");
+////        orderRequest.setTransactiontype("BUY");
+////        orderRequest.setVariety("NORMAL");
+//////        orderRequest.setVariety("ROBO");
+////        orderRequest.setDisclosedquantity(String.valueOf(0));
+////        orderRequest.setQuantity(String.valueOf(quantity));
+////        orderRequest.setScripconsent("yes");
+////        orderRequest.setDuration("DAY");
+//
+//        BracketOrderRequest orderRequest = createBracketOrderRequest(stockName, symboltoken, quantity, webhookRequest.getTrigger_prices());
+//
+//        // 8. Call API client
+//        return brokerApiClient.placeOrder(orderRequest, jwtToken);
+//    }
 
 //    public Mono<OrderResponse> chartinkBuyOrder(WebhookRequest webhookRequest) {
 //
@@ -445,43 +445,43 @@ public class OrderService {
         return orderRequest;
     }
 
-    private BracketOrderRequest createBracketOrderRequest(String stockName, String symboltoken, int quantity, String price) {
-//        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+//    private BracketOrderRequest createBracketOrderRequest(String stockName, String symboltoken, int quantity, String price) {
+////        OrderRequest_v2 orderRequest = new OrderRequest_v2();
+////        orderRequest.setExchange("NSE");
+////        orderRequest.setTradingsymbol(stockName + "-EQ");
+////        orderRequest.setSymboltoken(symboltoken);
+////        orderRequest.setOrdertype("MARKET");
+////        orderRequest.setProducttype("INTRADAY");
+////        orderRequest.setTransactiontype("BUY");
+////        orderRequest.setVariety("NORMAL");
+////        orderRequest.setDisclosedquantity("0");
+////        orderRequest.setQuantity(String.valueOf(quantity));
+////        orderRequest.setScripconsent("yes");
+////        orderRequest.setDuration("DAY");
+//
+//        BracketOrderRequest orderRequest = new BracketOrderRequest();
 //        orderRequest.setExchange("NSE");
 //        orderRequest.setTradingsymbol(stockName + "-EQ");
 //        orderRequest.setSymboltoken(symboltoken);
-//        orderRequest.setOrdertype("MARKET");
-//        orderRequest.setProducttype("INTRADAY");
+////        orderRequest.setOrdertype("MARKET");
+//        orderRequest.setOrdertype("LIMIT");
+//        orderRequest.setProducttype("BO");
 //        orderRequest.setTransactiontype("BUY");
-//        orderRequest.setVariety("NORMAL");
+//        orderRequest.setVariety("ROBO");
 //        orderRequest.setDisclosedquantity("0");
 //        orderRequest.setQuantity(String.valueOf(quantity));
 //        orderRequest.setScripconsent("yes");
 //        orderRequest.setDuration("DAY");
+//        orderRequest.setSquareoff("20");
+//        orderRequest.setStoploss("20");
+//        orderRequest.setPrice(price);
+//        double double_price = Double.parseDouble(price);
+//        orderRequest.setTriggerprice(String.valueOf(double_price + (double_price * 0.05)));
+//
+//        return orderRequest;
+//    }
 
-        BracketOrderRequest orderRequest = new BracketOrderRequest();
-        orderRequest.setExchange("NSE");
-        orderRequest.setTradingsymbol(stockName + "-EQ");
-        orderRequest.setSymboltoken(symboltoken);
-//        orderRequest.setOrdertype("MARKET");
-        orderRequest.setOrdertype("LIMIT");
-        orderRequest.setProducttype("BO");
-        orderRequest.setTransactiontype("BUY");
-        orderRequest.setVariety("ROBO");
-        orderRequest.setDisclosedquantity("0");
-        orderRequest.setQuantity(String.valueOf(quantity));
-        orderRequest.setScripconsent("yes");
-        orderRequest.setDuration("DAY");
-        orderRequest.setSquareoff("20");
-        orderRequest.setStoploss("20");
-        orderRequest.setPrice(price);
-        double double_price = Double.parseDouble(price);
-        orderRequest.setTriggerprice(String.valueOf(double_price + (double_price * 0.05)));
-
-        return orderRequest;
-    }
-
-    private ChartInkMISBuyOrderRequest createChartinkBuyOrderRequest(String stockName, String symboltoken, int quantity, String price) {
+    private ChartInkBuyLimitOrderRequest createChartinkBuyOrderRequest(String stockName, String symboltoken, int quantity, String price) {
 
 //        ChartInkMISBuyOrderRequest chartinkBuyOrderRequest = new ChartInkMISBuyOrderRequest();
 //        chartinkBuyOrderRequest.setVariety("NORMAL");
@@ -496,7 +496,7 @@ public class OrderService {
 //        chartinkBuyOrderRequest.setQuantity(String.valueOf(quantity));
 //        chartinkBuyOrderRequest.setScripconsent("yes");
 
-        ChartInkMISBuyOrderRequest chartinkBuyOrderRequest = new ChartInkMISBuyOrderRequest();
+        ChartInkBuyLimitOrderRequest chartinkBuyOrderRequest = new ChartInkBuyLimitOrderRequest();
         chartinkBuyOrderRequest.setVariety("NORMAL");
         chartinkBuyOrderRequest.setTradingsymbol(stockName + "-EQ");
         chartinkBuyOrderRequest.setSymboltoken(symboltoken);
@@ -561,7 +561,7 @@ public class OrderService {
         return modifiedSLOrder;
     }
 
-    private ChartinkMISSellOrderRequest createChartinkSellOrderRequest( String stockName, String symboltoken, int quantity, double sellPrice) {
+    private ChartinkSellLimitOrderRequest createChartinkSellOrderRequest(String stockName, String symboltoken, int quantity, double sellPrice) {
 
 //        ChartinkMISSellOrderRequest sellOrder = new ChartinkMISSellOrderRequest();
 //        sellOrder.setVariety("NORMAL");
@@ -580,7 +580,7 @@ public class OrderService {
 //
 //        return sellOrder;
 
-        ChartinkMISSellOrderRequest sellOrder = new ChartinkMISSellOrderRequest();
+        ChartinkSellLimitOrderRequest sellOrder = new ChartinkSellLimitOrderRequest();
         sellOrder.setVariety("NORMAL");
         sellOrder.setTradingsymbol(stockName + "-EQ");
         sellOrder.setSymboltoken(symboltoken);

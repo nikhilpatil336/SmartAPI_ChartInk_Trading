@@ -1,15 +1,12 @@
 package com.onepercentgrowth.local_to_smartapi.controller;
 
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
-import com.onepercentgrowth.local_to_smartapi.model.OrderStatusResponse;
 import com.onepercentgrowth.local_to_smartapi.model.WebhookRequest;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.OrderService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderService_v2;
-import com.onepercentgrowth.local_to_smartapi.service.OrderStatusWebSocketService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -36,23 +33,17 @@ public class OrderController {
         this.applicationProperties = applicationProperties;
     }
 
-    @PostMapping("/webhook-order")
-    public Mono<OrderResponse> placeWebhookOrder(@RequestBody WebhookRequest webhookRequest) {
-        log.info("placeWebhookOrder request: {}", webhookRequest);
-        return orderService.placeWebhookOrder(webhookRequest);
-    }
+//    @PostMapping("/webhook-order")
+//    public Mono<OrderResponse> placeWebhookOrder(@RequestBody WebhookRequest webhookRequest) {
+//        log.info("placeWebhookOrder request: {}", webhookRequest);
+//        return orderService.placeWebhookOrder(webhookRequest);
+//    }
 
     @PostMapping("/buy")
     public Mono<OrderResponse> chartinkBuyOrder(@RequestBody WebhookRequest webhookRequest) {
         log.info("placeWebhookOrder request: {}", webhookRequest);
         return orderService_v2.chartinkBuyOrder(webhookRequest);
     }
-
-//    @PostMapping("/buy/webhookstatus")
-//    public Mono<OrderResponse> chartinkSimpleBuyOrder(@RequestBody WebhookRequest webhookRequest) {
-//        log.info("placeWebhookOrder request: {}", webhookRequest);
-//        return orderService_v2.chartinkSimpleBuyOrder(webhookRequest);
-//    }
 
     @PostMapping("/buy/webhookstatus")
     public Mono<OrderResponse> chartinkSimpleBuyOrder(
@@ -82,15 +73,15 @@ public class OrderController {
         return orderService_v2.chartinkSimpleBuyOrder(webhookRequest);
     }
 
-    @PostMapping("/modify")
-    public Mono<OrderResponse> chartinkModifyOrder(@RequestBody WebhookRequest webhookRequest) {
-        return orderService.placeWebhookOrder(webhookRequest);
-    }
-
-    @PostMapping("/cancel")
-    public Mono<OrderResponse> chartinkCancelOrder(@RequestBody WebhookRequest webhookRequest) {
-        return orderService.placeWebhookOrder(webhookRequest);
-    }
+//    @PostMapping("/modify")
+//    public Mono<OrderResponse> chartinkModifyOrder(@RequestBody WebhookRequest webhookRequest) {
+//        return orderService.placeWebhookOrder(webhookRequest);
+//    }
+//
+//    @PostMapping("/cancel")
+//    public Mono<OrderResponse> chartinkCancelOrder(@RequestBody WebhookRequest webhookRequest) {
+//        return orderService.placeWebhookOrder(webhookRequest);
+//    }
 
     @GetMapping(value = "/{orderId}/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public Mono<JsonNode> getOrderStatus(@PathVariable String orderId) {

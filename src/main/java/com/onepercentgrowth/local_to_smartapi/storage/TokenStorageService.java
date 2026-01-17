@@ -4,7 +4,6 @@ import com.onepercentgrowth.local_to_smartapi.model.LoginResponse;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,9 +16,6 @@ import java.time.ZonedDateTime;
 public class TokenStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(TokenStorageService.class);
-
-//    @Value("${myapp.token.file-path}")
-//    private String TOKEN_FILE;
 
     private ApplicationProperties applicationProperties;
 
@@ -53,24 +49,6 @@ public class TokenStorageService {
     public synchronized String getRefreshToken() { return refreshToken; }
     public synchronized String getFeedToken() { return feedToken; }
 
-    /** -------------------------
-     *   SAVE TOKENS TO FILE
-     * ------------------------- */
-//    private void saveTokensToFile() {
-//        try {
-//
-//            File file = new File(TOKEN_FILE);
-//
-//            file.getParentFile().mkdirs();
-//
-//            TokenFileModel model = new TokenFileModel(jwtToken, refreshToken, feedToken);
-//            objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, model);
-//            log.info("Tokens written successfully to {}", TOKEN_FILE);
-//        } catch (Exception e) {
-//            log.error("Failed to write tokens file: {}", e.getMessage(), e);
-//        }
-//    }
-
     private void saveTokensToFile(long expiryEpoch) {
         try {
             File file = new File(applicationProperties.getTokenFilePath());
@@ -85,31 +63,6 @@ public class TokenStorageService {
         }
     }
 
-    /** -------------------------
-     *   LOAD TOKENS FROM FILE
-     * ------------------------- */
-//    public synchronized void loadTokensFromFile() {
-//        try {
-//
-//            String filePath = TOKEN_FILE;
-//            File file = new File(filePath);
-//
-//            if (!file.exists()) {
-//                log.warn("Token file not found. Will generate new tokens on next login.");
-//                return;
-//            }
-//
-//            TokenFileModel model = objectMapper.readValue(file, TokenFileModel.class);
-//
-//            this.jwtToken = model.jwtToken();
-//            this.refreshToken = model.refreshToken();
-//            this.feedToken = model.feedToken();
-//
-//            log.info("Tokens loaded successfully from {}", TOKEN_FILE);
-//        } catch (Exception e) {
-//            log.error("Failed to load tokens from file: {}", e.getMessage(), e);
-//        }
-//    }
     public synchronized void loadTokensFromFile() {
         try {
             File file = new File(applicationProperties.getTokenFilePath());

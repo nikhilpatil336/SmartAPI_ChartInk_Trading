@@ -1,7 +1,5 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
-import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
-import com.onepercentgrowth.local_to_smartapi.storage.FnoUniverseStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,9 +1,9 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling;
 
 import com.onepercentgrowth.local_to_smartapi.eventhandling.orderStatusHandler.OrderStatusHandler;
-import com.onepercentgrowth.local_to_smartapi.service.OrderService_v2;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
@@ -22,8 +23,10 @@ public class OrderEventDispatcher {
 
     private final OrderEventQueue queue;
     private final ExecutorService workerPool;
-
     private final Map<String, OrderStatusHandler> handlers;
+
+    private volatile boolean running = true;
+    private Thread dispatcherThread;
 
     @Autowired
     public OrderEventDispatcher(
@@ -33,7 +36,6 @@ public class OrderEventDispatcher {
         this.queue = queue;
         this.workerPool = Executors.newFixedThreadPool(10);
 
-        // Build lookup map once
         this.handlers = handlerList.stream()
                 .collect(Collectors.toMap(
                         h -> h.status().toUpperCase(),
@@ -43,18 +45,36 @@ public class OrderEventDispatcher {
 
     @PostConstruct
     public void start() {
-        Thread dispatcher = new Thread(this::dispatchLoop);
-        dispatcher.setDaemon(true);
-        dispatcher.start();
+        dispatcherThread = new Thread(this::dispatchLoop, "order-event-dispatcher");
+        dispatcherThread.start();
     }
 
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down OrderEventDispatcher...");
+        running = false;
+
+        dispatcherThread.interrupt();
+
+        workerPool.shutdown();
+        try {
+            if (!workerPool.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("Forcing worker pool shutdown...");
+                workerPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            workerPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+
     private void dispatchLoop() {
-        while (true) {
+        while (running && !Thread.currentThread().isInterrupted()) {
             try {
-                // BLOCKS here if queue is empty
+                // Blocks if queue is empty
                 OrderStatusResponse event = queue.take();
 
-                // wakes up ONLY when data arrives
                 workerPool.submit(() -> process(event));
 
             } catch (InterruptedException e) {
@@ -62,13 +82,24 @@ public class OrderEventDispatcher {
                 break;
             }
         }
+
+        log.info("OrderEventDispatcher stopped.");
     }
 
     private void process(OrderStatusResponse event) {
-        String status = event.getOrderStatusData().getStatus();
 
-        OrderStatusHandler handler =
-                handlers.get(status.toUpperCase());
+        if (event == null || event.getOrderStatusData() == null) {
+            log.error("Invalid OrderStatusResponse: {}", event);
+            return;
+        }
+
+        String status = event.getOrderStatusData().getStatus();
+        if (status == null) {
+            log.error("Order status is null: {}", event);
+            return;
+        }
+
+        OrderStatusHandler handler = handlers.get(status.toUpperCase());
 
         if (handler == null) {
             log.error("No handler for status: {}", status);
@@ -78,8 +109,7 @@ public class OrderEventDispatcher {
         try {
             handler.handle(event);
         } catch (Exception e) {
-            log.error("Handler failed for status: {} due to the error: {}", status, e.getMessage());
+            log.error("Handler failed for status: {} due to error", status, e);
         }
     }
 }
-
