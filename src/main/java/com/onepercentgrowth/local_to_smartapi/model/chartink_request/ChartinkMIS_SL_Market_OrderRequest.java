@@ -1,8 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.model.chartink_request;
 
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
-
-public class ChartinkMIS_SL_OrderRequest implements IOrderRequest {
+public class ChartinkMIS_SL_Market_OrderRequest implements IOrderRequest {
 
     public String disclosedquantity;
 
@@ -50,10 +48,10 @@ public class ChartinkMIS_SL_OrderRequest implements IOrderRequest {
 //
 //    public String lotsize;
 
-    public ChartinkMIS_SL_OrderRequest() {
+    public ChartinkMIS_SL_Market_OrderRequest() {
     }
 
-    public ChartinkMIS_SL_OrderRequest(String disclosedquantity, String duration, String tradingsymbol, String variety, String ordertype, String triggerprice, String text, String price, String status, String producttype, String exchange, String orderid, String symbol, String updatetime, String exchangetimestamp, String exchangeupdatetimestamp, String averageprice, String transactiontype, String quantity, String squareoff, String stoploss, String trailingstoploss, String symboltoken, String instrumenttype, String strikeprice, String optiontype, String expirydate, String lotsize, String cancelsize, String filledshares, String orderstatus, String unfilledshares, String fillid, String filltime, String uniqueorderid, String scripconsent) {
+    public ChartinkMIS_SL_Market_OrderRequest(String disclosedquantity, String duration, String tradingsymbol, String variety, String ordertype, String triggerprice, String text, String price, String status, String producttype, String exchange, String orderid, String symbol, String updatetime, String exchangetimestamp, String exchangeupdatetimestamp, String averageprice, String transactiontype, String quantity, String squareoff, String stoploss, String trailingstoploss, String symboltoken, String instrumenttype, String strikeprice, String optiontype, String expirydate, String lotsize, String cancelsize, String filledshares, String orderstatus, String unfilledshares, String fillid, String filltime, String uniqueorderid, String scripconsent) {
         this.disclosedquantity = disclosedquantity;
         this.duration = duration;
         this.tradingsymbol = tradingsymbol;

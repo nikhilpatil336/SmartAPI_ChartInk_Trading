@@ -1,8 +1,5 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
@@ -10,10 +7,6 @@ import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.utility.Utility;
-import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartInkMISBuyOrderRequest;
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMISSellOrderRequest;
-import com.onepercentgrowth.local_to_smartapi.model.chartink_request.ChartinkMIS_SL_OrderRequest;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
@@ -25,7 +18,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
-import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -61,6 +53,8 @@ public class OrderService_v2 {
     private BalanceService balanceService;
     @Autowired
     private LeverageService leverageService;
+    @Autowired
+    private OrderCalculationService calculationService;
 
 //  ------------------- 1st version of buy order --------------------------------
 
@@ -180,7 +174,7 @@ public class OrderService_v2 {
                                 double profitTriggerPrice = strikePrice * applicationProperties.getProfitPercentageMultiplier();
 
                                 IOrderRequest sellOrder =
-                                        orderRequestFactory.createSellOrder(
+                                        orderRequestFactory.createSellLimitOrder(
                                                 stockName,
                                                 symboltoken,
                                                 quantity,
@@ -188,14 +182,22 @@ public class OrderService_v2 {
                                         );
 
                                 // 2% SL from executed price
-                                double slTriggerPrice = strikePrice * applicationProperties.getStoplossPercentageMultiplier();
+//                                double slTriggerPrice = strikePrice * applicationProperties.getStoplossPercentageMultiplier();
 
-                                IOrderRequest sellSlmOrder =
-                                        orderRequestFactory.createStopLossOrder(
+                                StopLossPrice slPrice =
+                                        calculationService.calculateStopLossPrice(
+                                                BigDecimal.valueOf(triggerPrice),
+                                                BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
+                                                BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                                        );
+
+                                IOrderRequest sellSlLimitOrder =
+                                        orderRequestFactory.createStopLossLimitOrder(
                                                 stockName,
                                                 symboltoken,
                                                 quantity,
-                                                slTriggerPrice
+                                                slPrice.triggerPrice().doubleValue(),
+                                                slPrice.limitPrice().doubleValue()
                                         );
 
                                 Mono<OrderResponse> sellMono =
@@ -213,7 +215,7 @@ public class OrderService_v2 {
 
                                 Mono<OrderResponse> slmMono =
                                         withOrderRetry(
-                                                brokerApiClient.chartinkPlaceOrder(sellSlmOrder, jwtToken)
+                                                brokerApiClient.chartinkPlaceOrder(sellSlLimitOrder, jwtToken)
                                                         .flatMap(resp -> {
                                                             if (!resp.isStatus()) {
                                                                 return Mono.error(
@@ -229,7 +231,7 @@ public class OrderService_v2 {
                                                                             buyOrderId,
                                                                             slResp.getData().getOrderid(),
                                                                             quantity,
-                                                                            slTriggerPrice,
+                                                                            slPrice.triggerPrice().doubleValue(),
                                                                             symboltoken
                                                                     )
                                                             );
@@ -345,7 +347,9 @@ public class OrderService_v2 {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
-        double triggerPrice = Utility.roundToTick(Double.parseDouble(price));
+//        double triggerPrice = Utility.roundToTick(Double.parseDouble(price));
+        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price));
+
 
         String symbolToken = scripMasterService.getTokenForName(stockName);
         if (symbolToken == null) {
@@ -384,7 +388,7 @@ public class OrderService_v2 {
 
         int calculatedQuantity =
                 orderCalculationService.calculateQuantity(
-                        usableCash.doubleValue(),
+                        usableCash,
                         triggerPrice,
                         leverageMultiplier,
                         maxLeverage
@@ -416,7 +420,7 @@ public class OrderService_v2 {
         );
 
         balanceService.assertSufficientFunds(
-                BigDecimal.valueOf(triggerPrice),
+                triggerPrice,
                 quantity / leverageMultiplier
         );
 
@@ -435,7 +439,7 @@ public class OrderService_v2 {
                 stockName,
                 triggerPrice,
                 quantity,
-                BigDecimal.valueOf(triggerPrice)
+                triggerPrice
                         .multiply(BigDecimal.valueOf(quantity))
                         .divide(BigDecimal.valueOf(leverageMultiplier)),
                 usableCash

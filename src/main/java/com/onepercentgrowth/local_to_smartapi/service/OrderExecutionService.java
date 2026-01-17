@@ -65,7 +65,7 @@ public class OrderExecutionService {
             String jwtToken
     ) {
         IOrderRequest sellRequest =
-                orderRequestFactory.createSellOrder(
+                orderRequestFactory.createSellLimitOrder(
                         stockName,
                         symbolToken,
                         quantity,
@@ -88,14 +88,16 @@ public class OrderExecutionService {
             String symbolToken,
             int quantity,
             double triggerPrice,
+            double limitPrice,
             String jwtToken
     ) {
         IOrderRequest slRequest =
-                orderRequestFactory.createStopLossOrder(
+                orderRequestFactory.createStopLossLimitOrder(
                         stockName,
                         symbolToken,
                         quantity,
-                        triggerPrice
+                        triggerPrice,
+                        limitPrice
                 );
 
         log.info("Placing STOP LOSS order: {}", slRequest.toString());
@@ -133,6 +135,31 @@ public class OrderExecutionService {
                 .chartinkModifyOrder(modifyRequest, jwtToken)
                 .flatMap(this::validateOrderResponse);
     }
+
+//    public Mono<OrderResponse> modifyLimitStopLossOrder(
+//            String stockName,
+//            String symbolToken,
+//            int quantity,
+//            double newTriggerPrice,
+//            String orderId,
+//            String jwtToken
+//    ) {
+//        IOrderRequest modifyRequest =
+//                orderRequestFactory.modifyLimitStopLossOrder(
+//                        stockName,
+//                        symbolToken,
+//                        quantity,
+//                        newTriggerPrice,
+//                        orderId
+//                );
+//
+//        log.info("Modifying STOP LOSS order {} newTrigger={}",
+//                orderId, newTriggerPrice);
+//
+//        return brokerApiClient
+//                .chartinkModifyOrder(modifyRequest, jwtToken)
+//                .flatMap(this::validateOrderResponse);
+//    }
 
     // ----------------------------------------------------
     // COMMON RESPONSE VALIDATION

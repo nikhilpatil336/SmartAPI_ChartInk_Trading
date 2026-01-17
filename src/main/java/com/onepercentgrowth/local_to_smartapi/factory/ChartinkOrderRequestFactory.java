@@ -1,7 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.factory;
 
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.*;
-import com.onepercentgrowth.local_to_smartapi.service.OrderService_v2;
 import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     }
 
     @Override
-    public IOrderRequest createSellOrder(
+    public IOrderRequest createSellLimitOrder(
             String stockName,
             String symbolToken,
             int quantity,
@@ -62,15 +61,15 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     }
 
     @Override
-    public IOrderRequest createStopLossOrder(
+    public IOrderRequest createStopLossMarketOrder(
             String stockName,
             String symbolToken,
             int quantity,
             double triggerPrice
     ) {
-        log.info("Trigger price for stoploss is {}", triggerPrice);
+        log.info("Trigger price for stoploss market order is {}", triggerPrice);
 
-        ChartinkMIS_SL_OrderRequest req = new ChartinkMIS_SL_OrderRequest();
+        ChartinkMIS_SL_Market_OrderRequest req = new ChartinkMIS_SL_Market_OrderRequest();
         req.setVariety("STOPLOSS");
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
@@ -87,6 +86,33 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
     }
 
     @Override
+    public IOrderRequest createStopLossLimitOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            double triggerPrice,
+            double limitPrice
+    ) {
+        log.info("Trigger price for stoploss limit order is {}", triggerPrice);
+
+        ChartinkMIS_SL_Limit_OrderRequest req = new ChartinkMIS_SL_Limit_OrderRequest();
+        req.setVariety("STOPLOSS");
+        req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
+        req.setSymboltoken(symbolToken);
+        req.setTransactiontype("SELL");
+        req.setExchange("NSE");
+        req.setOrdertype("STOPLOSS_LIMIT");
+        req.setProducttype("INTRADAY");
+        req.setDuration("DAY");
+        req.setQuantity(String.valueOf(quantity));
+        req.setTriggerprice(String.valueOf(triggerPrice));
+        req.setPrice(String.valueOf(limitPrice));
+        req.setDisclosedquantity("0");
+        req.setScripconsent("yes");
+        return req;
+    }
+
+    @Override
     public IOrderRequest modifyStopLossOrder(
             String stockName,
             String symbolToken,
@@ -94,11 +120,27 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             double triggerPrice,
             String orderId
     ) {
-        ChartinkMIS_SL_OrderRequest req =
-                (ChartinkMIS_SL_OrderRequest)
-                        createStopLossOrder(stockName, symbolToken, quantity, triggerPrice);
+        ChartinkMIS_SL_Market_OrderRequest req =
+                (ChartinkMIS_SL_Market_OrderRequest)
+                        createStopLossMarketOrder(stockName, symbolToken, quantity, triggerPrice);
 
         req.setOrderid(orderId);
+        return req;
+    }
+
+    @Override
+    public IOrderRequest modifyLimitStopLossOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            double triggerPrice,
+            String orderId,
+            double limitPrice
+    ) {
+        IOrderRequest req =
+                        createStopLossLimitOrder(stockName, symbolToken, quantity, triggerPrice, limitPrice);
+
+//        req.setOrderid(orderId);
         return req;
     }
 

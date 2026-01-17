@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.eventhandling.orderFillStrategy;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
+import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -61,10 +62,12 @@ public class BuyFilledStrategy implements OrderFillStrategy {
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
-        double executedPrice =
-                Double.parseDouble(response.getOrderStatusData().getPrice());
+//        double executedPrice =
+//                Double.parseDouble(response.getOrderStatusData().getPrice());
+        BigDecimal executedPrice =
+                new BigDecimal(response.getOrderStatusData().getPrice());
 
-        ctx.setBuyPrice(executedPrice);
+        ctx.setBuyPrice(executedPrice.doubleValue());
 
         log.info(
                 "BUY filled | stock={} | orderId={} | qty={} | executedPrice={}",
@@ -76,11 +79,22 @@ public class BuyFilledStrategy implements OrderFillStrategy {
 
         String jwtToken = tokenManager.getValidJwtToken();
 
-        double sellPrice =
+//        double sellPrice =
+//                calculationService.calculateProfitPrice(executedPrice);
+
+        BigDecimal sellPrice =
                 calculationService.calculateProfitPrice(executedPrice);
 
-        double slPrice =
-                calculationService.calculateStopLossPrice(executedPrice);
+
+//        double slPrice =
+//                calculationService.calculateStopLossPrice(executedPrice);
+
+        StopLossPrice slPrice =
+                calculationService.calculateStopLossPrice(
+                        BigDecimal.valueOf(ctx.getBuyPrice()),
+                        BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
+                        BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                );
 
         log.info(
                 "TP/SL calculated | stock={} | TP={} | SL={}",
@@ -94,7 +108,7 @@ public class BuyFilledStrategy implements OrderFillStrategy {
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
                                 ctx.getQuantity(),
-                                sellPrice,
+                                sellPrice.doubleValue(),
                                 jwtToken
                         )
                         .retry(3)
@@ -115,7 +129,8 @@ public class BuyFilledStrategy implements OrderFillStrategy {
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
                                 ctx.getQuantity(),
-                                slPrice,
+                                slPrice.triggerPrice().doubleValue(),
+                                slPrice.limitPrice().doubleValue(),
                                 jwtToken
                         )
                         .retry(3)
@@ -145,7 +160,7 @@ public class BuyFilledStrategy implements OrderFillStrategy {
 
         // 🔑 BALANCE UPDATE
         balanceService.onBuy(
-                BigDecimal.valueOf(executedPrice),
+                executedPrice,
                 quantity,
                 applicationProperties.getLeverageMultiplierToUse(),
                 balanceService.getUsableBalance(),

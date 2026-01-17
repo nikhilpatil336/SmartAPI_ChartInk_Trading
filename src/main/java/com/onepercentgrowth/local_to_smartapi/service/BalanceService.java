@@ -25,28 +25,6 @@ public class BalanceService {
 
     // (Optional) For logging / reconciliation
     private BigDecimal ledgerBalance = BigDecimal.ZERO;
-//
-//    /** Called on app start OR RMS refresh */
-//    public synchronized void syncFromRms(RmsData rmsData) {
-//        if (rmsData == null) return;
-//        this.currentBalance = new BigDecimal(rmsData.getAvailablecash());
-//    }
-//
-//    public synchronized void onBuy(BigDecimal price, int quantity) {
-//        currentBalance = currentBalance.subtract(
-//                price.multiply(BigDecimal.valueOf(quantity))
-//        );
-//    }
-//
-//    public synchronized void onSell(BigDecimal price, int quantity) {
-//        currentBalance = currentBalance.add(
-//                price.multiply(BigDecimal.valueOf(quantity))
-//        );
-//    }
-//
-//    public BigDecimal getCurrentBalance() {
-//        return currentBalance;
-//    }
 
     private static final Logger log = LoggerFactory.getLogger(BalanceService.class);
 

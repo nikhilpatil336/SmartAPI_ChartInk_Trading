@@ -39,6 +39,8 @@ public class ApplicationProperties {
     private boolean leverageUniverse;
     private String leverageExchange;
     private String leverageListFilePath;
+    private double tradingStoplossPercent;
+    private double tradingStoplossBufferPercent;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -270,5 +272,21 @@ public class ApplicationProperties {
 
     public void setLeverageMultiplierToUse(int leverageMultiplierToUse) {
         this.leverageMultiplierToUse = leverageMultiplierToUse;
+    }
+
+    public double getTradingStoplossPercent() {
+        return tradingStoplossPercent;
+    }
+
+    public void setTradingStoplossPercent(double tradingStoplossPercent) {
+        this.tradingStoplossPercent = tradingStoplossPercent;
+    }
+
+    public double getTradingStoplossBufferPercent() {
+        return tradingStoplossBufferPercent;
+    }
+
+    public void setTradingStoplossBufferPercent(double tradingStoplossBufferPercent) {
+        this.tradingStoplossBufferPercent = tradingStoplossBufferPercent;
     }
 }
