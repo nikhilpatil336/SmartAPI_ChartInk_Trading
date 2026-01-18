@@ -1,6 +1,6 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.orderStatusHandler;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.orderstatushandler;
 
-import com.onepercentgrowth.local_to_smartapi.eventhandling.orderFillStrategy.OrderFillStrategy;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import org.slf4j.Logger;
@@ -10,14 +10,14 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class FilledOrderHandler implements OrderStatusHandler {
+public class FilledOrderHandler implements IOrderStatusHandler {
 
     private static final Logger log = LoggerFactory.getLogger(FilledOrderHandler.class);
 
     private final OrderRegistry orderRegistry;
-    private final List<OrderFillStrategy> strategies;
+    private final List<IFillOrderStrategy> strategies;
 
-    public FilledOrderHandler(OrderRegistry orderRegistry, List<OrderFillStrategy> strategies) {
+    public FilledOrderHandler(OrderRegistry orderRegistry, List<IFillOrderStrategy> strategies) {
         this.orderRegistry = orderRegistry;
         this.strategies = strategies;
     }

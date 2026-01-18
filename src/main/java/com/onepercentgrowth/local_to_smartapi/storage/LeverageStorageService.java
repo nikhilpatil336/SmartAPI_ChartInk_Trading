@@ -2,10 +2,14 @@ package com.onepercentgrowth.local_to_smartapi.storage;
 
 import com.onepercentgrowth.local_to_smartapi.model.LeverageInfo;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import javax.swing.*;
 import java.io.File;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,6 +18,8 @@ import java.util.Map;
 
 @Service
 public class LeverageStorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(LeverageStorageService.class);
 
     @Autowired
     private ApplicationProperties applicationProperties;
@@ -39,6 +45,8 @@ public class LeverageStorageService {
             cached = map;
             lastUpdatedEpoch = System.currentTimeMillis();
 
+            log.info("Saved the leverage file and the update date is {}", this.lastUpdatedEpoch);
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to save leverage file", e);
         }
@@ -54,6 +62,8 @@ public class LeverageStorageService {
 
             cached = model.items();
             lastUpdatedEpoch = model.lastUpdatedEpoch();
+
+
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to load leverage file", e);

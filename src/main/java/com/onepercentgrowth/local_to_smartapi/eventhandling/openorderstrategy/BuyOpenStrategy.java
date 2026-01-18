@@ -1,0 +1,205 @@
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+
+import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
+import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
+import com.onepercentgrowth.local_to_smartapi.service.LeverageService;
+import com.onepercentgrowth.local_to_smartapi.service.OrderCalculationService;
+import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
+import com.onepercentgrowth.local_to_smartapi.utility.Utility;
+import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
+
+@Component
+public class BuyOpenStrategy implements IOpenOrderStrategy {
+
+    private static final Logger log = LoggerFactory.getLogger(BuyOpenStrategy.class);
+
+    private final OrderExecutionService executionService;
+    private final OrderCalculationService calculationService;
+    private final TokenManager tokenManager;
+    private final OrderRegistry orderRegistry;
+    private final BalanceService balanceService;
+    private final LeverageService leverageService;
+    private final ApplicationProperties properties;
+
+    public BuyOpenStrategy(OrderExecutionService executionService,
+                           OrderCalculationService calculationService,
+                           TokenManager tokenManager,
+                           OrderRegistry orderRegistry,
+                           BalanceService balanceService,
+                           LeverageService leverageService,
+                           ApplicationProperties properties) {
+        this.executionService = executionService;
+        this.calculationService = calculationService;
+        this.tokenManager = tokenManager;
+        this.orderRegistry = orderRegistry;
+        this.balanceService = balanceService;
+        this.leverageService = leverageService;
+        this.properties = properties;
+    }
+
+    @Override
+    public boolean supports(OrderContext ctx, OrderStatusResponse response) {
+        return "BUY".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
+                && ctx.getBuyOrderId().equals(response.getOrderStatusData().getOrderid());
+    }
+
+    @Override
+    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
+
+        int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+        int lastBuyFilled = ctx.getLastBuyFilledQty();
+        int delta = filledQty - lastBuyFilled;
+
+        if (delta <= 0) return; // duplicate / stale WS update
+
+        BigDecimal intenedPrice =
+                new BigDecimal(response.getOrderStatusData().getPrice());
+
+        BigDecimal executedPrice =
+                new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+        ctx.setBuyPrice(executedPrice);
+
+        log.info(
+                "BUY partial fill | stock={} | delta={} | totalFilled={}",
+                ctx.getTradingSymbol(), delta, filledQty
+        );
+
+        // ===== BALANCE UPDATE (DELTA ONLY) =====
+        String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
+
+        balanceService.onBuy(
+                executedPrice,
+                delta,
+                properties.getLeverageMultiplierToUse(),
+                balanceService.getUsableBalance(),
+                leverageService.get(normalizedSymbol).multiplier()
+        );
+
+        // ===== TP / SL CALC =====
+        BigDecimal sellPrice =
+                calculationService.calculateProfitPrice(intenedPrice);
+
+        StopLossPrice slPrice =
+                calculationService.calculateStopLossPrice(
+                        intenedPrice,
+                        BigDecimal.valueOf(properties.getTradingStoplossPercent()),
+                        BigDecimal.valueOf(properties.getTradingStoplossBufferPercent())
+                );
+
+        String jwt = tokenManager.getValidJwtToken();
+
+        // ===== SELL =====
+        if (!ctx.isSellPlaced() && !ctx.isSellOpen()) {
+
+            executionService.placeSellOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            sellPrice.doubleValue(),
+                            jwt
+                    )
+                    .doOnSuccess(resp -> {
+                        ctx.setSellOrderId(resp.getData().getOrderid());
+                        ctx.setSellVariety("NORMAL");
+                        ctx.setSellPlaced(true);
+                        ctx.setSellOpen(true);
+                        ctx.setSellPrice(sellPrice);
+                        orderRegistry.registerSell(ctx);
+
+                        log.info("SELL order placed successfully sellOrderId={}",
+                                ctx.getSellOrderId());
+                    })
+                    .doOnError(err -> {
+                        log.error("SELL order placement failed buyOrderId={}",
+                                ctx.getBuyOrderId(), err);
+                    })
+                    .onErrorResume(err -> Mono.empty())
+                    .subscribe();
+
+        } else {
+            executionService.modifySellOrder(
+                    ctx.getTradingSymbol(),
+                    ctx.getSymbolToken(),
+                    filledQty,
+                    sellPrice.doubleValue(),
+                    ctx.getSellOrderId(),
+                    jwt
+            )
+            .doOnSuccess(resp ->
+                    log.info("SELL order modified successfully sellOrderId={}",
+                            ctx.getSellOrderId())
+            )
+            .doOnError(err ->
+                    log.error("SELL order modification failed sellOrderId={}",
+                            ctx.getSellOrderId(), err)
+            )
+            .onErrorResume(err -> Mono.empty())
+            .subscribe();
+        }
+
+        // ===== STOP LOSS =====
+        if (!ctx.isSlPlaced()  && !ctx.isSLOpen()) {
+
+            executionService.placeStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            slPrice.triggerPrice().doubleValue(),
+                            slPrice.limitPrice().doubleValue(),
+                            jwt
+                    )
+                    .doOnSuccess(resp -> {
+                        ctx.setStopLossOrderId(resp.getData().getOrderid());
+                        ctx.setStopLossVariety("STOPLOSS");
+                        ctx.setSlPlaced(true);
+                        ctx.setSLOpen(true);
+                        ctx.setStoplossLimitPrice(slPrice.limitPrice());
+                        ctx.setStoplossTriggerPrice(slPrice.triggerPrice());
+                        orderRegistry.registerStopLoss(ctx);
+
+                        log.info("STOP LOSS placed successfully slOrderId={}",
+                                ctx.getStopLossOrderId());
+                    })
+                    .doOnError(err -> {
+                        log.error("STOP LOSS placement failed buyOrderId={}",
+                                ctx.getBuyOrderId(), err);
+                    })
+                    .onErrorResume(err -> Mono.empty())
+                    .subscribe();
+
+        } else {
+            executionService.modifyStopLossOrder(
+                    ctx.getTradingSymbol(),
+                    ctx.getSymbolToken(),
+                    filledQty,
+                    slPrice.triggerPrice().doubleValue(),
+                    slPrice.limitPrice().doubleValue(),
+                    ctx.getStopLossOrderId(),
+                    jwt
+            )
+            .doOnSuccess(resp ->
+                    log.info("STOP LOSS modified successfully slOrderId={}",
+                            ctx.getStopLossOrderId())
+            )
+            .doOnError(err ->
+                    log.error("STOP LOSS modification failed slOrderId={}",
+                            ctx.getStopLossOrderId(), err)
+            )
+            .onErrorResume(err -> Mono.empty())
+            .subscribe();
+        }
+
+        ctx.setLastBuyFilledQty(filledQty);
+    }
+}

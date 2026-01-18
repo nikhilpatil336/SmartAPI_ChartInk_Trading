@@ -46,7 +46,7 @@ public class ScripMasterStorageService {
             this.cachedRawList = list;
             this.lastUpdatedEpoch = now;
 
-            log.info("ScripMaster saved to {}", applicationProperties.getScripmasterFilePath());
+            log.info("ScripMaster saved to {} and the last update date is {}", applicationProperties.getScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
             log.error("Failed to save ScripMaster file: {}", e.getMessage(), e);
@@ -66,7 +66,7 @@ public class ScripMasterStorageService {
             this.cachedFilteredList = list;
             this.lastUpdatedEpoch = now;
 
-            log.info("ScripMaster saved to {}", applicationProperties.getFilteredScripmasterFilePath());
+            log.info("ScripMaster saved to {} and last update date is {}", applicationProperties.getFilteredScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
             log.error("Failed to save ScripMaster file: {}", e.getMessage(), e);
@@ -109,8 +109,8 @@ public class ScripMasterStorageService {
             this.cachedFilteredList = model.items();
             this.lastUpdatedEpoch = model.lastUpdatedEpoch();
 
-            log.info("Filtered ScripMaster loaded from {}",
-                    applicationProperties.getFilteredScripmasterFilePath());
+            log.info("Filtered ScripMaster loaded from {} and the last updated date is {}",
+                    applicationProperties.getFilteredScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
             log.error("Failed to load Filtered ScripMaster file: {}", e.getMessage(), e);
@@ -146,6 +146,8 @@ public class ScripMasterStorageService {
 
             objectMapper.writeValue(file,
                     new FnoUniverseModel(fnoSet, System.currentTimeMillis()));
+
+            log.info("Saved FNO universe and last updated date is {}", System.currentTimeMillis()) ;
         } catch (Exception e) {
             log.error("Failed to save FNO universe", e);
         }

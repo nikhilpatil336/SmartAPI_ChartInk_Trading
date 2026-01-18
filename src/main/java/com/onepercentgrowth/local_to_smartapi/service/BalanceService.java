@@ -22,6 +22,7 @@ public class BalanceService {
 
     // Profit made intraday but NOT settled yet
     private BigDecimal unsettledPnL = BigDecimal.ZERO;
+    private BigDecimal totalPnL = BigDecimal.ZERO;
 
     // (Optional) For logging / reconciliation
     private BigDecimal ledgerBalance = BigDecimal.ZERO;
@@ -197,6 +198,8 @@ public class BalanceService {
                 sellPrice.subtract(buyPrice)
                         .multiply(BigDecimal.valueOf(quantity));
 
+        totalPnL = totalPnL.add(pnl);
+
         BigDecimal positionValue =
                 buyPrice.multiply(BigDecimal.valueOf(quantity));
 
@@ -218,8 +221,8 @@ public class BalanceService {
         }
 
         log.info(
-                "SELL executed | Buy={} Sell={} Qty={} PnL={} UsableBalance={} UnsettledPnL={}",
-                buyPrice, sellPrice, quantity, pnl, usableBalance, unsettledPnL
+                "SELL executed | Buy={} Sell={} Qty={} PnL={} totalPnL ={} releasedMargin={} UsableBalance={} UnsettledPnL={} ",
+                buyPrice, sellPrice, quantity, pnl, totalPnL, releasedMargin, usableBalance, unsettledPnL
         );
     }
 

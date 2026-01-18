@@ -53,6 +53,26 @@ public class OrderExecutionService {
                 .flatMap(this::validateOrderResponse);
     }
 
+    public Mono<OrderResponse> modifyBuyOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            String price,
+            String orderId,
+            String jwtToken
+    ) {
+        IOrderRequest request =
+                orderRequestFactory.modifyBuyOrder(
+                        stockName, symbolToken, quantity, price, orderId
+                );
+
+        log.info("Modifying BUY order {}", request);
+
+        return brokerApiClient
+                .chartinkModifyOrder(request, jwtToken)
+                .flatMap(this::validateOrderResponse);
+    }
+
     // ----------------------------------------------------
     // SELL ORDER
     // ----------------------------------------------------
@@ -76,6 +96,26 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkPlaceOrder(sellRequest, jwtToken)
+                .flatMap(this::validateOrderResponse);
+    }
+
+    public Mono<OrderResponse> modifySellOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            double limitPrice,
+            String orderId,
+            String jwtToken
+    ) {
+        IOrderRequest request =
+                orderRequestFactory.modifySellLimitOrder(
+                        stockName, symbolToken, quantity, 0, orderId, limitPrice
+                );
+
+        log.info("Modifying SELL order {}", request);
+
+        return brokerApiClient
+                .chartinkModifyOrder(request, jwtToken)
                 .flatMap(this::validateOrderResponse);
     }
 
@@ -106,6 +146,109 @@ public class OrderExecutionService {
                 .chartinkPlaceOrder(slRequest, jwtToken)
                 .flatMap(this::validateOrderResponse);
     }
+
+    public Mono<OrderResponse> modifyStopLossOrder(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            double newTriggerPrice,
+            double newLimitPrice,
+            String orderId,
+            String jwtToken
+    ) {
+        IOrderRequest request =
+                orderRequestFactory.modifyLimitStopLossOrder(
+                        stockName,
+                        symbolToken,
+                        quantity,
+                        newTriggerPrice,
+                        orderId,
+                        newLimitPrice
+                );
+
+        log.info("Modifying STOP LOSS order {}", request);
+
+        return brokerApiClient
+                .chartinkModifyOrder(request, jwtToken)
+                .flatMap(this::validateOrderResponse);
+    }
+
+    // ----------------------------------------------------
+    // CANCEL
+    // ----------------------------------------------------
+
+    public Mono<OrderResponse> placeCancelOrder(
+            String orderId,
+            String variety,
+            String jwtToken
+    ) {
+        IOrderRequest request =
+                orderRequestFactory.createCancelOrder(orderId, variety);
+
+        log.info("Placing CANCEL order {}", request);
+
+        return brokerApiClient.chartinkCancelOrder(request, jwtToken);
+    }
+
+    // ----------------------------------------------------
+    // RESPONSE VALIDATION
+    // ----------------------------------------------------
+
+    private Mono<OrderResponse> validateOrderResponse(OrderResponse response) {
+
+        if (response == null) {
+            return Mono.error(
+                    new IllegalStateException("Broker returned null response")
+            );
+        }
+
+        if (!response.isStatus()) {
+            String message =
+                    response.getMessage() != null
+                            ? response.getMessage()
+                            : "Unknown broker error";
+
+            log.error("Order failed: {}", message);
+
+            return Mono.error(
+                    new IllegalStateException("Order failed: " + message)
+            );
+        }
+
+        if (response.getData() == null ||
+                response.getData().getOrderid() == null) {
+
+            return Mono.error(
+                    new IllegalStateException("Order placed but orderId missing")
+            );
+        }
+
+        log.info("Order placed successfully. orderId={}",
+                response.getData().getOrderid());
+
+        return Mono.just(response);
+    }
+
+    public Mono<OrderResponse> executeBracketFlow(
+            String stockName,
+            String symbolToken,
+            int quantity,
+            String price,
+            String jwtToken
+    ) {
+
+        return brokerApiClient
+                .chartinkPlaceOrder(
+                        orderRequestFactory.createBuyOrder(
+                                stockName,
+                                symbolToken,
+                                quantity,
+                                price
+                        ),
+                        jwtToken
+                );
+    }
+
 
     // ----------------------------------------------------
     // MODIFY STOP LOSS
@@ -165,68 +308,5 @@ public class OrderExecutionService {
     // COMMON RESPONSE VALIDATION
     // ----------------------------------------------------
 
-    private Mono<OrderResponse> validateOrderResponse(OrderResponse response) {
 
-        if (response == null) {
-            return Mono.error(
-                    new IllegalStateException("Broker returned null response")
-            );
-        }
-
-        if (!response.isStatus()) {
-            String message =
-                    response.getMessage() != null
-                            ? response.getMessage()
-                            : "Unknown broker error";
-
-            log.error("Order failed: {}", message);
-
-            return Mono.error(
-                    new IllegalStateException("Order failed: " + message)
-            );
-        }
-
-        if (response.getData() == null ||
-                response.getData().getOrderid() == null) {
-
-            return Mono.error(
-                    new IllegalStateException("Order placed but orderId missing")
-            );
-        }
-
-        log.info("Order placed successfully. orderId={}",
-                response.getData().getOrderid());
-
-        return Mono.just(response);
-    }
-
-    public Mono<OrderResponse> executeBracketFlow(
-            String stockName,
-            String symbolToken,
-            int quantity,
-            String price,
-            String jwtToken
-    ) {
-
-        return brokerApiClient
-                .chartinkPlaceOrder(
-                        orderRequestFactory.createBuyOrder(
-                                stockName,
-                                symbolToken,
-                                quantity,
-                                price
-                        ),
-                        jwtToken
-                );
-        // 🔴 BUY execution only
-        // SELL & SL will be handled by OrderService via polling
-    }
-
-    public Mono<OrderResponse> placeCancelOrder(String orderId, String variety, String jwtToken) {
-        IOrderRequest cancelOrder = orderRequestFactory.createCancelOrder(orderId, variety);
-
-        log.info("Placing CANCEL order: {}", cancelOrder.toString());
-
-        return brokerApiClient.chartinkCancelOrder(cancelOrder, jwtToken);
-    }
 }

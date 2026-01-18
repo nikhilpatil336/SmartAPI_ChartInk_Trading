@@ -1,5 +1,8 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
 public class OrderContext {
@@ -12,19 +15,29 @@ public class OrderContext {
     private String symbolToken;
     private int quantity;
 
+    private String buyVariety;
     private String sellVariety;
     private String stopLossVariety;
 
     private BigDecimal buyPrice;
     private BigDecimal sellPrice;
-    private BigDecimal stoplossPrice;
+    private BigDecimal stoplossLimitPrice;
+    private BigDecimal stoplossTriggerPrice;
 
     private int lastBuyFilledQty = 0;
     private int lastSellFilledQty = 0;
     private int lastStoplossFilledQty = 0;
+
     private boolean sellPlaced = false;
     private boolean slPlaced = false;
 
+    private boolean buyOpen = false;
+    private boolean sellOpen = false;
+    private boolean SLOpen = false;
+
+    private boolean buyCanceled = false;
+    private boolean sellCanceled = false;
+    private boolean SLCanceled = false;
 
     public OrderContext(
             String buyOrderId,
@@ -106,6 +119,14 @@ public class OrderContext {
         this.quantity = quantity;
     }
 
+    public String getBuyVariety() {
+        return buyVariety;
+    }
+
+    public void setBuyVariety(String buyVariety) {
+        this.buyVariety = buyVariety;
+    }
+
     public String getSellVariety() {
         return sellVariety;
     }
@@ -121,31 +142,6 @@ public class OrderContext {
     public void setStopLossVariety(String stopLossVariety) {
         this.stopLossVariety = stopLossVariety;
     }
-
-//    public double getBuyPrice() {
-//        return buyPrice;
-//    }
-//
-//    public void setBuyPrice(double buyPrice) {
-//        this.buyPrice = buyPrice;
-//    }
-//
-//    public double getSellPrice() {
-//        return sellPrice;
-//    }
-//
-//    public void setSellPrice(double sellPrice) {
-//        this.sellPrice = sellPrice;
-//    }
-//
-//    public double getStoplossPrice() {
-//        return stoplossPrice;
-//    }
-//
-//    public void setStoplossPrice(double stoplossPrice) {
-//        this.stoplossPrice = stoplossPrice;
-//    }
-
 
     public BigDecimal getBuyPrice() {
         return buyPrice;
@@ -163,12 +159,20 @@ public class OrderContext {
         this.sellPrice = sellPrice;
     }
 
-    public BigDecimal getStoplossPrice() {
-        return stoplossPrice;
+    public BigDecimal getStoplossLimitPrice() {
+        return stoplossLimitPrice;
     }
 
-    public void setStoplossPrice(BigDecimal stoplossPrice) {
-        this.stoplossPrice = stoplossPrice;
+    public void setStoplossLimitPrice(BigDecimal stoplossLimitPrice) {
+        this.stoplossLimitPrice = stoplossLimitPrice;
+    }
+
+    public BigDecimal getStoplossTriggerPrice() {
+        return stoplossTriggerPrice;
+    }
+
+    public void setStoplossTriggerPrice(BigDecimal stoplossTriggerPrice) {
+        this.stoplossTriggerPrice = stoplossTriggerPrice;
     }
 
     public int getLastBuyFilledQty() {
@@ -211,6 +215,54 @@ public class OrderContext {
         this.slPlaced = slPlaced;
     }
 
+    public boolean isBuyOpen() {
+        return buyOpen;
+    }
+
+    public void setBuyOpen(boolean buyOpen) {
+        this.buyOpen = buyOpen;
+    }
+
+    public boolean isSellOpen() {
+        return sellOpen;
+    }
+
+    public void setSellOpen(boolean sellOpen) {
+        this.sellOpen = sellOpen;
+    }
+
+    public boolean isSLOpen() {
+        return SLOpen;
+    }
+
+    public void setSLOpen(boolean SLOpen) {
+        this.SLOpen = SLOpen;
+    }
+
+    public boolean isBuyCanceled() {
+        return buyCanceled;
+    }
+
+    public void setBuyCanceled(boolean buyCanceled) {
+        this.buyCanceled = buyCanceled;
+    }
+
+    public boolean isSellCanceled() {
+        return sellCanceled;
+    }
+
+    public void setSellCanceled(boolean sellCanceled) {
+        this.sellCanceled = sellCanceled;
+    }
+
+    public boolean isSLCanceled() {
+        return SLCanceled;
+    }
+
+    public void setSLCanceled(boolean SLCanceled) {
+        this.SLCanceled = SLCanceled;
+    }
+
     @Override
     public String toString() {
         return "OrderContext{" +
@@ -224,12 +276,19 @@ public class OrderContext {
                 ", stopLossVariety='" + stopLossVariety + '\'' +
                 ", buyPrice=" + buyPrice +
                 ", sellPrice=" + sellPrice +
-                ", stoplossPrice=" + stoplossPrice +
+                ", stoplossLimitPrice=" + stoplossLimitPrice +
+                ", stoplossTriggerPrice=" + stoplossTriggerPrice +
                 ", lastBuyFilledQty=" + lastBuyFilledQty +
                 ", lastSellFilledQty=" + lastSellFilledQty +
                 ", lastStoplossFilledQty=" + lastStoplossFilledQty +
                 ", sellPlaced=" + sellPlaced +
                 ", slPlaced=" + slPlaced +
+                ", buyOpen=" + buyOpen +
+                ", sellOpen=" + sellOpen +
+                ", SLOpen=" + SLOpen +
+                ", buyCanceled=" + buyCanceled +
+                ", sellCanceled=" + sellCanceled +
+                ", SLCanceled=" + SLCanceled +
                 '}';
     }
 }

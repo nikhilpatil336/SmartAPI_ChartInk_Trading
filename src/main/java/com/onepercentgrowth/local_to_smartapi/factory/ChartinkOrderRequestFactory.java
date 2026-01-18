@@ -97,25 +97,20 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             double limitPrice
     ) {
         ChartinkSellLimitOrderRequest req = new ChartinkSellLimitOrderRequest();
-
-        // Mandatory field for modification [8, 9]
         req.setOrderid(orderId);
-
-        // variety must match the original order variety [8]
         req.setVariety("NORMAL");
-
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setExchange("NSE");
-
-        // Updated parameters [8, 9]
+        req.setTransactiontype("SELL");
         req.setOrdertype("LIMIT");
         req.setProducttype("INTRADAY");
         req.setDuration("DAY");
         req.setQuantity(String.valueOf(quantity));
-        req.setPrice(String.valueOf(limitPrice)); // The new execution price
-
-        // For standard LIMIT orders, triggerprice is usually 0 [5, 7]
+        req.setPrice(String.valueOf(limitPrice));
+        req.setDisclosedquantity("0");
+        req.setSquareoff("0");
+        req.setStoploss("0");
         req.setTriggerprice(String.valueOf(triggerPrice));
 
         return req;
@@ -199,25 +194,19 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             double limitPrice
     ) {
         ChartinkMIS_SL_Limit_OrderRequest req = new ChartinkMIS_SL_Limit_OrderRequest();
-
-        // Mandatory field for modification [8, 9]
         req.setOrderid(orderId);
-
-        // variety must match the original order variety [8]
-        req.setVariety("NORMAL");
-
+        req.setVariety("STOPLOSS");
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setExchange("NSE");
-
-        // Updated parameters [8, 9]
-        req.setOrdertype("LIMIT");
+        req.setTransactiontype("SELL");
+        req.setOrdertype("STOPLOSS_LIMIT");
         req.setProducttype("INTRADAY");
         req.setDuration("DAY");
         req.setQuantity(String.valueOf(quantity));
         req.setPrice(String.valueOf(limitPrice)); // The new execution price
-
-        // For standard LIMIT orders, triggerprice is usually 0 [5, 7]
+        req.setDisclosedquantity("0");
+        req.setScripconsent("yes");
         req.setTriggerprice(String.valueOf(triggerPrice));
         return req;
     }

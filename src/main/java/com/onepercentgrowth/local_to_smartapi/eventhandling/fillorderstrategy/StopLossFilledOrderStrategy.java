@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.orderFillStrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
@@ -16,9 +16,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 @Component
-public class StopLossFilledStrategy implements OrderFillStrategy {
+public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
 
-    private static final Logger log = LoggerFactory.getLogger(StopLossFilledStrategy.class);
+    private static final Logger log = LoggerFactory.getLogger(StopLossFilledOrderStrategy.class);
 
     private final OrderExecutionService executionService;
     private final TokenManager tokenManager;
@@ -27,7 +27,7 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
     private final LeverageService leverageService;
     private final ApplicationProperties applicationProperties;
 
-    public StopLossFilledStrategy(
+    public StopLossFilledOrderStrategy(
             OrderExecutionService executionService,
             TokenManager tokenManager,
             OrderRegistry orderRegistry,
@@ -86,10 +86,12 @@ public class StopLossFilledStrategy implements OrderFillStrategy {
                             ctx.getBuyOrderId(),
                             sellOrderId
                     );
-
+                    ctx.setSellOpen(false);
 //                    orderRegistry.remove(ctx); // trade complete
                 })
                 .subscribe();
+
+        ctx.setSLOpen(false);
 
 //        double executedPrice =
 //                Double.parseDouble(response.getOrderStatusData().getPrice());

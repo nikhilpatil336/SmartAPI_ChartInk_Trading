@@ -48,6 +48,9 @@ public class OrderStatusData {
     @JsonProperty("symboltoken")
     private String symboltoken;
 
+    @JsonProperty("averageprice")
+    private String averageprice;
+
     public String getOrderid() {
         return orderid;
     }
@@ -160,6 +163,14 @@ public class OrderStatusData {
         this.symboltoken = symboltoken;
     }
 
+    public String getAverageprice() {
+        return averageprice;
+    }
+
+    public void setAverageprice(String averageprice) {
+        this.averageprice = averageprice;
+    }
+
     @Override
     public String toString() {
         return "OrderStatusData{" +
@@ -177,6 +188,7 @@ public class OrderStatusData {
                 ", updatetime='" + updatetime + '\'' +
                 ", variety='" + variety + '\'' +
                 ", symboltoken='" + symboltoken + '\'' +
+                ", averageprice='" + averageprice + '\'' +
                 '}';
     }
 }

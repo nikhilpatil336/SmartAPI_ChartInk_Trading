@@ -1,4 +1,4 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.orderFillStrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
@@ -20,9 +20,9 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 
 @Component
-public class BuyFilledStrategy implements OrderFillStrategy {
+public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
-    private static final Logger log = LoggerFactory.getLogger(BuyFilledStrategy.class);
+    private static final Logger log = LoggerFactory.getLogger(BuyFilledOrderStrategy.class);
 
     private final OrderRegistry orderRegistry;
     private final OrderExecutionService executionService;
@@ -32,7 +32,7 @@ public class BuyFilledStrategy implements OrderFillStrategy {
     private final LeverageService leverageService;
     private final ApplicationProperties applicationProperties;
 
-    public BuyFilledStrategy(
+    public BuyFilledOrderStrategy(
             OrderExecutionService executionService,
             OrderCalculationService calculationService,
             TokenManager tokenManager,

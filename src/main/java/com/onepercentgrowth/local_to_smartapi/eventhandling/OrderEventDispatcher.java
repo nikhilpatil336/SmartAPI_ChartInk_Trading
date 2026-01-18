@@ -1,6 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling;
 
-import com.onepercentgrowth.local_to_smartapi.eventhandling.orderStatusHandler.OrderStatusHandler;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.orderstatushandler.IOrderStatusHandler;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -23,7 +23,7 @@ public class OrderEventDispatcher {
 
     private final OrderEventQueue queue;
     private final ExecutorService workerPool;
-    private final Map<String, OrderStatusHandler> handlers;
+    private final Map<String, IOrderStatusHandler> handlers;
 
     private volatile boolean running = true;
     private Thread dispatcherThread;
@@ -31,7 +31,7 @@ public class OrderEventDispatcher {
     @Autowired
     public OrderEventDispatcher(
             OrderEventQueue queue,
-            List<OrderStatusHandler> handlerList
+            List<IOrderStatusHandler> handlerList
     ) {
         this.queue = queue;
         this.workerPool = Executors.newFixedThreadPool(10);
@@ -99,7 +99,7 @@ public class OrderEventDispatcher {
             return;
         }
 
-        OrderStatusHandler handler = handlers.get(status.toUpperCase());
+        IOrderStatusHandler handler = handlers.get(status.toUpperCase());
 
         if (handler == null) {
             log.error("No handler for status: {}", status);

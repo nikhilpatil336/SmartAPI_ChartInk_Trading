@@ -459,6 +459,8 @@ public class OrderService_v2 {
                                     quantity
                             );
 
+                    ctx.setBuyVariety("NORMAL");
+
                     orderRegistry.registerBuy(ctx);
 
                     log.info("Buy order registered in order registry: {}", ctx);
