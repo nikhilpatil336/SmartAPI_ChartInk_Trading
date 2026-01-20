@@ -266,6 +266,63 @@ public class ApplicationStartupService {
                     .doOnError(e -> log.error("Leverage refresh failed", e))
                     .subscribe();
         }
+
+//        log.info("Application properties are: {}", applicationProperties.toString());
+
+        logApplicationProperties();
     }
+
+    private void logApplicationProperties() {
+
+        log.info("========== Application Properties (myapp.*) ==========");
+
+        log.info("---- Files ----");
+        log.info("myapp.token-file-path={}", applicationProperties.getTokenFilePath());
+        log.info("myapp.scripmaster-file-path={}", applicationProperties.getScripmasterFilePath());
+        log.info("myapp.filtered-scripmaster-file-path={}", applicationProperties.getFilteredScripmasterFilePath());
+        log.info("myapp.sl-orderstore-file-path={}", applicationProperties.getSlOrderstoreFilePath());
+        log.info("myapp.rms-balance-file-path={}", applicationProperties.getRmsBalanceFilePath());
+        log.info("myapp.scripmaster-fno-list-file-path={}", applicationProperties.getScripmasterFnoListFilePath());
+        log.info("myapp.leverage-list-file-path={}", applicationProperties.getLeverageListFilePath());
+
+        log.info("---- Trading ----");
+        log.info("myapp.trading-window-enable={}", applicationProperties.isTradingWindowEnable());
+        log.info("myapp.trading-window-start-time={}", applicationProperties.getTradingWindowStartTime());
+        log.info("myapp.trading-window-end-time={}", applicationProperties.getTradingWindowEndTime());
+        log.info("myapp.trading-window-time-zone={}", applicationProperties.getTradingWindowTimeZone());
+        log.info("myapp.trading-stoploss-percent={}", applicationProperties.getTradingStoplossPercent());
+        log.info("myapp.trading-stoploss-buffer-percent={}", applicationProperties.getTradingStoplossBufferPercent());
+
+        log.info("---- Capital & Risk ----");
+        log.info("myapp.balance-minimum-allowed={}", applicationProperties.getBalanceMinimumAllowed());
+        log.info("myapp.percent-balance-use={}", applicationProperties.getPercentBalanceUse());
+        log.info("myapp.stock-buy-minimum-quantity-required={}", applicationProperties.getStockBuyMinimumQuantityRequired());
+        log.info("myapp.number-of-stocks-buy-less={}", applicationProperties.getNumberOfStocksBuyLess());
+        log.info("myapp.fixed-quantity-flag={}", applicationProperties.isFixedQuantityFlag());
+        log.info("myapp.fixed-quantity={}", applicationProperties.getFixedQuantity());
+
+        log.info("---- Profit / SL ----");
+        log.info("myapp.profit-percentage-multiplier={}", applicationProperties.getProfitPercentageMultiplier());
+        log.info("myapp.stoploss-percentage-multiplier={}", applicationProperties.getStoplossPercentageMultiplier());
+        log.info("myapp.order-book-retry-milliseconds={}", applicationProperties.getOrderBookRetryMilliseconds());
+
+        log.info("---- RMS ----");
+        log.info("myapp.rms-auto-refresh-enable={}", applicationProperties.isRmsAutoRefreshEnable());
+        log.info("myapp.rms-file-overwrite-enabled={}", applicationProperties.isRmsFileOverwriteEnabled());
+        log.info("myapp.rms-refresh-interval-minutes={}", applicationProperties.getRmsRefreshIntervalMinutes());
+
+        log.info("---- ScripMaster / FNO ----");
+        log.info("myapp.scripmaster-only-fno-stocks={}", applicationProperties.isScripmasterOnlyFnoStocks());
+        log.info("myapp.scripmaster-enable-fno-universe={}", applicationProperties.isScripmasterEnableFnoUniverse());
+
+        log.info("---- Leverage ----");
+        log.info("myapp.leverage-enable={}", applicationProperties.isLeverageEnable());
+        log.info("myapp.leverage-universe={}", applicationProperties.isLeverageUniverse());
+        log.info("myapp.leverage-exchange={}", applicationProperties.getLeverageExchange());
+        log.info("myapp.leverage-multiplier-to-use={}", applicationProperties.getLeverageMultiplierToUse());
+
+        log.info("=======================================================");
+    }
+
 }
 

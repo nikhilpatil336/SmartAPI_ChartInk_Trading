@@ -5,18 +5,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -32,6 +41,8 @@ public class TestController {
     private OrderExecutionService orderExecutionService;
     @Autowired
     private TokenManager tokenManager;
+    @Autowired
+    private ApplicationProperties applicationProperties;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -118,4 +129,78 @@ public class TestController {
                 .onErrorResume(err -> Mono.empty())
                 .subscribe();
     }
+
+
+    @PostMapping(
+            value = "/test/webhookRequest",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<String> webhookRequest(
+            @RequestBody Map<String, Object> payload
+    ) {
+
+        try {
+            log.info("📩 Chartink Webhook Received");
+            log.info("Payload: {}", payload);
+
+            log.info("Stocks: {}", payload.get("stocks"));
+            log.info("Trigger Prices: {}", payload.get("trigger_prices"));
+            log.info("Triggered At: {}", payload.get("triggered_at"));
+
+            saveToExcel(payload);
+
+            return ResponseEntity.ok("Webhook received successfully");
+
+        } catch (Exception ex) {
+            log.error("❌ Error processing webhook", ex);
+            return ResponseEntity
+                    .internalServerError()
+                    .body("Error processing webhook");
+        }
+    }
+
+
+    // YOUR EXISTING METHOD (NO CHANGE)
+    private void saveToExcel(Map<String, Object> body) {
+        try {
+            Path path = Path.of(applicationProperties.getExcelToSaveAlerts());
+
+            Workbook workbook;
+            Sheet sheet;
+
+            if (Files.notExists(path)) {
+                workbook = new XSSFWorkbook();
+                sheet = workbook.createSheet("chartinkAllAlerts");
+
+                Row header = sheet.createRow(0);
+                header.createCell(0).setCellValue("stocks");
+                header.createCell(1).setCellValue("trigger_prices");
+                header.createCell(2).setCellValue("triggered_at");
+
+            } else {
+                FileInputStream fis = new FileInputStream(applicationProperties.getExcelToSaveAlerts());
+                workbook = WorkbookFactory.create(fis);
+                sheet = workbook.getSheetAt(0);
+                fis.close();
+            }
+
+            int lastRow = sheet.getLastRowNum();
+            Row row = sheet.createRow(lastRow + 1);
+
+            row.createCell(0).setCellValue(String.valueOf(body.get("stocks")));
+            row.createCell(1).setCellValue(String.valueOf(body.get("trigger_prices")));
+            row.createCell(2).setCellValue(String.valueOf(body.get("triggered_at")));
+
+            FileOutputStream fos = new FileOutputStream(applicationProperties.getExcelToSaveAlerts());
+            workbook.write(fos);
+            fos.close();
+            workbook.close();
+
+            log.info("✅ Alert appended to Excel");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Excel write failed", e);
+        }
+    }
+
 }

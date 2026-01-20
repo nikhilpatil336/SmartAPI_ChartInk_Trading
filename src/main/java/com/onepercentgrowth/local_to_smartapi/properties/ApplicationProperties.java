@@ -41,6 +41,7 @@ public class ApplicationProperties {
     private String leverageListFilePath;
     private double tradingStoplossPercent;
     private double tradingStoplossBufferPercent;
+    private String excelToSaveAlerts;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -288,5 +289,51 @@ public class ApplicationProperties {
 
     public void setTradingStoplossBufferPercent(double tradingStoplossBufferPercent) {
         this.tradingStoplossBufferPercent = tradingStoplossBufferPercent;
+    }
+
+    public String getExcelToSaveAlerts() {
+        return excelToSaveAlerts;
+    }
+
+    public void setExcelToSaveAlerts(String excelToSaveAlerts) {
+        this.excelToSaveAlerts = excelToSaveAlerts;
+    }
+
+    @Override
+    public String toString() {
+        return "ApplicationProperties{" +
+                "tokenFilePath='" + tokenFilePath + '\'' +
+                ", scripmasterFilePath='" + scripmasterFilePath + '\'' +
+                ", filteredScripmasterFilePath='" + filteredScripmasterFilePath + '\'' +
+                ", slOrderstoreFilePath='" + slOrderstoreFilePath + '\'' +
+                ", balanceMinimumAllowed=" + balanceMinimumAllowed +
+                ", stockBuyMinimumQuantityRequired=" + stockBuyMinimumQuantityRequired +
+                ", profitPercentageMultiplier=" + profitPercentageMultiplier +
+                ", stoplossPercentageMultiplier=" + stoplossPercentageMultiplier +
+                ", orderBookRetryMilliseconds=" + orderBookRetryMilliseconds +
+                ", percentBalanceUse=" + percentBalanceUse +
+                ", numberOfStocksBuyLess=" + numberOfStocksBuyLess +
+                ", leverageMultiplierToUse=" + leverageMultiplierToUse +
+                ", fixedQuantityFlag=" + fixedQuantityFlag +
+                ", fixedQuantity=" + fixedQuantity +
+                ", tradingWindowEnable=" + tradingWindowEnable +
+                ", tradingWindowStartTime=" + tradingWindowStartTime +
+                ", tradingWindowEndTime=" + tradingWindowEndTime +
+                ", tradingWindowTimeZone='" + tradingWindowTimeZone + '\'' +
+                ", rmsAutoRefreshEnable=" + rmsAutoRefreshEnable +
+                ", rmsFileOverwriteEnabled=" + rmsFileOverwriteEnabled +
+                ", rmsRefreshIntervalMinutes=" + rmsRefreshIntervalMinutes +
+                ", rmsBalanceFilePath='" + rmsBalanceFilePath + '\'' +
+                ", scripmasterOnlyFnoStocks=" + scripmasterOnlyFnoStocks +
+                ", scripmasterEnableFnoUniverse=" + scripmasterEnableFnoUniverse +
+                ", scripmasterFnoListFilePath='" + scripmasterFnoListFilePath + '\'' +
+                ", leverageEnable=" + leverageEnable +
+                ", leverageUniverse=" + leverageUniverse +
+                ", leverageExchange='" + leverageExchange + '\'' +
+                ", leverageListFilePath='" + leverageListFilePath + '\'' +
+                ", tradingStoplossPercent=" + tradingStoplossPercent +
+                ", tradingStoplossBufferPercent=" + tradingStoplossBufferPercent +
+                ", excelToSaveAlerts=" + excelToSaveAlerts +
+                '}';
     }
 }
