@@ -25,6 +25,9 @@ import reactor.core.publisher.Mono;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
@@ -160,10 +163,12 @@ public class TestController {
     }
 
 
-    // YOUR EXISTING METHOD (NO CHANGE)
     private void saveToExcel(Map<String, Object> body) {
         try {
             Path path = Path.of(applicationProperties.getExcelToSaveAlerts());
+
+            // ✅ This fixes everything
+            Files.createDirectories(path.getParent());
 
             Workbook workbook;
             Sheet sheet;
@@ -176,12 +181,12 @@ public class TestController {
                 header.createCell(0).setCellValue("stocks");
                 header.createCell(1).setCellValue("trigger_prices");
                 header.createCell(2).setCellValue("triggered_at");
-
+                header.createCell(3).setCellValue("saved_at");
             } else {
-                FileInputStream fis = new FileInputStream(applicationProperties.getExcelToSaveAlerts());
-                workbook = WorkbookFactory.create(fis);
-                sheet = workbook.getSheetAt(0);
-                fis.close();
+                try (FileInputStream fis = new FileInputStream(path.toFile())) {
+                    workbook = WorkbookFactory.create(fis);
+                    sheet = workbook.getSheetAt(0);
+                }
             }
 
             int lastRow = sheet.getLastRowNum();
@@ -191,16 +196,27 @@ public class TestController {
             row.createCell(1).setCellValue(String.valueOf(body.get("trigger_prices")));
             row.createCell(2).setCellValue(String.valueOf(body.get("triggered_at")));
 
-            FileOutputStream fos = new FileOutputStream(applicationProperties.getExcelToSaveAlerts());
-            workbook.write(fos);
-            fos.close();
+            Cell dateCell = row.createCell(3);
+            dateCell.setCellValue(new Date());
+
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.setDataFormat(
+                    workbook.getCreationHelper()
+                            .createDataFormat()
+                            .getFormat("yyyy-MM-dd HH:mm:ss")
+            );
+            dateCell.setCellStyle(dateStyle);
+
+            try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
+                workbook.write(fos);
+            }
+
             workbook.close();
 
-            log.info("✅ Alert appended to Excel");
+            log.info("✅ Excel file written at {}", path);
 
         } catch (Exception e) {
             throw new RuntimeException("Excel write failed", e);
         }
     }
-
 }
