@@ -284,6 +284,9 @@ public class ApplicationStartupService {
         log.info("myapp.rms-balance-file-path={}", applicationProperties.getRmsBalanceFilePath());
         log.info("myapp.scripmaster-fno-list-file-path={}", applicationProperties.getScripmasterFnoListFilePath());
         log.info("myapp.leverage-list-file-path={}", applicationProperties.getLeverageListFilePath());
+        log.info("myapp.excel-to-save-alerts={}", applicationProperties.getExcelToSaveAlerts());
+        log.info("myapp.growth-alert-excel-path={}", applicationProperties.getGrowthAlertExcelPath());
+        log.info("myapp.short-alert-excel-path={}", applicationProperties.getShortAlertExcelPath());
 
         log.info("---- Trading ----");
         log.info("myapp.trading-window-enable={}", applicationProperties.isTradingWindowEnable());

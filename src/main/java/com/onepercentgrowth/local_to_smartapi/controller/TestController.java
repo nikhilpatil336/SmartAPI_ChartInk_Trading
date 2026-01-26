@@ -150,7 +150,14 @@ public class TestController {
             log.info("Trigger Prices: {}", payload.get("trigger_prices"));
             log.info("Triggered At: {}", payload.get("triggered_at"));
 
-            saveToExcel(payload);
+//            String excelLocation = applicationProperties.getExcelToSaveAlerts();
+
+            if(payload.get("scan_name").toString().equalsIgnoreCase("V1_Buy_Low_Sell_High"))
+                saveToExcel(payload, applicationProperties.getGrowthAlertExcelPath());
+            else if(payload.get("scan_name").toString().equalsIgnoreCase("Invert_Buy_Low_Sell_High"))
+                saveToExcel(payload, applicationProperties.getShortAlertExcelPath());
+            else if(payload.get("scan_name").toString().equalsIgnoreCase("Buy Low = Sell High"))
+                saveToExcel(payload, applicationProperties.getExcelToSaveAlerts());
 
             return ResponseEntity.ok("Webhook received successfully");
 
@@ -163,9 +170,9 @@ public class TestController {
     }
 
 
-    private void saveToExcel(Map<String, Object> body) {
+    private void saveToExcel(Map<String, Object> body, String excelPath) {
         try {
-            Path path = Path.of(applicationProperties.getExcelToSaveAlerts());
+            Path path = Path.of(excelPath);
 
             // ✅ This fixes everything
             Files.createDirectories(path.getParent());

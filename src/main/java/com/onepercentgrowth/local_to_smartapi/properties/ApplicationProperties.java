@@ -42,6 +42,8 @@ public class ApplicationProperties {
     private double tradingStoplossPercent;
     private double tradingStoplossBufferPercent;
     private String excelToSaveAlerts;
+    private String growthAlertExcelPath;
+    private String shortAlertExcelPath;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -299,6 +301,22 @@ public class ApplicationProperties {
         this.excelToSaveAlerts = excelToSaveAlerts;
     }
 
+    public String getGrowthAlertExcelPath() {
+        return growthAlertExcelPath;
+    }
+
+    public void setGrowthAlertExcelPath(String growthAlertExcelPath) {
+        this.growthAlertExcelPath = growthAlertExcelPath;
+    }
+
+    public String getShortAlertExcelPath() {
+        return shortAlertExcelPath;
+    }
+
+    public void setShortAlertExcelPath(String shortAlertExcelPath) {
+        this.shortAlertExcelPath = shortAlertExcelPath;
+    }
+
     @Override
     public String toString() {
         return "ApplicationProperties{" +
@@ -333,7 +351,9 @@ public class ApplicationProperties {
                 ", leverageListFilePath='" + leverageListFilePath + '\'' +
                 ", tradingStoplossPercent=" + tradingStoplossPercent +
                 ", tradingStoplossBufferPercent=" + tradingStoplossBufferPercent +
-                ", excelToSaveAlerts=" + excelToSaveAlerts +
+                ", excelToSaveAlerts='" + excelToSaveAlerts + '\'' +
+                ", growthAlertExcelPath='" + growthAlertExcelPath + '\'' +
+                ", shortAlertExcelPath='" + shortAlertExcelPath + '\'' +
                 '}';
     }
 }
