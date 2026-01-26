@@ -109,7 +109,8 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
         executionService.placeCancelOrder(
                         ctx.getBuyOrderId(),
                         ctx.getBuyVariety(),
-                        jwt
+                        jwt,
+                        "BUY"
                 )
                 .doOnSuccess(resp -> {
                     ctx.setBuyOpen(false);

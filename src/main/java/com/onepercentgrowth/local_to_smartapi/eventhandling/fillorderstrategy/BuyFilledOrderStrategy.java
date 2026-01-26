@@ -62,12 +62,23 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
+        if (!ctx.isBuyOpen()) return;
+
 //        double executedPrice =
 //                Double.parseDouble(response.getOrderStatusData().getPrice());
-        BigDecimal executedPrice =
+        BigDecimal intenedePrice =
                 new BigDecimal(response.getOrderStatusData().getPrice());
 
+        BigDecimal executedPrice =
+                new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+        int filledQty =
+                Integer.parseInt(response.getOrderStatusData().getFilledshares());
+
         ctx.setBuyPrice(executedPrice);
+        int lastBuyFilledQty = ctx.getLastBuyFilledQty();
+        ctx.setLastBuyFilledQty(filledQty);
+        ctx.setBuyOpen(false);
 
         log.info(
                 "BUY filled | stock={} | orderId={} | qty={} | executedPrice={}",
@@ -103,57 +114,150 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 slPrice
         );
 
-        Mono<OrderResponse> sellMono =
-                executionService.placeSellOrder(
-                                ctx.getTradingSymbol(),
-                                ctx.getSymbolToken(),
-                                ctx.getQuantity(),
-                                sellPrice.doubleValue(),
-                                jwtToken
-                        )
-                        .retry(3)
-                        .doOnSuccess(resp -> {
+//        Mono<OrderResponse> sellMono =
+//                executionService.placeSellOrder(
+//                                ctx.getTradingSymbol(),
+//                                ctx.getSymbolToken(),
+//                                ctx.getQuantity(),
+//                                sellPrice.doubleValue(),
+//                                jwtToken
+//                        )
+//                        .retry(3)
+//                        .doOnSuccess(resp -> {
+//
+//                            ctx.setSellOrderId(
+//                                    resp.getData().getOrderid()
+//                            );
+//                            ctx.setSellVariety("NORMAL");
+//
+//                            orderRegistry.registerSell(ctx);
+//
+//                            log.info("SELL order registered: {}", ctx.getSellOrderId());
+//                        });
+//
+//        Mono<OrderResponse> slMono =
+//                executionService.placeStopLossOrder(
+//                                ctx.getTradingSymbol(),
+//                                ctx.getSymbolToken(),
+//                                ctx.getQuantity(),
+//                                slPrice.triggerPrice().doubleValue(),
+//                                slPrice.limitPrice().doubleValue(),
+//                                jwtToken
+//                        )
+//                        .retry(3)
+//                        .doOnSuccess(resp -> {
+//
+//                            ctx.setStopLossOrderId(
+//                                    resp.getData().getOrderid()
+//                            );
+//                            ctx.setStopLossVariety("STOPLOSS");
+//
+//                            orderRegistry.registerStopLoss(ctx);
+//
+//                            log.info("SL order registered: {}", ctx.getStopLossOrderId());
+//                        });
 
-                            ctx.setSellOrderId(
-                                    resp.getData().getOrderid()
-                            );
-                            ctx.setSellVariety("NORMAL");
+        /* =======================
+           SELL ORDER
+        ======================= */
 
-                            orderRegistry.registerSell(ctx);
+        if (!ctx.isSellPlaced()) {
 
-                            log.info("SELL order registered: {}", ctx.getSellOrderId());
-                        });
+            executionService.placeSellOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            sellPrice.doubleValue(),
+                            jwtToken
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp -> {
+                        ctx.setSellOrderId(resp.getData().getOrderid());
+                        ctx.setSellVariety("NORMAL");
+                        ctx.setSellPlaced(true);
+                        ctx.setSellOpen(true);
+                        ctx.setSellPrice(sellPrice);
+                        orderRegistry.registerSell(ctx);
 
-        Mono<OrderResponse> slMono =
-                executionService.placeStopLossOrder(
-                                ctx.getTradingSymbol(),
-                                ctx.getSymbolToken(),
-                                ctx.getQuantity(),
-                                slPrice.triggerPrice().doubleValue(),
-                                slPrice.limitPrice().doubleValue(),
-                                jwtToken
-                        )
-                        .retry(3)
-                        .doOnSuccess(resp -> {
+                        log.info("SELL placed on BUY complete | sellOrderId={}",
+                                ctx.getSellOrderId());
+                    })
+                    .subscribe();
 
-                            ctx.setStopLossOrderId(
-                                    resp.getData().getOrderid()
-                            );
-                            ctx.setStopLossVariety("STOPLOSS");
+        } else if (ctx.isSellOpen()) {
 
-                            orderRegistry.registerStopLoss(ctx);
+            executionService.modifySellOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            sellPrice.doubleValue(),
+                            ctx.getSellOrderId(),
+                            jwtToken
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp ->
+                            log.info("SELL modified on BUY complete | sellOrderId={}",
+                                    ctx.getSellOrderId())
+                    )
+                    .subscribe();
+        }
 
-                            log.info("SL order registered: {}", ctx.getStopLossOrderId());
-                        });
+        /* =======================
+           STOP LOSS ORDER
+        ======================= */
+
+        if (!ctx.isSlPlaced()) {
+
+            executionService.placeStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            slPrice.triggerPrice().doubleValue(),
+                            slPrice.limitPrice().doubleValue(),
+                            jwtToken
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp -> {
+                        ctx.setStopLossOrderId(resp.getData().getOrderid());
+                        ctx.setStopLossVariety("STOPLOSS");
+                        ctx.setSlPlaced(true);
+                        ctx.setSLOpen(true);
+                        ctx.setStoplossTriggerPrice(slPrice.triggerPrice());
+                        ctx.setStoplossLimitPrice(slPrice.limitPrice());
+                        orderRegistry.registerStopLoss(ctx);
+
+                        log.info("SL placed on BUY complete | slOrderId={}",
+                                ctx.getStopLossOrderId());
+                    })
+                    .subscribe();
+
+        } else if (ctx.isSLOpen()) {
+
+            executionService.modifyStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            slPrice.triggerPrice().doubleValue(),
+                            slPrice.limitPrice().doubleValue(),
+                            ctx.getStopLossOrderId(),
+                            jwtToken
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp ->
+                            log.info("SL modified on BUY complete | slOrderId={}",
+                                    ctx.getStopLossOrderId())
+                    )
+                    .subscribe();
+        }
 
         // Fire both independently
 //        sellMono.subscribe();
 //        slMono.subscribe();
 
-        Mono.when(sellMono, slMono).subscribe();
+//        Mono.when(sellMono, slMono).subscribe();
 
 //        int quantity = ctx.getQuantity();
-        int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//        int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
         String normalizedSymbol =
                 Utility.normalize(ctx.getTradingSymbol());
@@ -161,7 +265,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
         // 🔑 BALANCE UPDATE
         balanceService.onBuy(
                 executedPrice,
-                quantity,
+                filledQty - lastBuyFilledQty,
                 applicationProperties.getLeverageMultiplierToUse(),
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()
@@ -171,7 +275,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 "Balance updated after BUY | stock={} | price={} | qty={} | leveragedUsed={} | maxleverage={}",
                 ctx.getTradingSymbol(),
                 executedPrice,
-                quantity,
+                filledQty,
                 applicationProperties.getLeverageMultiplierToUse(),
                 leverageService.get(normalizedSymbol).multiplier()
         );

@@ -38,6 +38,7 @@ public class OrderContext {
     private boolean buyCanceled = false;
     private boolean sellCanceled = false;
     private boolean SLCanceled = false;
+    private boolean tradeCompleted;
 
     public OrderContext(
             String buyOrderId,
@@ -263,6 +264,14 @@ public class OrderContext {
         this.SLCanceled = SLCanceled;
     }
 
+    public boolean isTradeCompleted() {
+        return tradeCompleted;
+    }
+
+    public void setTradeCompleted(boolean tradeCompleted) {
+        this.tradeCompleted = tradeCompleted;
+    }
+
     @Override
     public String toString() {
         return "OrderContext{" +
@@ -272,6 +281,7 @@ public class OrderContext {
                 ", tradingSymbol='" + tradingSymbol + '\'' +
                 ", symbolToken='" + symbolToken + '\'' +
                 ", quantity=" + quantity +
+                ", buyVariety='" + buyVariety + '\'' +
                 ", sellVariety='" + sellVariety + '\'' +
                 ", stopLossVariety='" + stopLossVariety + '\'' +
                 ", buyPrice=" + buyPrice +
@@ -289,6 +299,7 @@ public class OrderContext {
                 ", buyCanceled=" + buyCanceled +
                 ", sellCanceled=" + sellCanceled +
                 ", SLCanceled=" + SLCanceled +
+                ", tradeCompleted=" + tradeCompleted +
                 '}';
     }
 }

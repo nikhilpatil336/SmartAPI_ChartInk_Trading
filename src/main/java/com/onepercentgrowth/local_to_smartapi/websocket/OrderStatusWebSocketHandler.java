@@ -86,7 +86,7 @@ public class OrderStatusWebSocketHandler extends TextWebSocketHandler {
             OrderStatusResponse response =
                     mapper.readValue(payload, OrderStatusResponse.class);
 
-            log.info("websocket response: {}", response);
+//            log.info("websocket response: {}", response);
 //            log.info("websocket response status: {}", response.getOrderStatusData().getStatus());
 
             // Handshake / auth

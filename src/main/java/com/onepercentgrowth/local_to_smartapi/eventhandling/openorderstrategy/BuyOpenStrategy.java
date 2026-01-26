@@ -62,6 +62,11 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
 
         if (delta <= 0) return; // duplicate / stale WS update
 
+        if (!ctx.isBuyOpen()) {
+            ctx.setBuyOpen(true);
+            log.info("BUY order is now OPEN | buyOrderId={}", ctx.getBuyOrderId());
+        }
+
         BigDecimal intenedPrice =
                 new BigDecimal(response.getOrderStatusData().getPrice());
 

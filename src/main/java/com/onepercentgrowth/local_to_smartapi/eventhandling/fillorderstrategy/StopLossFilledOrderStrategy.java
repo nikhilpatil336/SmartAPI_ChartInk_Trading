@@ -52,6 +52,13 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
+        if (ctx.isTradeCompleted()) {
+            log.warn("Duplicate SELL completion ignored | orderId={}",
+                    response.getOrderStatusData().getOrderid());
+            return;
+        }
+        ctx.setTradeCompleted(true);
+
         log.warn(
                 "STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={}",
                 ctx.getTradingSymbol(),
@@ -77,7 +84,7 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
         String jwtToken = tokenManager.getValidJwtToken();
 
         executionService
-                .placeCancelOrder(sellOrderId, sellVariety, jwtToken)
+                .placeCancelOrder(sellOrderId, sellVariety, jwtToken, "SELL")
                 .retry(3)
                 .doOnSuccess(resp -> {
                     log.info(

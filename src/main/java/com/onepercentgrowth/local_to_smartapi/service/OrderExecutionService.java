@@ -50,7 +50,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkPlaceOrder(buyRequest, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "BUY", "Placement"));
     }
 
     public Mono<OrderResponse> modifyBuyOrder(
@@ -70,7 +70,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkModifyOrder(request, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "BUY", "Modification"));
     }
 
     // ----------------------------------------------------
@@ -96,7 +96,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkPlaceOrder(sellRequest, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "SELL", "Placement"));
     }
 
     public Mono<OrderResponse> modifySellOrder(
@@ -116,7 +116,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkModifyOrder(request, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "SELL", "Modification"));
     }
 
     // ----------------------------------------------------
@@ -144,7 +144,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkPlaceOrder(slRequest, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "StopLoss", "Placement"));
     }
 
     public Mono<OrderResponse> modifyStopLossOrder(
@@ -170,7 +170,7 @@ public class OrderExecutionService {
 
         return brokerApiClient
                 .chartinkModifyOrder(request, jwtToken)
-                .flatMap(this::validateOrderResponse);
+                .flatMap(response -> validateOrderResponse(response, "StopLoss", "Modification"));
     }
 
     // ----------------------------------------------------
@@ -180,12 +180,13 @@ public class OrderExecutionService {
     public Mono<OrderResponse> placeCancelOrder(
             String orderId,
             String variety,
-            String jwtToken
+            String jwtToken,
+            String orderType
     ) {
         IOrderRequest request =
                 orderRequestFactory.createCancelOrder(orderId, variety);
 
-        log.info("Placing CANCEL order {}", request);
+        log.info("Placing {} CANCEL order {}", orderType, request);
 
         return brokerApiClient.chartinkCancelOrder(request, jwtToken);
     }
@@ -194,7 +195,7 @@ public class OrderExecutionService {
     // RESPONSE VALIDATION
     // ----------------------------------------------------
 
-    private Mono<OrderResponse> validateOrderResponse(OrderResponse response) {
+    private Mono<OrderResponse> validateOrderResponse(OrderResponse response, String orderType, String orderOperation) {
 
         if (response == null) {
             return Mono.error(
@@ -208,7 +209,7 @@ public class OrderExecutionService {
                             ? response.getMessage()
                             : "Unknown broker error";
 
-            log.error("Order failed: {}", message);
+            log.error("{} order {} failed: {}", orderType, orderOperation, message);
 
             return Mono.error(
                     new IllegalStateException("Order failed: " + message)
@@ -223,8 +224,8 @@ public class OrderExecutionService {
             );
         }
 
-        log.info("Order placed successfully. orderId={}",
-                response.getData().getOrderid());
+        log.info("{} order {} successfully. orderId={}",
+                orderType, orderOperation, response.getData().getOrderid());
 
         return Mono.just(response);
     }

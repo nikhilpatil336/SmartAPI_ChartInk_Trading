@@ -304,9 +304,9 @@ public class ApplicationStartupService {
         log.info("myapp.fixed-quantity-flag={}", applicationProperties.isFixedQuantityFlag());
         log.info("myapp.fixed-quantity={}", applicationProperties.getFixedQuantity());
 
-        log.info("---- Profit / SL ----");
-        log.info("myapp.profit-percentage-multiplier={}", applicationProperties.getProfitPercentageMultiplier());
-        log.info("myapp.stoploss-percentage-multiplier={}", applicationProperties.getStoplossPercentageMultiplier());
+        log.info("---- Profit ------");
+//        log.info("myapp.profit-percentage-multiplier={}", applicationProperties.getProfitPercentageMultiplier());
+//        log.info("myapp.stoploss-percentage-multiplier={}", applicationProperties.getStoplossPercentageMultiplier());
         log.info("myapp.order-book-retry-milliseconds={}", applicationProperties.getOrderBookRetryMilliseconds());
 
         log.info("---- RMS ----");
