@@ -45,7 +45,7 @@ public class OrderController {
         return orderService_v2.chartinkBuyOrder(webhookRequest);
     }
 
-    @PostMapping("/buy/webhookstatus")
+    @PostMapping("/long/buy")
     public Mono<OrderResponse> chartinkSimpleBuyOrder(
             @RequestBody WebhookRequest webhookRequest) {
 
@@ -69,8 +69,36 @@ public class OrderController {
             }
         }
 
-        log.info("placeWebhookOrder request: {}", webhookRequest);
+        log.info("placeWebhookOrder request for long BUY: {}", webhookRequest);
         return orderService_v2.chartinkSimpleBuyOrder(webhookRequest);
+    }
+
+    @PostMapping("/short/sell")
+    public Mono<OrderResponse> chartinkSellOrder(
+            @RequestBody WebhookRequest webhookRequest) {
+
+        if (applicationProperties.isTradingWindowEnable()) {
+            LocalTime now = LocalTime.now(
+                    ZoneId.of(applicationProperties.getTradingWindowTimeZone())
+            );
+
+            if (now.isBefore(applicationProperties.getTradingWindowStartTime())
+                    || now.isAfter(applicationProperties.getTradingWindowEndTime())) {
+
+                return Mono.error(
+                        new ResponseStatusException(
+                                HttpStatus.FORBIDDEN,
+                                "Requests are allowed only between "
+                                        + applicationProperties.getTradingWindowStartTime()
+                                        + " and "
+                                        + applicationProperties.getTradingWindowEndTime()
+                        )
+                );
+            }
+        }
+
+        log.info("placeWebhook SELL request for short SELL: {}", webhookRequest);
+        return orderService_v2.chartinkSimpleSellOrder(webhookRequest);
     }
 
 //    @PostMapping("/modify")

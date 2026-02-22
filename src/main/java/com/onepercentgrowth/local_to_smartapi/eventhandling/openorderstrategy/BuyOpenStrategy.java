@@ -60,12 +60,12 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
         int lastBuyFilled = ctx.getLastBuyFilledQty();
         int delta = filledQty - lastBuyFilled;
 
-        if (delta <= 0) return; // duplicate / stale WS update
-
         if (!ctx.isBuyOpen()) {
             ctx.setBuyOpen(true);
             log.info("BUY order is now OPEN | buyOrderId={}", ctx.getBuyOrderId());
         }
+
+        if (delta <= 0) return; // duplicate / stale WS update
 
         BigDecimal intenedPrice =
                 new BigDecimal(response.getOrderStatusData().getPrice());
@@ -93,7 +93,7 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
 
         // ===== TP / SL CALC =====
         BigDecimal sellPrice =
-                calculationService.calculateProfitPrice(intenedPrice);
+                calculationService.calculateBuyProfitPrice(intenedPrice);
 
         StopLossPrice slPrice =
                 calculationService.calculateStopLossPrice(

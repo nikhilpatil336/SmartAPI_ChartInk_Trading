@@ -93,20 +93,20 @@ public class TokenManager {
         });
     }
 
-    @Scheduled(fixedDelay = 15 * 60 * 1000)
-    public void refreshIfNeeded() {
-
-        if (!tokenStorageService.willExpireIn(Duration.ofMinutes(5))) {
-            return;
-        }
-
-        log.info("JWT expiring soon → refreshing using refresh token");
-
-        loginService.refreshTokens(
-                        tokenStorageService.getRefreshToken(),
-                        tokenStorageService.getJwtToken()
-                )
-                .doOnError(e -> log.error("Token refresh failed", e))
-                .block();
-    }
+//    @Scheduled(fixedDelay = 15 * 60 * 1000)
+//    public void refreshIfNeeded() {
+//
+//        if (!tokenStorageService.willExpireIn(Duration.ofMinutes(5))) {
+//            return;
+//        }
+//
+//        log.info("JWT expiring soon → refreshing using refresh token");
+//
+//        loginService.refreshTokens(
+//                        tokenStorageService.getRefreshToken(),
+//                        tokenStorageService.getJwtToken()
+//                )
+//                .doOnError(e -> log.error("Token refresh failed", e))
+//                .block();
+//    }
 }

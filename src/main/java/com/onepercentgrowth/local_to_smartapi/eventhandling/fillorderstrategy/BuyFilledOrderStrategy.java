@@ -62,7 +62,9 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
-        if (!ctx.isBuyOpen()) return;
+        if (!ctx.isBuyOpen()) {
+            return;
+        }
 
 //        double executedPrice =
 //                Double.parseDouble(response.getOrderStatusData().getPrice());
@@ -94,7 +96,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 //                calculationService.calculateProfitPrice(executedPrice);
 
         BigDecimal sellPrice =
-                calculationService.calculateProfitPrice(executedPrice);
+                calculationService.calculateBuyProfitPrice(executedPrice);
 
 
 //        double slPrice =

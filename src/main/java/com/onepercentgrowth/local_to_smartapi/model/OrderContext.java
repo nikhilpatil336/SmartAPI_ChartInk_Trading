@@ -28,6 +28,7 @@ public class OrderContext {
     private int lastSellFilledQty = 0;
     private int lastStoplossFilledQty = 0;
 
+    private boolean buyPlaced = false;
     private boolean sellPlaced = false;
     private boolean slPlaced = false;
 
@@ -61,12 +62,12 @@ public class OrderContext {
     }
 
     public OrderContext(
-            String buyOrderId,
+//            String buyOrderId,
             String tradingSymbol,
             String symbolToken,
             int quantity
     ) {
-        this.buyOrderId = buyOrderId;
+//        this.buyOrderId = buyOrderId;
         this.tradingSymbol = tradingSymbol;
         this.symbolToken = symbolToken;
         this.quantity = quantity;
@@ -200,6 +201,14 @@ public class OrderContext {
         this.lastStoplossFilledQty = lastStoplossFilledQty;
     }
 
+    public boolean isBuyPlaced() {
+        return buyPlaced;
+    }
+
+    public void setBuyPlaced(boolean buyPlaced) {
+        this.buyPlaced = buyPlaced;
+    }
+
     public boolean isSellPlaced() {
         return sellPlaced;
     }
@@ -291,6 +300,7 @@ public class OrderContext {
                 ", lastBuyFilledQty=" + lastBuyFilledQty +
                 ", lastSellFilledQty=" + lastSellFilledQty +
                 ", lastStoplossFilledQty=" + lastStoplossFilledQty +
+                ", buyPlaced=" + buyPlaced +
                 ", sellPlaced=" + sellPlaced +
                 ", slPlaced=" + slPlaced +
                 ", buyOpen=" + buyOpen +

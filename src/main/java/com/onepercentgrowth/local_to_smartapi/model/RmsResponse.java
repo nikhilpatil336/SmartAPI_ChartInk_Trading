@@ -1,9 +1,13 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.onepercentgrowth.local_to_smartapi.deserializer.RmsDataDeserializer;
+
 public class RmsResponse {
 
     private String status;
     private String message;
+    @JsonDeserialize(using = RmsDataDeserializer.class)
     private RmsData data;
 
     public String getStatus() {

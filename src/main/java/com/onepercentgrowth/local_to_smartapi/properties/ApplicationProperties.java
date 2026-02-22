@@ -16,8 +16,11 @@ public class ApplicationProperties {
     private String slOrderstoreFilePath;
     private double balanceMinimumAllowed;
     private int stockBuyMinimumQuantityRequired;
-    private double profitPercentageMultiplier;
-    private double stoplossPercentageMultiplier;
+    private double buyProfitPercentageMultiplier;
+    private double buyStoplossPercentageMultiplier;
+
+    private double sellProfitPercentageMultiplier;
+    private double sellStoplossPercentageMultiplier;
     private long orderBookRetryMilliseconds;
     private double percentBalanceUse;
     private int numberOfStocksBuyLess;
@@ -61,20 +64,36 @@ public class ApplicationProperties {
         this.stockBuyMinimumQuantityRequired = stockBuyMinimumQuantityRequired;
     }
 
-    public double getProfitPercentageMultiplier() {
-        return profitPercentageMultiplier;
+    public double getBuyProfitPercentageMultiplier() {
+        return buyProfitPercentageMultiplier;
     }
 
-    public void setProfitPercentageMultiplier(double profitPercentageMultiplier) {
-        this.profitPercentageMultiplier = profitPercentageMultiplier;
+    public void setBuyProfitPercentageMultiplier(double buyProfitPercentageMultiplier) {
+        this.buyProfitPercentageMultiplier = buyProfitPercentageMultiplier;
     }
 
-    public double getStoplossPercentageMultiplier() {
-        return stoplossPercentageMultiplier;
+    public double getBuyStoplossPercentageMultiplier() {
+        return buyStoplossPercentageMultiplier;
     }
 
-    public void setStoplossPercentageMultiplier(double stoplossPercentageMultiplier) {
-        this.stoplossPercentageMultiplier = stoplossPercentageMultiplier;
+    public void setBuyStoplossPercentageMultiplier(double buyStoplossPercentageMultiplier) {
+        this.buyStoplossPercentageMultiplier = buyStoplossPercentageMultiplier;
+    }
+
+    public double getSellProfitPercentageMultiplier() {
+        return sellProfitPercentageMultiplier;
+    }
+
+    public void setSellProfitPercentageMultiplier(double sellProfitPercentageMultiplier) {
+        this.sellProfitPercentageMultiplier = sellProfitPercentageMultiplier;
+    }
+
+    public double getSellStoplossPercentageMultiplier() {
+        return sellStoplossPercentageMultiplier;
+    }
+
+    public void setSellStoplossPercentageMultiplier(double sellStoplossPercentageMultiplier) {
+        this.sellStoplossPercentageMultiplier = sellStoplossPercentageMultiplier;
     }
 
     public long getOrderBookRetryMilliseconds() {
@@ -326,8 +345,10 @@ public class ApplicationProperties {
                 ", slOrderstoreFilePath='" + slOrderstoreFilePath + '\'' +
                 ", balanceMinimumAllowed=" + balanceMinimumAllowed +
                 ", stockBuyMinimumQuantityRequired=" + stockBuyMinimumQuantityRequired +
-                ", profitPercentageMultiplier=" + profitPercentageMultiplier +
-                ", stoplossPercentageMultiplier=" + stoplossPercentageMultiplier +
+                ", buyProfitPercentageMultiplier=" + buyProfitPercentageMultiplier +
+                ", buyStoplossPercentageMultiplier=" + buyStoplossPercentageMultiplier +
+                ", sellProfitPercentageMultiplier=" + sellProfitPercentageMultiplier +
+                ", sellStoplossPercentageMultiplier=" + sellStoplossPercentageMultiplier +
                 ", orderBookRetryMilliseconds=" + orderBookRetryMilliseconds +
                 ", percentBalanceUse=" + percentBalanceUse +
                 ", numberOfStocksBuyLess=" + numberOfStocksBuyLess +

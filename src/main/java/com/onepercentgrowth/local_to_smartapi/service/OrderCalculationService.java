@@ -53,7 +53,7 @@ public class OrderCalculationService {
 //        return absQuantity;
 //    }
 
-    public int calculateQuantity(
+    public int calculateBuyQuantity(
             BigDecimal usableCash,
             BigDecimal triggerPrice,
             int leverageMultiplier,
@@ -62,6 +62,33 @@ public class OrderCalculationService {
         // usableCash / triggerPrice
         BigDecimal baseQuantity =
                 usableCash.divide(triggerPrice, 8, RoundingMode.FLOOR);
+
+        // apply leverage
+        BigDecimal leveragedQuantity =
+                baseQuantity.multiply(BigDecimal.valueOf(leverageMultiplier));
+
+        // absolute + floor + int
+        int absQuantity =
+                leveragedQuantity.abs().setScale(0, RoundingMode.FLOOR).intValueExact();
+
+        log.info("Calculated quantity based on available cash and stock price: {}", absQuantity);
+
+        if (absQuantity <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+            throw new IllegalStateException("Insufficient quantity");
+        }
+
+        return absQuantity;
+    }
+
+    public int calculateSellQuantity(
+            BigDecimal usableCash,
+            BigDecimal maxBuyPrice,
+            int leverageMultiplier,
+            int maxLeverage
+    ) {
+        // usableCash / triggerPrice
+        BigDecimal baseQuantity =
+                usableCash.divide(maxBuyPrice, 8, RoundingMode.FLOOR);
 
         // apply leverage
         BigDecimal leveragedQuantity =
@@ -89,16 +116,30 @@ public class OrderCalculationService {
 //        return Utility.roundDownToTick(executedPrice * applicationProperties.getStoplossPercentageMultiplier());
 //    }
 
-    public BigDecimal calculateProfitPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateBuyProfitPrice(BigDecimal executedPrice) {
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getProfitPercentageMultiplier());
+                BigDecimal.valueOf(applicationProperties.getBuyProfitPercentageMultiplier());
 
         return Utility.roundUpToTick(executedPrice.multiply(multiplier));
     }
 
-    public BigDecimal calculateStopLossPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateBuyStopLossPrice(BigDecimal executedPrice) {
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getStoplossPercentageMultiplier());
+                BigDecimal.valueOf(applicationProperties.getBuyStoplossPercentageMultiplier());
+
+        return Utility.roundDownToTick(executedPrice.multiply(multiplier));
+    }
+
+    public BigDecimal calculateSellProfitPrice(BigDecimal executedPrice) {
+        BigDecimal multiplier =
+                BigDecimal.valueOf(applicationProperties.getSellProfitPercentageMultiplier());
+
+        return Utility.roundUpToTick(executedPrice.multiply(multiplier));
+    }
+
+    public BigDecimal calculateSellStopLossPrice(BigDecimal executedPrice) {
+        BigDecimal multiplier =
+                BigDecimal.valueOf(applicationProperties.getSellStoplossPercentageMultiplier());
 
         return Utility.roundDownToTick(executedPrice.multiply(multiplier));
     }

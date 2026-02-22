@@ -171,7 +171,7 @@ public class OrderService_v2 {
 
                                 double strikePrice = executedPrice;
 
-                                double profitTriggerPrice = strikePrice * applicationProperties.getProfitPercentageMultiplier();
+                                double profitTriggerPrice = strikePrice * applicationProperties.getBuyProfitPercentageMultiplier();
 
                                 IOrderRequest sellOrder =
                                         orderRequestFactory.createSellLimitOrder(
@@ -361,7 +361,7 @@ public class OrderService_v2 {
         BigDecimal usableCash = balanceService.getUsableBalance();
 
         log.info(
-                "Chartink BUY received | stock={} | triggerPrice={} | usableCash={}",
+                "Chartink long BUY received | stock={} | triggerPrice={} | usableCash={}",
                 stockName,
                 triggerPrice,
                 usableCash
@@ -387,7 +387,7 @@ public class OrderService_v2 {
             leverageMultiplier = maxLeverage;
 
         int calculatedQuantity =
-                orderCalculationService.calculateQuantity(
+                orderCalculationService.calculateBuyQuantity(
                         usableCash,
                         triggerPrice,
                         leverageMultiplier,
@@ -409,7 +409,7 @@ public class OrderService_v2 {
         final int quantity = quantityAfterBuyingLess;
 
         log.info(
-                "BUY calc | stock={} | leverage={}/{} | qtyCalculated={} | qtyFinal={} | buyLess={} | fixedQtyFlag={}",
+                "long BUY calc | stock={} | leverage={}/{} | qtyCalculated={} | qtyFinal={} | buyLess={} | fixedQtyFlag={}",
                 stockName,
                 leverageMultiplier,
                 maxLeverage,
@@ -435,7 +435,7 @@ public class OrderService_v2 {
                 );
 
         log.info(
-                "Placing BUY order | stock={} | price={} | qty={} | marginUsed={} | usableCash={}",
+                "Placing long BUY order | stock={} | price={} | qty={} | marginUsed={} | usableCash={}",
                 stockName,
                 triggerPrice,
                 quantity,
@@ -453,17 +453,138 @@ public class OrderService_v2 {
                     String buyOrderId = resp.getData().getOrderid();
                     OrderContext ctx =
                             new OrderContext(
-                                    buyOrderId,
+//                                    buyOrderId,
                                     stockName,
                                     symbolToken,
                                     quantity
                             );
 
+                    ctx.setBuyOrderId(buyOrderId);
+
                     ctx.setBuyVariety("NORMAL");
 
                     orderRegistry.registerBuy(ctx);
 
-                    log.info("Buy order registered in order registry: {}", ctx);
+                    log.info("long BUY order registered in order registry: {}", ctx);
+                });
+    }
+
+    public Mono<OrderResponse> chartinkSimpleSellOrder(WebhookRequest webhookRequest) {
+
+        String stockName = webhookRequest.getStocks().split(",")[0].trim();
+        String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
+        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price));
+
+        String symbolToken = scripMasterService.getTokenForName(stockName);
+        if (symbolToken == null) {
+            return Mono.error(
+                    new IllegalStateException("Symbol not found: " + stockName)
+            );
+        }
+
+        BigDecimal usableCash = balanceService.getUsableBalance();
+
+        log.info(
+                "Chartink short SELL received | stock={} | triggerPrice={} | usableCash={}",
+                stockName,
+                triggerPrice,
+                usableCash
+        );
+
+        if (usableCash.doubleValue()
+                <= applicationProperties.getBalanceMinimumAllowed()) {
+
+            return Mono.error(
+                    new RuntimeException(
+                            "Insufficient balance: " + usableCash
+                    )
+            );
+        }
+
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int maxLeverage = (int) leverageService.get(stockName).multiplier();
+
+        if (leverageMultiplier < 1)
+            throw new IllegalArgumentException("Invalid Leverage Multiplier");
+
+        if (leverageMultiplier > maxLeverage)
+            leverageMultiplier = maxLeverage;
+
+//        BigDecimal maxBuyPrice = triggerPrice.multiply(BigDecimal.valueOf(applicationProperties.getSellProfitPercentageMultiplier()));
+
+        BigDecimal maxBuyPrice =
+                calculationService.calculateSellStopLossPrice(triggerPrice);
+
+        int calculatedQuantity = orderCalculationService.calculateSellQuantity(
+                usableCash,
+                maxBuyPrice,
+                leverageMultiplier,
+                maxLeverage
+        );
+
+        int reducedQuantityForSafety = calculatedQuantity - applicationProperties.getNumberOfStocksBuyLess();
+
+        if (applicationProperties.isFixedQuantityFlag() && reducedQuantityForSafety > applicationProperties.getFixedQuantity()) {
+            log.info("Taking fixed quantity from property file");
+            reducedQuantityForSafety = applicationProperties.getFixedQuantity();
+        }
+        final int quantity = reducedQuantityForSafety;
+
+        log.info(
+                "short SELL calc | stock={} | leverage={}/{} | qtyCalculated={} | qtyFinal={} | buyLess={} | fixedQtyFlag={}",
+                stockName,
+                leverageMultiplier,
+                maxLeverage,
+                calculatedQuantity,
+                quantity,
+                applicationProperties.getNumberOfStocksBuyLess(),
+                applicationProperties.isFixedQuantityFlag()
+        );
+
+        balanceService.assertSufficientFunds(
+                maxBuyPrice,
+                quantity / leverageMultiplier
+        );
+
+        String jwtToken = tokenManager.getValidJwtToken();
+
+        IOrderRequest sellLimitOrder =
+                orderRequestFactory.createSellLimitOrder(
+                        stockName,
+                        symbolToken,
+                        quantity,
+                        triggerPrice.doubleValue()
+                );
+
+        log.info(
+                "Placing short SELL order | stock={} | price={} | qty={} | marginUsed={} | usableCash={}",
+                stockName,
+                triggerPrice,
+                quantity,
+                triggerPrice
+                        .multiply(BigDecimal.valueOf(quantity))
+                        .divide(BigDecimal.valueOf(leverageMultiplier)),
+                usableCash
+        );
+
+        return brokerApiClient.chartinkPlaceOrder(sellLimitOrder, jwtToken)
+                .doOnSuccess(resp -> {
+                    String sellOrderId = resp.getData().getOrderid();
+                    OrderContext ctx =
+                            new OrderContext(
+//                                    sellOrderId,
+                                    stockName,
+                                    symbolToken,
+                                    quantity
+                            );
+
+                    ctx.setSellOrderId(sellOrderId);
+
+                    ctx.setBuyVariety("NORMAL");
+
+                    orderRegistry.registerSell(ctx);
+
+                    log.info("short SELL order registered in order registry: {}", ctx);
                 });
     }
 }
