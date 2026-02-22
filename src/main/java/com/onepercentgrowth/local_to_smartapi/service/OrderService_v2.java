@@ -110,7 +110,7 @@ public class OrderService_v2 {
             );
         }
 
-        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUseForLong();
         int maxLeverage = (int) leverageService.get(stockName).multiplier();
 
         if(leverageMultiplier < 1)
@@ -377,7 +377,7 @@ public class OrderService_v2 {
             );
         }
 
-        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUseForLong();
         int maxLeverage = (int) leverageService.get(stockName).multiplier();
 
         if (leverageMultiplier < 1)
@@ -407,6 +407,7 @@ public class OrderService_v2 {
 
         if (applicationProperties.isFixedQuantityFlag() && quantityAfterBuyingLess > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
+            leverageMultiplier = 1;
             quantityAfterBuyingLess = applicationProperties.getFixedQuantity();
         }
         final int quantity = quantityAfterBuyingLess;
@@ -422,10 +423,12 @@ public class OrderService_v2 {
                 applicationProperties.isFixedQuantityFlag()
         );
 
-        balanceService.assertSufficientFunds(
-                triggerPrice,
-                quantity / leverageMultiplier
-        );
+//        balanceService.assertSufficientFunds(
+//                triggerPrice,
+//                quantity / leverageMultiplier
+//        );
+
+        balanceService.assertSufficientMargin(triggerPrice, quantity, leverageMultiplier);
 
         String jwtToken = tokenManager.getValidJwtToken();
 
@@ -504,7 +507,7 @@ public class OrderService_v2 {
             );
         }
 
-        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUse();
+        int leverageMultiplier = applicationProperties.getLeverageMultiplierToUseForShort();
         int maxLeverage = (int) leverageService.get(stockName).multiplier();
 
         if (leverageMultiplier < 1)
@@ -532,6 +535,7 @@ public class OrderService_v2 {
 
         if (applicationProperties.isFixedQuantityFlag() && reducedQuantityForSafety > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
+            leverageMultiplier = 1;
             reducedQuantityForSafety = applicationProperties.getFixedQuantity();
         }
         final int quantity = reducedQuantityForSafety;
@@ -547,10 +551,12 @@ public class OrderService_v2 {
                 applicationProperties.isFixedQuantityFlag()
         );
 
-        balanceService.assertSufficientFunds(
-                maxBuyPrice,
-                quantity / leverageMultiplier
-        );
+//        balanceService.assertSufficientFunds(
+//                maxBuyPrice,
+//                quantity / leverageMultiplier
+//        );
+
+        balanceService.assertSufficientMargin(maxBuyPrice, quantity, leverageMultiplier);
 
         String jwtToken = tokenManager.getValidJwtToken();
 

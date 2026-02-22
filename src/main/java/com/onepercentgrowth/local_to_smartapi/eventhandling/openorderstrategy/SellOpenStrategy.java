@@ -96,7 +96,7 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                     executedPrice,
                     ctx.getBuyPrice(),
                     delta,
-                    properties.getLeverageMultiplierToUse(),
+                    properties.getLeverageMultiplierToUseForLong(),
                     balanceService.getUsableBalance(),
                     leverageService.get(normalizedSymbol).multiplier()
             );

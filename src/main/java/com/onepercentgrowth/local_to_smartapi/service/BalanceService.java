@@ -83,6 +83,30 @@ public class BalanceService {
         }
     }
 
+    public void assertSufficientMargin(
+            BigDecimal worstCasePrice,
+            int quantity,
+            int leverageMultiplier
+    ) {
+        BigDecimal exposure =
+                worstCasePrice.multiply(BigDecimal.valueOf(quantity));
+
+        BigDecimal requiredMargin =
+                exposure.divide(
+                        BigDecimal.valueOf(leverageMultiplier),
+                        8,
+                        RoundingMode.CEILING
+                );
+
+        if (requiredMargin.compareTo(usableBalance) > 0) {
+            throw new IllegalStateException(
+                    "Insufficient margin. Required="
+                            + requiredMargin
+                            + ", Available=" + usableBalance
+            );
+        }
+    }
+
 /** ================= ORDER EVENTS ================= */
 
     /**

@@ -94,7 +94,7 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
                     executedPrice,
                     ctx.getBuyPrice(),
                     delta,
-                    properties.getLeverageMultiplierToUse(),
+                    properties.getLeverageMultiplierToUseForLong(),
                     balanceService.getUsableBalance(),
                     leverageService.get(normalizedSymbol).multiplier()
             );

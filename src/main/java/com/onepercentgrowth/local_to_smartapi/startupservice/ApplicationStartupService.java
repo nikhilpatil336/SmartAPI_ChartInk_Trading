@@ -329,7 +329,8 @@ public class ApplicationStartupService {
         log.info("myapp.leverage-enable={}", applicationProperties.isLeverageEnable());
         log.info("myapp.leverage-universe={}", applicationProperties.isLeverageUniverse());
         log.info("myapp.leverage-exchange={}", applicationProperties.getLeverageExchange());
-        log.info("myapp.leverage-multiplier-to-use={}", applicationProperties.getLeverageMultiplierToUse());
+        log.info("myapp.leverage-multiplier-to-use-for-long={}", applicationProperties.getLeverageMultiplierToUseForLong());
+        log.info("myapp.leverage-multiplier-to-use-for-short={}", applicationProperties.getLeverageMultiplierToUseForShort());
 
         log.info("=======================================================");
     }

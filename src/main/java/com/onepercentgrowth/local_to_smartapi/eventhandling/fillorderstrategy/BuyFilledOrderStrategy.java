@@ -268,7 +268,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
         balanceService.onBuy(
                 executedPrice,
                 filledQty - lastBuyFilledQty,
-                applicationProperties.getLeverageMultiplierToUse(),
+                applicationProperties.getLeverageMultiplierToUseForLong(),
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
@@ -278,7 +278,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 ctx.getTradingSymbol(),
                 executedPrice,
                 filledQty,
-                applicationProperties.getLeverageMultiplierToUse(),
+                applicationProperties.getLeverageMultiplierToUseForLong(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
 

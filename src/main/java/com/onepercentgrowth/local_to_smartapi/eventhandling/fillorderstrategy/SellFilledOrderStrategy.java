@@ -116,7 +116,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
                 executedPrice,
                 ctx.getBuyPrice(),
                 quantity,
-                applicationProperties.getLeverageMultiplierToUse(),
+                applicationProperties.getLeverageMultiplierToUseForLong(),
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
@@ -126,7 +126,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
                 ctx.getTradingSymbol(),
                 executedPrice,
                 quantity,
-                applicationProperties.getLeverageMultiplierToUse(),
+                applicationProperties.getLeverageMultiplierToUseForLong(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
 

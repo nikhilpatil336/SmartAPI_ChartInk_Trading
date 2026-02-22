@@ -28,7 +28,8 @@ public class ApplicationProperties {
     private double percentBalanceUse;
     private int numberOfStocksBuyLessForLong;
     private int numberOfStocksSellLessForShort;
-    private int leverageMultiplierToUse;
+    private int leverageMultiplierToUseForLong;
+    private int leverageMultiplierToUseForShort;
     private boolean fixedQuantityFlag;
     private int fixedQuantity;
     private boolean tradingWindowEnable;
@@ -332,12 +333,20 @@ public class ApplicationProperties {
         this.leverageListFilePath = leverageListFilePath;
     }
 
-    public int getLeverageMultiplierToUse() {
-        return leverageMultiplierToUse;
+    public int getLeverageMultiplierToUseForLong() {
+        return leverageMultiplierToUseForLong;
     }
 
-    public void setLeverageMultiplierToUse(int leverageMultiplierToUse) {
-        this.leverageMultiplierToUse = leverageMultiplierToUse;
+    public void setLeverageMultiplierToUseForLong(int leverageMultiplierToUseForLong) {
+        this.leverageMultiplierToUseForLong = leverageMultiplierToUseForLong;
+    }
+
+    public int getLeverageMultiplierToUseForShort() {
+        return leverageMultiplierToUseForShort;
+    }
+
+    public void setLeverageMultiplierToUseForShort(int leverageMultiplierToUseForShort) {
+        this.leverageMultiplierToUseForShort = leverageMultiplierToUseForShort;
     }
 
     public double getTradingStoplossPercent() {
@@ -401,7 +410,8 @@ public class ApplicationProperties {
                 ", percentBalanceUse=" + percentBalanceUse +
                 ", numberOfStocksBuyLessForLong=" + numberOfStocksBuyLessForLong +
                 ", numberOfStocksSellLessForShort=" + numberOfStocksSellLessForShort +
-                ", leverageMultiplierToUse=" + leverageMultiplierToUse +
+                ", leverageMultiplierToUseForLong=" + leverageMultiplierToUseForLong +
+                ", leverageMultiplierToUseForShort=" + leverageMultiplierToUseForShort +
                 ", fixedQuantityFlag=" + fixedQuantityFlag +
                 ", fixedQuantity=" + fixedQuantity +
                 ", tradingWindowEnable=" + tradingWindowEnable +

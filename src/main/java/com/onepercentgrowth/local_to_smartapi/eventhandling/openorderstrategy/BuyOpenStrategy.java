@@ -86,7 +86,7 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
         balanceService.onBuy(
                 executedPrice,
                 delta,
-                properties.getLeverageMultiplierToUse(),
+                properties.getLeverageMultiplierToUseForLong(),
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
