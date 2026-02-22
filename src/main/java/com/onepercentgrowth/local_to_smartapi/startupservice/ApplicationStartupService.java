@@ -300,13 +300,20 @@ public class ApplicationStartupService {
         log.info("myapp.balance-minimum-allowed={}", applicationProperties.getBalanceMinimumAllowed());
         log.info("myapp.percent-balance-use={}", applicationProperties.getPercentBalanceUse());
         log.info("myapp.stock-buy-minimum-quantity-required={}", applicationProperties.getStockBuyMinimumQuantityRequired());
-        log.info("myapp.number-of-stocks-buy-less={}", applicationProperties.getNumberOfStocksBuyLess());
+        log.info("myapp.number-of-stocks-buy-less-for-long={}", applicationProperties.getNumberOfStocksBuyLessForLong());
+        log.info("myapp.number-of-stocks-sell-less-for-short={}", applicationProperties.getNumberOfStocksSellLessForShort());
         log.info("myapp.fixed-quantity-flag={}", applicationProperties.isFixedQuantityFlag());
         log.info("myapp.fixed-quantity={}", applicationProperties.getFixedQuantity());
 
         log.info("---- Profit ------");
-//        log.info("myapp.profit-percentage-multiplier={}", applicationProperties.getProfitPercentageMultiplier());
-//        log.info("myapp.stoploss-percentage-multiplier={}", applicationProperties.getStoplossPercentageMultiplier());
+        log.info("myapp.buy-profit-percentage-multiplier={}", applicationProperties.getBuyProfitPercentageMultiplier());
+        log.info("myapp.buy-stoploss-percentage-multiplier={}", applicationProperties.getBuyStoplossPercentageMultiplier());
+        log.info("myapp.sell-profit-percentage-multiplier={}", applicationProperties.getSellProfitPercentageMultiplier());
+        log.info("myapp.sell-stoploss-percentage-multiplier={}", applicationProperties.getSellStoplossPercentageMultiplier());
+        log.info("myapp.default-buy-profit-percentage-multiplier={}", applicationProperties.getDefaultBuyProfitPercentageMultiplier());
+        log.info("myapp.default-buy-stoploss-percentage-multiplier={}", applicationProperties.getDefaultBuyStoplossPercentageMultiplier());
+        log.info("myapp.default-sell-profit-percentage-multiplier={}", applicationProperties.getDefaultSellProfitPercentageMultiplier());
+        log.info("myapp.default-sell-stoploss-percentage-multiplier={}", applicationProperties.getDefaultSellStoplossPercentageMultiplier());
         log.info("myapp.order-book-retry-milliseconds={}", applicationProperties.getOrderBookRetryMilliseconds());
 
         log.info("---- RMS ----");

@@ -18,12 +18,16 @@ public class ApplicationProperties {
     private int stockBuyMinimumQuantityRequired;
     private double buyProfitPercentageMultiplier;
     private double buyStoplossPercentageMultiplier;
-
     private double sellProfitPercentageMultiplier;
     private double sellStoplossPercentageMultiplier;
+    private double defaultBuyProfitPercentageMultiplier;
+    private double defaultBuyStoplossPercentageMultiplier;
+    private double defaultSellProfitPercentageMultiplier;
+    private double defaultSellStoplossPercentageMultiplier;
     private long orderBookRetryMilliseconds;
     private double percentBalanceUse;
-    private int numberOfStocksBuyLess;
+    private int numberOfStocksBuyLessForLong;
+    private int numberOfStocksSellLessForShort;
     private int leverageMultiplierToUse;
     private boolean fixedQuantityFlag;
     private int fixedQuantity;
@@ -96,6 +100,38 @@ public class ApplicationProperties {
         this.sellStoplossPercentageMultiplier = sellStoplossPercentageMultiplier;
     }
 
+    public double getDefaultBuyProfitPercentageMultiplier() {
+        return defaultBuyProfitPercentageMultiplier;
+    }
+
+    public void setDefaultBuyProfitPercentageMultiplier(double defaultBuyProfitPercentageMultiplier) {
+        this.defaultBuyProfitPercentageMultiplier = defaultBuyProfitPercentageMultiplier;
+    }
+
+    public double getDefaultBuyStoplossPercentageMultiplier() {
+        return defaultBuyStoplossPercentageMultiplier;
+    }
+
+    public void setDefaultBuyStoplossPercentageMultiplier(double defaultBuyStoplossPercentageMultiplier) {
+        this.defaultBuyStoplossPercentageMultiplier = defaultBuyStoplossPercentageMultiplier;
+    }
+
+    public double getDefaultSellProfitPercentageMultiplier() {
+        return defaultSellProfitPercentageMultiplier;
+    }
+
+    public void setDefaultSellProfitPercentageMultiplier(double defaultSellProfitPercentageMultiplier) {
+        this.defaultSellProfitPercentageMultiplier = defaultSellProfitPercentageMultiplier;
+    }
+
+    public double getDefaultSellStoplossPercentageMultiplier() {
+        return defaultSellStoplossPercentageMultiplier;
+    }
+
+    public void setDefaultSellStoplossPercentageMultiplier(double defaultSellStoplossPercentageMultiplier) {
+        this.defaultSellStoplossPercentageMultiplier = defaultSellStoplossPercentageMultiplier;
+    }
+
     public long getOrderBookRetryMilliseconds() {
         return orderBookRetryMilliseconds;
     }
@@ -112,12 +148,20 @@ public class ApplicationProperties {
         this.percentBalanceUse = percentBalanceUse;
     }
 
-    public int getNumberOfStocksBuyLess() {
-        return numberOfStocksBuyLess;
+    public int getNumberOfStocksBuyLessForLong() {
+        return numberOfStocksBuyLessForLong;
     }
 
-    public void setNumberOfStocksBuyLess(int numberOfStocksBuyLess) {
-        this.numberOfStocksBuyLess = numberOfStocksBuyLess;
+    public void setNumberOfStocksBuyLessForLong(int numberOfStocksBuyLessForLong) {
+        this.numberOfStocksBuyLessForLong = numberOfStocksBuyLessForLong;
+    }
+
+    public int getNumberOfStocksSellLessForShort() {
+        return numberOfStocksSellLessForShort;
+    }
+
+    public void setNumberOfStocksSellLessForShort(int numberOfStocksSellLessForShort) {
+        this.numberOfStocksSellLessForShort = numberOfStocksSellLessForShort;
     }
 
     public boolean isFixedQuantityFlag() {
@@ -349,9 +393,14 @@ public class ApplicationProperties {
                 ", buyStoplossPercentageMultiplier=" + buyStoplossPercentageMultiplier +
                 ", sellProfitPercentageMultiplier=" + sellProfitPercentageMultiplier +
                 ", sellStoplossPercentageMultiplier=" + sellStoplossPercentageMultiplier +
+                ", defaultBuyProfitPercentageMultiplier=" + defaultBuyProfitPercentageMultiplier +
+                ", defaultBuyStoplossPercentageMultiplier=" + defaultBuyStoplossPercentageMultiplier +
+                ", defaultSellProfitPercentageMultiplier=" + defaultSellProfitPercentageMultiplier +
+                ", defaultSellStoplossPercentageMultiplier=" + defaultSellStoplossPercentageMultiplier +
                 ", orderBookRetryMilliseconds=" + orderBookRetryMilliseconds +
                 ", percentBalanceUse=" + percentBalanceUse +
-                ", numberOfStocksBuyLess=" + numberOfStocksBuyLess +
+                ", numberOfStocksBuyLessForLong=" + numberOfStocksBuyLessForLong +
+                ", numberOfStocksSellLessForShort=" + numberOfStocksSellLessForShort +
                 ", leverageMultiplierToUse=" + leverageMultiplierToUse +
                 ", fixedQuantityFlag=" + fixedQuantityFlag +
                 ", fixedQuantity=" + fixedQuantity +

@@ -125,7 +125,7 @@ public class OrderService_v2 {
 //        double currentBalance = usableCash.doubleValue() - (triggerPrice * (double) absQuantity / leverageMultiplier);
 //        double rmsBalance = usableCash.doubleValue() - (absQuantity * (triggerPrice / maxLeverage));
 
-        int quantity = absQuantity - applicationProperties.getNumberOfStocksBuyLess();
+        int quantity = absQuantity - applicationProperties.getNumberOfStocksBuyLessForLong();
 
 //        int quantity =
 //                (int) Math.floor(
@@ -400,7 +400,10 @@ public class OrderService_v2 {
 //        double currentBalance = usableCash.doubleValue() - (triggerPrice * (double) absQuantity / leverageMultiplier);
 //        double rmsBalance = usableCash.doubleValue() - (absQuantity * (triggerPrice / maxLeverage));
 
-        int quantityAfterBuyingLess = calculatedQuantity - applicationProperties.getNumberOfStocksBuyLess();
+        int quantityAfterBuyingLess = calculatedQuantity - applicationProperties.getNumberOfStocksBuyLessForLong();
+
+        if (quantityAfterBuyingLess <= 0)
+            throw new IllegalStateException("After reducing safety quantity from calculated quantity, the quantity become "+ quantityAfterBuyingLess +", which is invalid");
 
         if (applicationProperties.isFixedQuantityFlag() && quantityAfterBuyingLess > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
@@ -415,7 +418,7 @@ public class OrderService_v2 {
                 maxLeverage,
                 calculatedQuantity,
                 quantity,
-                applicationProperties.getNumberOfStocksBuyLess(),
+                applicationProperties.getNumberOfStocksBuyLessForLong(),
                 applicationProperties.isFixedQuantityFlag()
         );
 
@@ -522,7 +525,10 @@ public class OrderService_v2 {
                 maxLeverage
         );
 
-        int reducedQuantityForSafety = calculatedQuantity - applicationProperties.getNumberOfStocksBuyLess();
+        int reducedQuantityForSafety = calculatedQuantity - applicationProperties.getNumberOfStocksSellLessForShort();
+
+        if (reducedQuantityForSafety <= 0)
+            throw new IllegalStateException("After reducing safety quantity from calculated quantity, the quantity become" +reducedQuantityForSafety+ ", which is invalid");
 
         if (applicationProperties.isFixedQuantityFlag() && reducedQuantityForSafety > applicationProperties.getFixedQuantity()) {
             log.info("Taking fixed quantity from property file");
@@ -537,7 +543,7 @@ public class OrderService_v2 {
                 maxLeverage,
                 calculatedQuantity,
                 quantity,
-                applicationProperties.getNumberOfStocksBuyLess(),
+                applicationProperties.getNumberOfStocksSellLessForShort(),
                 applicationProperties.isFixedQuantityFlag()
         );
 
@@ -580,7 +586,7 @@ public class OrderService_v2 {
 
                     ctx.setSellOrderId(sellOrderId);
 
-                    ctx.setBuyVariety("NORMAL");
+                    ctx.setSellVariety("NORMAL");
 
                     orderRegistry.registerSell(ctx);
 

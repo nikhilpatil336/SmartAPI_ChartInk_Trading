@@ -23,10 +23,23 @@ public class OrderCalculationService {
         this.applicationProperties = props;
     }
 
-    public int calculateQuantity(double availableCash, double triggerPrice) {
+    public int calculateQuantityForLongBuy(double availableCash, double triggerPrice) {
         double usableCash = availableCash * applicationProperties.getPercentBalanceUse();
         int qty = (int) Math.floor(usableCash / triggerPrice)
-                - applicationProperties.getNumberOfStocksBuyLess();
+                - applicationProperties.getNumberOfStocksBuyLessForLong();
+
+        log.info("Calculated quantity based on available cash and stock price: {}", qty);
+
+        if (qty <= applicationProperties.getStockBuyMinimumQuantityRequired()) {
+            throw new IllegalStateException("Insufficient quantity");
+        }
+        return qty;
+    }
+
+    public int calculateQuantityForShortSell(double availableCash, double triggerPrice) {
+        double usableCash = availableCash * applicationProperties.getPercentBalanceUse();
+        int qty = (int) Math.floor(usableCash / triggerPrice)
+                - applicationProperties.getNumberOfStocksSellLessForShort();
 
         log.info("Calculated quantity based on available cash and stock price: {}", qty);
 
@@ -117,29 +130,59 @@ public class OrderCalculationService {
 //    }
 
     public BigDecimal calculateBuyProfitPrice(BigDecimal executedPrice) {
+        double buyProfitPercentageMultipler = applicationProperties.getBuyProfitPercentageMultiplier();
+
+        if(buyProfitPercentageMultipler < 1)
+        {
+            log.error("buyProfitPercentageMultipler is less than 1, which is wrong so choosing the default value from properties");
+            buyProfitPercentageMultipler = applicationProperties.getDefaultBuyProfitPercentageMultiplier();
+        }
+
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getBuyProfitPercentageMultiplier());
+                BigDecimal.valueOf(buyProfitPercentageMultipler);
 
         return Utility.roundUpToTick(executedPrice.multiply(multiplier));
     }
 
     public BigDecimal calculateBuyStopLossPrice(BigDecimal executedPrice) {
+        double buyStoplossPercentageMultiplier = applicationProperties.getBuyStoplossPercentageMultiplier();
+
+        if(buyStoplossPercentageMultiplier > 1)
+        {
+            log.error("buyStoplossPercentageMultiplier is greater than 1, which is wrong so choosing the default value from properties");
+            buyStoplossPercentageMultiplier = applicationProperties.getDefaultBuyStoplossPercentageMultiplier();
+        }
+
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getBuyStoplossPercentageMultiplier());
+                BigDecimal.valueOf(buyStoplossPercentageMultiplier);
 
         return Utility.roundDownToTick(executedPrice.multiply(multiplier));
     }
 
     public BigDecimal calculateSellProfitPrice(BigDecimal executedPrice) {
+        double sellProfitPercentageMultiplier = applicationProperties.getSellProfitPercentageMultiplier();
+
+        if(sellProfitPercentageMultiplier > 1) {
+            log.error("sellProfitPercentageMultiplier is greater than 1, which is wrong so choosing the default value from properties");
+            sellProfitPercentageMultiplier = applicationProperties.getDefaultSellProfitPercentageMultiplier();
+        }
+
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getSellProfitPercentageMultiplier());
+                BigDecimal.valueOf(sellProfitPercentageMultiplier);
 
         return Utility.roundUpToTick(executedPrice.multiply(multiplier));
     }
 
     public BigDecimal calculateSellStopLossPrice(BigDecimal executedPrice) {
+        double sellStoplossPercentageMultiplier = applicationProperties.getSellStoplossPercentageMultiplier();
+
+        if(sellStoplossPercentageMultiplier < 1) {
+            log.error("sellStoplossPercentageMultiplier is less than 1, which is wrong so choosing the default value from properties");
+            sellStoplossPercentageMultiplier = applicationProperties.getDefaultSellStoplossPercentageMultiplier();
+        }
+
         BigDecimal multiplier =
-                BigDecimal.valueOf(applicationProperties.getSellStoplossPercentageMultiplier());
+                BigDecimal.valueOf(sellStoplossPercentageMultiplier);
 
         return Utility.roundDownToTick(executedPrice.multiply(multiplier));
     }
