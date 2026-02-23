@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
+import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,6 +41,7 @@ public class OrderContext {
     private boolean sellCanceled = false;
     private boolean SLCanceled = false;
     private boolean tradeCompleted;
+    private PositionSide positionSide;
 
     public OrderContext(
             String buyOrderId,
@@ -61,13 +63,25 @@ public class OrderContext {
         this.stopLossVariety = stopLossVariety;
     }
 
+//    public OrderContext(
+////            String buyOrderId,
+//            String tradingSymbol,
+//            String symbolToken,
+//            int quantity
+//    ) {
+////        this.buyOrderId = buyOrderId;
+//        this.tradingSymbol = tradingSymbol;
+//        this.symbolToken = symbolToken;
+//        this.quantity = quantity;
+//    }
+
     public OrderContext(
-//            String buyOrderId,
+            PositionSide positionSide,
             String tradingSymbol,
             String symbolToken,
             int quantity
     ) {
-//        this.buyOrderId = buyOrderId;
+        this.positionSide = positionSide;
         this.tradingSymbol = tradingSymbol;
         this.symbolToken = symbolToken;
         this.quantity = quantity;
@@ -281,6 +295,30 @@ public class OrderContext {
         this.tradeCompleted = tradeCompleted;
     }
 
+    public PositionSide getPositionSide() {
+        return positionSide;
+    }
+
+    public void setPositionSide(PositionSide positionSide) {
+        this.positionSide = positionSide;
+    }
+
+    public boolean isLong() {
+        return positionSide == PositionSide.LONG;
+    }
+
+    public boolean isShort() {
+        return positionSide == PositionSide.SHORT;
+    }
+
+    public String getEntryOrderId() {
+        return isLong() ? buyOrderId : sellOrderId;
+    }
+
+    public String getTargetOrderId() {
+        return isLong() ? sellOrderId : buyOrderId;
+    }
+
     @Override
     public String toString() {
         return "OrderContext{" +
@@ -310,6 +348,7 @@ public class OrderContext {
                 ", sellCanceled=" + sellCanceled +
                 ", SLCanceled=" + SLCanceled +
                 ", tradeCompleted=" + tradeCompleted +
+                ", positionSide=" + positionSide +
                 '}';
     }
 }

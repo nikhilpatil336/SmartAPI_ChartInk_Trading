@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -28,6 +29,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -91,6 +93,48 @@ public class TestController {
         }
 
         // Publish incoming event
+        orderEventQueue.publish(response);
+    }
+
+    @PostMapping("/testShortSellAndStoploss")
+    public void testShortSellAndStoploss(@RequestBody OrderStatusResponse response) {
+
+        if (response.getOrderStatusData() == null) {
+            throw new IllegalArgumentException("orderStatusData missing in payload");
+        }
+
+        Optional<OrderContext> existingCtx =
+                orderRegistry.getByAnyOrderId(
+                        response.getOrderStatusData().getOrderid()
+                );
+
+        if (existingCtx.isPresent()) {
+            log.info("SHORT OrderContext already exists for orderId={}",
+                    response.getOrderStatusData().getOrderid());
+            orderEventQueue.publish(response);
+            return;
+        }
+
+        // SHORT ENTRY = SELL
+        if (response.getOrderStatusData()
+                .getTransactiontype()
+                .equalsIgnoreCase("SELL")) {
+
+            OrderContext orderContext = new OrderContext(
+                    "260106000810894",   // buyOrderId (TARGET BUY)
+                    "260106000810939",   // sellOrderId (ENTRY SELL)
+                    "260106000811022",   // stopLossOrderId (BUY SL)
+                    response.getOrderStatusData().getTradingsymbol(),
+                    response.getOrderStatusData().getSymboltoken(),
+                    Integer.parseInt(response.getOrderStatusData().getQuantity()),
+                    "NORMAL",      // sellVariety (entry)
+                    "STOPLOSS"     // stopLossVariety
+            );
+
+            // For SHORT, ENTRY is SELL
+            orderRegistry.registerSell(orderContext);
+        }
+
         orderEventQueue.publish(response);
     }
 
@@ -169,6 +213,38 @@ public class TestController {
         }
     }
 
+    @PostMapping(
+            value = "/test/webhookRequestShort",
+            consumes = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<String> webhookRequestShort(
+            @RequestBody Map<String, Object> payload
+    ) {
+
+        try {
+            log.info("📩 SHORT Chartink Webhook Received");
+            log.info("Payload: {}", payload);
+
+            log.info("Stocks: {}", payload.get("stocks"));
+            log.info("Trigger Prices: {}", payload.get("trigger_prices"));
+            log.info("Triggered At: {}", payload.get("triggered_at"));
+
+            // For now ONLY short scan
+            if (payload.get("scan_name").toString()
+                    .equalsIgnoreCase("Invert_Buy_Low_Sell_High")) {
+
+                saveToExcel(payload, applicationProperties.getShortAlertExcelPath());
+            }
+
+            return ResponseEntity.ok("Short Webhook received successfully");
+
+        } catch (Exception ex) {
+            log.error("❌ Error processing SHORT webhook", ex);
+            return ResponseEntity
+                    .internalServerError()
+                    .body("Error processing SHORT webhook");
+        }
+    }
 
     private void saveToExcel(Map<String, Object> body, String excelPath) {
         try {

@@ -49,7 +49,8 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
 
     @Override
     public boolean supports(OrderContext ctx, OrderStatusResponse response) {
-        return "BUY".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
+        return ctx.isLong()
+                &&"BUY".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
                 && ctx.getBuyOrderId().equals(response.getOrderStatusData().getOrderid());
     }
 

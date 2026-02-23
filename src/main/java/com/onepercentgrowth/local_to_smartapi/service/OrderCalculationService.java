@@ -170,7 +170,7 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(sellProfitPercentageMultiplier);
 
-        return Utility.roundUpToTick(executedPrice.multiply(multiplier));
+        return Utility.roundDownToTick(executedPrice.multiply(multiplier));
     }
 
     public BigDecimal calculateSellStopLossPrice(BigDecimal executedPrice) {
@@ -184,7 +184,7 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(sellStoplossPercentageMultiplier);
 
-        return Utility.roundDownToTick(executedPrice.multiply(multiplier));
+        return Utility.roundUpToTick(executedPrice.multiply(multiplier));
     }
 
 

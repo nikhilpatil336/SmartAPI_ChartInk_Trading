@@ -2,6 +2,7 @@ package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -460,6 +461,7 @@ public class OrderService_v2 {
                     OrderContext ctx =
                             new OrderContext(
 //                                    buyOrderId,
+                                    PositionSide.LONG,
                                     stockName,
                                     symbolToken,
                                     quantity
@@ -585,6 +587,7 @@ public class OrderService_v2 {
                     OrderContext ctx =
                             new OrderContext(
 //                                    sellOrderId,
+                                    PositionSide.SHORT,
                                     stockName,
                                     symbolToken,
                                     quantity

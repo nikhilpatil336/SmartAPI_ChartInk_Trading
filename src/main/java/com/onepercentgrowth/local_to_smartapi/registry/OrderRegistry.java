@@ -1,6 +1,8 @@
 package com.onepercentgrowth.local_to_smartapi.registry;
 
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -291,7 +293,3 @@ public class OrderRegistry {
         }
     }
 }
-
-
-
-
