@@ -50,13 +50,17 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setExchange("NSE");
-
+        req.setTransactiontype("BUY");
         // New parameters to be updated
         req.setOrdertype("LIMIT");
         req.setProducttype("INTRADAY");
         req.setDuration("DAY");
         req.setQuantity(String.valueOf(quantity)); // New quantity [12]
         req.setPrice(price); // New limit price [12]
+        req.setDisclosedquantity("0");
+//        req.setSquareoff("0");
+//        req.setStoploss("0");
+//        req.setTriggerprice(String.valueOf(triggerPrice));
 
         return req;
     }
@@ -111,6 +115,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
         req.setDisclosedquantity("0");
         req.setSquareoff("0");
         req.setStoploss("0");
+        req.setScripconsent("yes");
         req.setTriggerprice(String.valueOf(triggerPrice));
 
         return req;

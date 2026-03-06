@@ -51,29 +51,58 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
         int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//        int lastStoplossFilled = ctx.getLastStoplossFilledQty();
         int delta = filledQty - ctx.getLastStoplossFilledQty();
 
         if (delta <= 0) return;
 
-        BigDecimal executedPrice =
-                new BigDecimal(response.getOrderStatusData().getAverageprice());
+        if (delta > 0 && ctx.isSellOpen()) {
+            cancelRemainingEntrySell(ctx);
+        }
 
-        // ===== BOOK LOSS =====
-        balanceService.onBuy(
-                executedPrice,
-                delta,
-                properties.getLeverageMultiplierToUseForShort(),
-                balanceService.getUsableBalance(),
-                leverageService.get(
-                        Utility.normalize(ctx.getTradingSymbol())
-                ).multiplier()
-        );
+        int remainingQty = Math.max(0, ctx.getLastSellFilledQty() - filledQty);
 
-        cancelRemainingEntrySell(ctx);
+        if (remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen()) {
 
-        ctx.setLastStoplossFilledQty(filledQty);
+            log.warn(
+                    "STOPLOSS partial hit | stock={} | delta={} | totalFilled={}",
+                    ctx.getTradingSymbol(), delta, filledQty
+            );
 
-        log.info("SHORT STOPLOSS HIT | orderId={}", ctx.getStopLossOrderId());
+            String jwt = tokenManager.getValidJwtToken();
+
+            executionService.modifyBuyOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            remainingQty,
+                            ctx.getBuyPrice().toString(),
+                            ctx.getBuyOrderId(),
+                            jwt
+                    )
+                    .doOnError(e -> log.error("Failed to modify Buy order", e.getMessage()))
+                    .subscribe();
+
+            BigDecimal executedPrice =
+                    new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+            String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
+
+            // ===== BOOK LOSS =====
+            balanceService.onShortCover(
+                    executedPrice,
+                    ctx.getSellPrice(),
+                    delta,
+                    properties.getLeverageMultiplierToUseForShort(),
+                    balanceService.getUsableBalance(),
+                    leverageService.get(normalizedSymbol).multiplier()
+            );
+
+    //        cancelRemainingEntrySell(ctx);
+
+            ctx.setLastStoplossFilledQty(filledQty);
+
+            log.info("SHORT STOPLOSS HIT | orderId={}", ctx.getStopLossOrderId());
+        }
     }
 
     private void cancelRemainingEntrySell(OrderContext ctx) {
@@ -83,12 +112,19 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
         String jwt = tokenManager.getValidJwtToken();
 
         executionService.placeCancelOrder(
-                ctx.getSellOrderId(),
-                ctx.getSellVariety(),
-                jwt,
-                "SELL"
-        ).subscribe();
+                        ctx.getSellOrderId(),
+                        ctx.getSellVariety(),
+                        jwt,
+                        "SELL"
+                )
+                .doOnSuccess(resp -> {
+                    ctx.setSellOpen(false);
+                    log.info("Remaining BUY cancelled as exit started | buyOrderId={}",
+                            ctx.getSellOrderId());
+                }).subscribe();
 
-        ctx.setSellOpen(false);
+//        ctx.setSellOpen(false);
     }
 }
+
+

@@ -2,6 +2,7 @@ package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
+import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -60,69 +61,148 @@ public class ShortSellFilledOrderStrategy implements IFillOrderStrategy {
 
         if (!ctx.isSellOpen()) return;
 
+        BigDecimal intenedePrice =
+                new BigDecimal(response.getOrderStatusData().getPrice());
+
         BigDecimal executedPrice =
                 new BigDecimal(response.getOrderStatusData().getAverageprice());
 
         int filledQty =
                 Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-        int lastQty = ctx.getLastSellFilledQty();
+        ctx.setSellPrice(executedPrice);
+        int lastSellFilledQty = ctx.getLastSellFilledQty();
         ctx.setLastSellFilledQty(filledQty);
         ctx.setSellOpen(false);
-        ctx.setSellPrice(executedPrice);
 
-        log.info("SHORT ENTRY SELL filled | stock={} | orderId={}",
+        log.info("SHORT ENTRY SELL filled | stock={} | orderId={} | filledQty={} | executedPrice={}",
                 ctx.getTradingSymbol(),
-                ctx.getSellOrderId());
+                ctx.getSellOrderId(),
+                filledQty,
+                executedPrice);
+
+//        int incrementalQty = filledQty - lastQty;
 
         String jwt = tokenManager.getValidJwtToken();
 
         BigDecimal buyTargetPrice =
                 calculationService.calculateSellProfitPrice(executedPrice);
 
-        BigDecimal buyStopLossPrice =
-                calculationService.calculateSellStopLossPrice(executedPrice);
+//        BigDecimal buyStopLossPrice =
+//                calculationService.calculateSellStopLossPrice(executedPrice);
 
-        /* ================= TARGET BUY ================= */
+        StopLossPrice slPrice =
+                calculationService.calculateShortStopLossPrice(
+                        executedPrice,
+                        BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
+                        BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                );
 
-        executionService.placeBuyOrder(
-                        ctx.getTradingSymbol(),
-                        ctx.getSymbolToken(),
-                        filledQty,
-                        buyTargetPrice.toString(),
-                        jwt
-                )
-                .retry(3)
-                .doOnSuccess(resp -> {
-                    ctx.setBuyOrderId(resp.getData().getOrderid());
-                    ctx.setBuyPlaced(true);
-                    ctx.setBuyOpen(true);
-                    ctx.setBuyPrice(buyTargetPrice);
-                    orderRegistry.registerBuy(ctx);
-                })
-                .subscribe();
+        log.info(
+                "TP/SL calculated | stock={} | TP={} | SL={}",
+                ctx.getTradingSymbol(),
+                buyTargetPrice,
+                slPrice
+        );
 
-        /* ================= STOPLOSS BUY ================= */
+    /* =========================================================
+       TARGET BUY (Cover Order)
+    ========================================================= */
 
-        executionService.placeStopLossOrder(
-                        ctx.getTradingSymbol(),
-                        ctx.getSymbolToken(),
-                        filledQty,
-                        buyStopLossPrice.doubleValue(),
-                        buyStopLossPrice.doubleValue(),
-                        jwt
-                )
-                .retry(3)
-                .doOnSuccess(resp -> {
-                    ctx.setStopLossOrderId(resp.getData().getOrderid());
-                    ctx.setStopLossVariety("STOPLOSS");
-                    ctx.setSlPlaced(true);
-                    ctx.setSLOpen(true);
-                    orderRegistry.registerStopLoss(ctx);
-                })
-                .subscribe();
+        if (!ctx.isBuyPlaced()) {
 
-        /* ================= BALANCE ENTRY ================= */
+            executionService.placeBuyOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            buyTargetPrice.toString(),
+                            jwt
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp -> {
+                        ctx.setBuyOrderId(resp.getData().getOrderid());
+                        ctx.setBuyVariety("NORMAL");
+                        ctx.setBuyPlaced(true);
+                        ctx.setBuyOpen(true);
+                        ctx.setBuyPrice(buyTargetPrice);
+
+                        orderRegistry.registerBuy(ctx);
+
+                        log.info("SHORT TARGET BUY placed | buyOrderId={}",
+                                ctx.getBuyOrderId());
+                    })
+                    .subscribe();
+
+        } else if (ctx.isBuyOpen()) {
+
+            executionService.modifyBuyOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            buyTargetPrice.toString(),
+                            ctx.getBuyOrderId(),
+                            jwt
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp ->
+                            log.info("SHORT TARGET BUY modified | buyOrderId={}",
+                                    ctx.getBuyOrderId())
+                    )
+                    .subscribe();
+        }
+
+    /* =========================================================
+       STOP LOSS BUY
+    ========================================================= */
+
+        if (!ctx.isSlPlaced()) {
+
+            executionService.placeStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            slPrice.triggerPrice().doubleValue(),
+                            slPrice.limitPrice().doubleValue(),
+                            jwt
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp -> {
+                        ctx.setStopLossOrderId(resp.getData().getOrderid());
+                        ctx.setStopLossVariety("STOPLOSS");
+                        ctx.setSlPlaced(true);
+                        ctx.setSLOpen(true);
+                        ctx.setStoplossTriggerPrice(slPrice.triggerPrice());
+                        ctx.setStoplossLimitPrice(slPrice.limitPrice());
+
+                        orderRegistry.registerStopLoss(ctx);
+
+                        log.info("SHORT SL BUY placed | slOrderId={}",
+                                ctx.getStopLossOrderId());
+                    })
+                    .subscribe();
+
+        } else if (ctx.isSLOpen()) {
+
+            executionService.modifyStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            filledQty,
+                            slPrice.triggerPrice().doubleValue(),
+                            slPrice.limitPrice().doubleValue(),
+                            ctx.getStopLossOrderId(),
+                            jwt
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp ->
+                            log.info("SHORT SL BUY modified on SELL complete | slOrderId={}",
+                                    ctx.getStopLossOrderId())
+                    )
+                    .subscribe();
+        }
+
+    /* =========================================================
+       BALANCE UPDATE
+    ========================================================= */
 
         String normalizedSymbol =
                 Utility.normalize(ctx.getTradingSymbol());
@@ -130,7 +210,7 @@ public class ShortSellFilledOrderStrategy implements IFillOrderStrategy {
         balanceService.onSell(
                 executedPrice,
                 BigDecimal.ZERO,
-                filledQty - lastQty,
+                filledQty - lastSellFilledQty,
                 applicationProperties.getLeverageMultiplierToUseForShort(),
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()

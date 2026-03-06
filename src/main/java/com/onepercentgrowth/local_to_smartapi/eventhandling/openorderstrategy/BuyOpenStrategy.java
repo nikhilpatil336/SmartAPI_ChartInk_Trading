@@ -77,7 +77,7 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
         ctx.setBuyPrice(executedPrice);
 
         log.info(
-                "BUY partial fill | stock={} | delta={} | totalFilled={}",
+                "BUY for long partial fill | stock={} | delta={} | totalFilled={}",
                 ctx.getTradingSymbol(), delta, filledQty
         );
 

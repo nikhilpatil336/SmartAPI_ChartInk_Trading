@@ -205,5 +205,22 @@ public class OrderCalculationService {
         );
     }
 
+    public StopLossPrice calculateShortStopLossPrice(
+            BigDecimal buyPrice,
+            BigDecimal slPercent,
+            BigDecimal bufferPercent
+    ) {
+        BigDecimal logicalSL =
+                buyPrice.multiply(BigDecimal.ONE.add(slPercent));
+
+        BigDecimal limitPrice =
+                logicalSL.multiply(BigDecimal.ONE.add(bufferPercent));
+
+        return new StopLossPrice(
+                roundToTick(logicalSL),
+                roundToTick(limitPrice)
+        );
+    }
+
 }
 

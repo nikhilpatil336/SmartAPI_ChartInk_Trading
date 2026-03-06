@@ -250,6 +250,103 @@ public class BalanceService {
         );
     }
 
+//    public synchronized void onShortSell(
+//            BigDecimal sellPrice,
+//            int quantity,
+//            double leverage,
+//            BigDecimal oldBalance,
+//            double maxLeverage
+//    ) {
+//        BigDecimal positionValue =
+//                sellPrice.multiply(BigDecimal.valueOf(quantity));
+//
+//        BigDecimal marginUsed =
+//                positionValue.divide(
+//                        BigDecimal.valueOf(leverage),
+//                        RoundingMode.HALF_UP
+//                );
+//
+//        if (usableBalance.compareTo(marginUsed) < 0) {
+//            throw new IllegalStateException("Insufficient usable balance");
+//        }
+//
+//        usableBalance = usableBalance.subtract(marginUsed);
+//
+//        log.info(
+//                "SELL for Short executed | sellPrice={} Qty={} MarginUsed={} UsableBalance={}",
+//                sellPrice, quantity, marginUsed, usableBalance
+//        );
+//    }
+
+    public synchronized void onShortSell(
+            BigDecimal sellPrice,
+            int quantity,
+            double leverage,
+            BigDecimal oldBalance,
+            double maxLeverage
+    ) {
+        BigDecimal positionValue =
+                sellPrice.multiply(BigDecimal.valueOf(quantity));
+
+        BigDecimal marginUsed =
+                positionValue.divide(
+                        BigDecimal.valueOf(leverage),
+                        RoundingMode.HALF_UP
+                );
+
+        if (usableBalance.compareTo(marginUsed) < 0) {
+            throw new IllegalStateException("Insufficient usable balance");
+        }
+
+        usableBalance = usableBalance.subtract(marginUsed);
+
+        log.info(
+                "SHORT OPEN executed | SellPrice={} Qty={} MarginUsed={} UsableBalance={}",
+                sellPrice, quantity, marginUsed, usableBalance
+        );
+    }
+
+    public synchronized void onShortCover(
+            BigDecimal buyPrice,      // exit price
+            BigDecimal sellPrice,     // entry price
+            int quantity,
+            double leverage,
+            BigDecimal oldBalance,
+            double maxLeverage
+    ) {
+        // PnL = EntrySell - ExitBuy
+        BigDecimal pnl =
+                sellPrice.subtract(buyPrice)
+                        .multiply(BigDecimal.valueOf(quantity));
+
+        totalPnL = totalPnL.add(pnl);
+
+        BigDecimal positionValue =
+                sellPrice.multiply(BigDecimal.valueOf(quantity));
+
+        BigDecimal releasedMargin =
+                positionValue.divide(
+                        BigDecimal.valueOf(leverage),
+                        RoundingMode.HALF_UP
+                );
+
+        // Always release margin
+        usableBalance = usableBalance.add(releasedMargin);
+
+        if (pnl.signum() > 0) {
+            // PROFIT → unsettled
+            unsettledPnL = unsettledPnL.add(pnl);
+        } else {
+            // LOSS → immediately deducted
+            usableBalance = usableBalance.add(pnl); // pnl negative
+        }
+
+        log.info(
+                "SHORT CLOSE executed | EntrySell={} ExitBuy={} Qty={} PnL={} totalPnL={} releasedMargin={} UsableBalance={} UnsettledPnL={}",
+                sellPrice, buyPrice, quantity, pnl, totalPnL, releasedMargin, usableBalance, unsettledPnL
+        );
+    }
+
 
     /**
      * ================= READ =================

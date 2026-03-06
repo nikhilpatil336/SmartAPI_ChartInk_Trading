@@ -47,10 +47,56 @@ public class ShortBuyStopLossFilledStrategy implements IFillOrderStrategy {
                 && response.getOrderStatusData().getOrderid().equals(ctx.getStopLossOrderId());
     }
 
+//    @Override
+//    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
+//
+//        if (ctx.isTradeCompleted()) return;
+//        ctx.setTradeCompleted(true);
+//
+//        BigDecimal executedPrice =
+//                new BigDecimal(response.getOrderStatusData().getAverageprice());
+//
+//        int qty =
+//                Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//
+//        log.warn("SHORT STOPLOSS HIT | stock={}", ctx.getTradingSymbol());
+//
+//        cancelTarget(ctx);
+//
+//        String normalizedSymbol =
+//                Utility.normalize(ctx.getTradingSymbol());
+//
+//        balanceService.onBuy(
+//                executedPrice,
+//                qty,
+//                applicationProperties.getLeverageMultiplierToUseForShort(),
+//                balanceService.getUsableBalance(),
+//                leverageService.get(normalizedSymbol).multiplier()
+//        );
+//    }
+//
+//    private void cancelTarget(OrderContext ctx) {
+//        if (ctx.getBuyOrderId() == null) return;
+//
+//        String jwt = tokenManager.getValidJwtToken();
+//
+//        executionService.placeCancelOrder(
+//                ctx.getBuyOrderId(),
+//                ctx.getBuyVariety(),
+//                jwt,
+//                "BUY"
+//        ).subscribe();
+//    }
+
     @Override
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
-        if (ctx.isTradeCompleted()) return;
+        if (ctx.isTradeCompleted()) {
+            log.warn("Duplicate SHORT SL completion ignored | orderId={}",
+                    response.getOrderStatusData().getOrderid());
+            return;
+        }
+
         ctx.setTradeCompleted(true);
 
         BigDecimal executedPrice =
@@ -59,9 +105,56 @@ public class ShortBuyStopLossFilledStrategy implements IFillOrderStrategy {
         int qty =
                 Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-        log.warn("SHORT STOPLOSS HIT | stock={}", ctx.getTradingSymbol());
+        log.warn("SHORT STOPLOSS HIT | stock={} | sellOrderId={} | slOrderId={} |  qty={}",
+                ctx.getTradingSymbol(),
+                ctx.getSellOrderId(),
+                ctx.getStopLossOrderId(),
+                ctx.getQuantity()
+        );
 
-        cancelTarget(ctx);
+        String buyOrderId = ctx.getBuyOrderId();
+        String buyVariety = ctx.getBuyVariety();
+
+        if (buyOrderId == null) {
+            log.warn(
+                    "No SELL to cancel after SL | stock={} | buyOrderId={}",
+                    ctx.getTradingSymbol(),
+                    ctx.getBuyOrderId()
+            );
+            return;
+        }
+
+        /* ================= CANCEL TARGET BUY ================= */
+
+        if (ctx.getBuyOrderId() != null && ctx.isBuyOpen()) {
+
+            String jwt = tokenManager.getValidJwtToken();
+
+            executionService.placeCancelOrder(
+                            ctx.getBuyOrderId(),
+                            ctx.getBuyVariety(),
+                            jwt,
+                            "BUY"
+                    )
+                    .retry(3)
+                    .doOnSuccess(resp -> {
+                        log.info(
+                            "SHORT TARGET cancelled after SL | stock={} | sellOrderId={} | buyOrderId={}",
+                            ctx.getTradingSymbol(),
+                            ctx.getSellOrderId(),
+                            ctx.getBuyOrderId()
+                    );
+                    ctx.setBuyOpen(false);
+                })
+                .subscribe();
+        }
+
+        ctx.setSLOpen(false);
+
+        /* ================= BALANCE UPDATE ================= */
+
+//        int quantity = ctx.getQuantity();
+        int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
         String normalizedSymbol =
                 Utility.normalize(ctx.getTradingSymbol());
@@ -73,18 +166,18 @@ public class ShortBuyStopLossFilledStrategy implements IFillOrderStrategy {
                 balanceService.getUsableBalance(),
                 leverageService.get(normalizedSymbol).multiplier()
         );
-    }
 
-    private void cancelTarget(OrderContext ctx) {
-        if (ctx.getBuyOrderId() == null) return;
+        log.info(
+                "Balance updated after SHORT SL | stock={} | price={} | qty={} | leveragedUsed={} | leverage={}",
+                ctx.getTradingSymbol(),
+                executedPrice,
+                qty,
+                applicationProperties.getLeverageMultiplierToUseForLong(),
+                leverageService.get(normalizedSymbol).multiplier()
+        );
 
-        String jwt = tokenManager.getValidJwtToken();
+        /* ================= CLEANUP (Optional but recommended) ================= */
 
-        executionService.placeCancelOrder(
-                ctx.getBuyOrderId(),
-                ctx.getBuyVariety(),
-                jwt,
-                "BUY"
-        ).subscribe();
+        // orderRegistry.remove(ctx);
     }
 }

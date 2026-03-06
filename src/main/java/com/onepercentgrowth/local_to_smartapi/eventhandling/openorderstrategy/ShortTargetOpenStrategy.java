@@ -51,9 +51,14 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
         int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//        int lastBuyFilled = ctx.getLastBuyFilledQty();
         int delta = filledQty - ctx.getLastBuyFilledQty();
 
         if (delta <= 0) return;
+
+        if (delta > 0 && ctx.isBuyOpen()) {
+            cancelRemainingEntrySell(ctx);
+        }
 
         BigDecimal executedPrice =
                 new BigDecimal(response.getOrderStatusData().getAverageprice());
@@ -87,7 +92,12 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                 ctx.getSellVariety(),
                 jwt,
                 "SELL"
-        ).subscribe();
+        )
+        .doOnSuccess(resp -> {
+            ctx.setSellOpen(false);
+            log.info("Remaining SELL cancelled as exit started | sellOrderId={}",
+                    ctx.getSellOrderId());
+        }).subscribe();
 
         ctx.setSellOpen(false);
     }
