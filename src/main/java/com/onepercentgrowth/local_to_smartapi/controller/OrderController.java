@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.controller;
 
+import com.onepercentgrowth.local_to_smartapi.enums.TradingExchange;
 import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
 import com.onepercentgrowth.local_to_smartapi.model.WebhookRequest;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -70,7 +71,7 @@ public class OrderController {
         }
 
         log.info("placeWebhookOrder request for long BUY: {}", webhookRequest);
-        return orderService_v2.chartinkSimpleBuyOrder(webhookRequest);
+        return orderService_v2.chartinkSimpleBuyOrder(webhookRequest, TradingExchange.NSE.toString());
     }
 
     @PostMapping("/short/sell")
@@ -98,7 +99,7 @@ public class OrderController {
         }
 
         log.info("placeWebhook SELL request for short SELL: {}", webhookRequest);
-        return orderService_v2.chartinkSimpleSellOrder(webhookRequest);
+        return orderService_v2.chartinkSimpleSellOrder(webhookRequest, TradingExchange.NSE.toString());
     }
 
 //    @PostMapping("/modify")

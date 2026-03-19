@@ -62,7 +62,7 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
 
         int remainingQty = Math.max(0, ctx.getLastSellFilledQty() - filledQty);
 
-        if (remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen()) {
+        if (remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.isTradeCompleted()) {
 
             log.warn(
                     "STOPLOSS partial hit | stock={} | delta={} | totalFilled={}",

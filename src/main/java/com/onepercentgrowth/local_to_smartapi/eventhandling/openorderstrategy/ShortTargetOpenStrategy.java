@@ -1,6 +1,9 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
+import com.onepercentgrowth.local_to_smartapi.exit.AggressiveExitManager;
+import com.onepercentgrowth.local_to_smartapi.exit.ExitType;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -25,19 +28,25 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
     private final OrderExecutionService executionService;
     private final ApplicationProperties properties;
     private final LeverageService leverageService;
+    private final OrderActionExecutor orderActionExecutor;
+    private final AggressiveExitManager aggressiveExitManager;
 
     public ShortTargetOpenStrategy(
             BalanceService balanceService,
             TokenManager tokenManager,
             OrderExecutionService executionService,
             ApplicationProperties properties,
-            LeverageService leverageService) {
+            LeverageService leverageService,
+            OrderActionExecutor orderActionExecutor,
+            AggressiveExitManager aggressiveExitManager) {
 
         this.balanceService = balanceService;
         this.tokenManager = tokenManager;
         this.executionService = executionService;
         this.properties = properties;
         this.leverageService = leverageService;
+        this.orderActionExecutor = orderActionExecutor;
+        this.aggressiveExitManager = aggressiveExitManager;
     }
 
     @Override
@@ -51,34 +60,65 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
     public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 
         int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
-//        int lastBuyFilled = ctx.getLastBuyFilledQty();
+        int lastBuyFilled = ctx.getLastBuyFilledQty();
         int delta = filledQty - ctx.getLastBuyFilledQty();
 
         if (delta <= 0) return;
 
-        if (delta > 0 && ctx.isBuyOpen()) {
+        if (delta > 0 && ctx.isSellOpen()) {
             cancelRemainingEntrySell(ctx);
         }
 
-        BigDecimal executedPrice =
-                new BigDecimal(response.getOrderStatusData().getAverageprice());
+        int remainingQty = Math.max(0, ctx.getLastBuyFilledQty() - filledQty);
 
-        // ===== BOOK PROFIT =====
-        balanceService.onBuy(
-                executedPrice,
-                delta,
-                properties.getLeverageMultiplierToUseForShort(),
-                balanceService.getUsableBalance(),
-                leverageService.get(
-                        Utility.normalize(ctx.getTradingSymbol())
-                ).multiplier()
-        );
+        if (remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted()) {
 
-        cancelRemainingEntrySell(ctx);
+            log.info(
+                    "BUY partial fill | stock={} | delta={} | totalFilled={}",
+                    ctx.getTradingSymbol(), delta, filledQty
+            );
 
-        ctx.setLastBuyFilledQty(filledQty);
+            String jwt = tokenManager.getValidJwtToken();
 
-        log.info("SHORT TARGET HIT | orderId={}", ctx.getBuyOrderId());
+            orderActionExecutor.safeModifyOrReplace(
+                    executionService.modifyStopLossOrder(
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            remainingQty,
+                            ctx.getStoplossTriggerPrice().doubleValue(),
+                            ctx.getStoplossLimitPrice().doubleValue(),
+                            ctx.getStopLossOrderId(),
+                            tokenManager.getValidJwtToken()
+                    ),
+                    () -> aggressiveExitManager.placeAggressiveExit(
+                            ctx,
+                            remainingQty,
+                            ExitType.MODIFY_FAILED
+                    )
+            ).subscribe();
+
+            BigDecimal executedPrice =
+                    new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+            String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
+
+            // ===== BOOK PROFIT =====
+            balanceService.onBuy(
+                    executedPrice,
+                    delta,
+                    properties.getLeverageMultiplierToUseForShort(),
+                    balanceService.getUsableBalance(),
+                    leverageService.get(
+                            Utility.normalize(ctx.getTradingSymbol())
+                    ).multiplier()
+            );
+
+//        cancelRemainingEntrySell(ctx);
+
+            ctx.setLastBuyFilledQty(filledQty);
+
+            log.info("SHORT TARGET HIT | orderId={}", ctx.getBuyOrderId());
+        }
     }
 
     private void cancelRemainingEntrySell(OrderContext ctx) {

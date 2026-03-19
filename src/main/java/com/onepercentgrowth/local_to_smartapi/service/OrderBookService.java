@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.service;
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.model.OrderStatusItem;
 import com.onepercentgrowth.local_to_smartapi.model.TradeBookResponse;
+import com.onepercentgrowth.local_to_smartapi.model.TradeBookResponse_v1;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -62,5 +63,15 @@ public class OrderBookService {
         }
 
         return brokerApiClient.getTradeBook(token);
+    }
+
+    public Mono<TradeBookResponse_v1> fetchTradeBook_v1() {
+        String token = tokenStorageService.getJwtToken();
+
+        if (token == null) {
+            return Mono.error(new RuntimeException("No JWT token found. Please log in."));
+        }
+
+        return brokerApiClient.getTradeBook_v1(token);
     }
 }

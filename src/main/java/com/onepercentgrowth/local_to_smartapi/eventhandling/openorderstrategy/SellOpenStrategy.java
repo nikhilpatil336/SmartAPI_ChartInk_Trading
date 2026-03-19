@@ -62,12 +62,12 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
 //        if (remainingQty > 0 && ctx.getSellOrderId() != null) {
         if (remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen()) {
 
-        log.info(
-                "SELL partial fill | stock={} | delta={} | totalFilled={}",
-                ctx.getTradingSymbol(), delta, filledQty
-        );
+            log.info(
+                    "SELL partial fill | stock={} | delta={} | totalFilled={}",
+                    ctx.getTradingSymbol(), delta, filledQty
+            );
 
-        // ===== MODIFY STOP LOSS =====
+            // ===== MODIFY STOP LOSS =====
 //        int remainingQty = ctx.getQuantity() - filledQty;
 //        int remainingQty = ctx.getLastBuyFilledQty() - filledQty;
 //
@@ -76,16 +76,16 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
             String jwt = tokenManager.getValidJwtToken();
 
             executionService.modifyStopLossOrder(
-                    ctx.getTradingSymbol(),
-                    ctx.getSymbolToken(),
-                    remainingQty,
-                    ctx.getStoplossTriggerPrice().doubleValue(),
-                    ctx.getStoplossLimitPrice().doubleValue(),
-                    ctx.getStopLossOrderId(),
-                    jwt
-            )
-            .doOnError(e -> log.error("Failed to modify Stoploss order", e.getMessage()))
-            .subscribe();
+                            ctx.getTradingSymbol(),
+                            ctx.getSymbolToken(),
+                            remainingQty,
+                            ctx.getStoplossTriggerPrice().doubleValue(),
+                            ctx.getStoplossLimitPrice().doubleValue(),
+                            ctx.getStopLossOrderId(),
+                            jwt
+                    )
+                    .doOnError(e -> log.error("Failed to modify Stoploss order", e.getMessage()))
+                    .subscribe();
 
             BigDecimal executedPrice =
                     new BigDecimal(response.getOrderStatusData().getAverageprice());
@@ -124,4 +124,3 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
     }
 
 }
-

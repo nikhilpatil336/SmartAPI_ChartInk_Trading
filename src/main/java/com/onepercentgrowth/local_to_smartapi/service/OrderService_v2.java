@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.service;
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
+import com.onepercentgrowth.local_to_smartapi.enums.TradingExchange;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -344,7 +345,7 @@ public class OrderService_v2 {
 
 //---------------------------2nd version of buy order ---------------------
 
-    public Mono<OrderResponse> chartinkSimpleBuyOrder(WebhookRequest webhookRequest) {
+    public Mono<OrderResponse> chartinkSimpleBuyOrder(WebhookRequest webhookRequest, String exchange) {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
@@ -468,8 +469,8 @@ public class OrderService_v2 {
                             );
 
                     ctx.setBuyOrderId(buyOrderId);
-
                     ctx.setBuyVariety("NORMAL");
+                    ctx.setExchange(exchange);
 
                     orderRegistry.registerBuy(ctx);
 
@@ -477,7 +478,7 @@ public class OrderService_v2 {
                 });
     }
 
-    public Mono<OrderResponse> chartinkSimpleSellOrder(WebhookRequest webhookRequest) {
+    public Mono<OrderResponse> chartinkSimpleSellOrder(WebhookRequest webhookRequest, String exchange) {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
@@ -594,8 +595,8 @@ public class OrderService_v2 {
                             );
 
                     ctx.setSellOrderId(sellOrderId);
-
                     ctx.setSellVariety("NORMAL");
+                    ctx.setExchange(exchange);
 
                     orderRegistry.registerSell(ctx);
 

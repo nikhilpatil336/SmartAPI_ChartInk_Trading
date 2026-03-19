@@ -332,6 +332,17 @@ public class ApplicationStartupService {
         log.info("myapp.leverage-multiplier-to-use-for-long={}", applicationProperties.getLeverageMultiplierToUseForLong());
         log.info("myapp.leverage-multiplier-to-use-for-short={}", applicationProperties.getLeverageMultiplierToUseForShort());
 
+        log.info("---- Exit Strategy ----");
+        log.info("myapp.exit-ltp-mode={}", applicationProperties.getExitLtpMode());
+        log.info("myapp.exit-strat-wait-time-after-cancel={}", applicationProperties.getExitStratWaitTimeAfterCancel());
+
+        log.info("---- SquareOff Scheduler ----");
+        log.info("myapp.squareoff.cron={}", applicationProperties.getSquareoffCron());
+        log.info("myapp.squareoff.zone={}", applicationProperties.getSquareoffZone());
+        log.info("myapp.exit-max-attempt={}", applicationProperties.getExitMaxAttempt());
+        log.info("myapp.ticksize-to-reduce={}", applicationProperties.getTicksizeToReduce());
+        log.info("myapp.wait-time-betwee-partial-exits={}", applicationProperties.getWaitTimeBetweePartialExits());
+
         log.info("=======================================================");
     }
 

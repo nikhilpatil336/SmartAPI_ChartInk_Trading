@@ -4,7 +4,9 @@ import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -226,6 +228,8 @@ public class OrderRegistry {
     private final ConcurrentMap<String, OrderContext> bySellId = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, OrderContext> bySlId = new ConcurrentHashMap<>();
 
+    private final ConcurrentMap<String, OrderContext> byExitId = new ConcurrentHashMap<>();
+
     /* ===================== REGISTER ===================== */
 
     public void registerBuy(OrderContext ctx) {
@@ -254,9 +258,27 @@ public class OrderRegistry {
         }
     }
 
+    public void registerExit(String exitOrderId, OrderContext ctx) {
+        byExitId.put(exitOrderId, ctx);
+    }
+
     /* ===================== LOOKUPS ===================== */
 
+//    public Optional<OrderContext> getByAnyOrderId(String orderId) {
+//        OrderContext ctx = byBuyId.get(orderId);
+//        if (ctx != null) return Optional.of(ctx);
+//
+//        ctx = bySellId.get(orderId);
+//        if (ctx != null) return Optional.of(ctx);
+//
+//        ctx = bySlId.get(orderId);
+//        if (ctx != null) return Optional.of(ctx);
+//
+//        return Optional.empty();
+//    }
+
     public Optional<OrderContext> getByAnyOrderId(String orderId) {
+
         OrderContext ctx = byBuyId.get(orderId);
         if (ctx != null) return Optional.of(ctx);
 
@@ -264,6 +286,9 @@ public class OrderRegistry {
         if (ctx != null) return Optional.of(ctx);
 
         ctx = bySlId.get(orderId);
+        if (ctx != null) return Optional.of(ctx);
+
+        ctx = byExitId.get(orderId);
         if (ctx != null) return Optional.of(ctx);
 
         return Optional.empty();
@@ -291,5 +316,14 @@ public class OrderRegistry {
                     "OrderContext not registered via BUY first: " + ctx.getBuyOrderId()
             );
         }
+    }
+
+
+//    public Collection<OrderContext> getAllContexts() {
+//        return byBuyId.values();
+//    }
+
+    public Flux<OrderContext> getAllContexts() {
+        return Flux.fromIterable(byBuyId.values());
     }
 }

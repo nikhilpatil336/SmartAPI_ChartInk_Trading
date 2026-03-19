@@ -52,6 +52,15 @@ public class ApplicationProperties {
     private String excelToSaveAlerts;
     private String growthAlertExcelPath;
     private String shortAlertExcelPath;
+    private boolean tradingAllowDoubleExit;
+    private String exitLtpMode;
+    private int exitStratWaitTimeAfterCancel;
+
+    private String squareoffCron;
+    private String squareoffZone;
+    private int exitMaxAttempt;
+    private double ticksizeToReduce;
+    private int waitTimeBetweePartialExits;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -389,6 +398,70 @@ public class ApplicationProperties {
         this.shortAlertExcelPath = shortAlertExcelPath;
     }
 
+    public boolean isTradingAllowDoubleExit() {
+        return tradingAllowDoubleExit;
+    }
+
+    public void setTradingAllowDoubleExit(boolean tradingAllowDoubleExit) {
+        this.tradingAllowDoubleExit = tradingAllowDoubleExit;
+    }
+
+    public String getExitLtpMode() {
+        return exitLtpMode;
+    }
+
+    public void setExitLtpMode(String exitLtpMode) {
+        this.exitLtpMode = exitLtpMode;
+    }
+
+    public int getExitStratWaitTimeAfterCancel() {
+        return exitStratWaitTimeAfterCancel;
+    }
+
+    public void setExitStratWaitTimeAfterCancel(int exitStratWaitTimeAfterCancel) {
+        this.exitStratWaitTimeAfterCancel = exitStratWaitTimeAfterCancel;
+    }
+
+    public String getSquareoffCron() {
+        return squareoffCron;
+    }
+
+    public void setSquareoffCron(String squareoffCron) {
+        this.squareoffCron = squareoffCron;
+    }
+
+    public String getSquareoffZone() {
+        return squareoffZone;
+    }
+
+    public void setSquareoffZone(String squareoffZone) {
+        this.squareoffZone = squareoffZone;
+    }
+
+    public int getExitMaxAttempt() {
+        return exitMaxAttempt;
+    }
+
+    public void setExitMaxAttempt(int exitMaxAttempt) {
+        this.exitMaxAttempt = exitMaxAttempt;
+    }
+
+    public double getTicksizeToReduce() {
+        return ticksizeToReduce;
+    }
+
+    public void setTicksizeToReduce(double ticksizeToReduce) {
+        this.ticksizeToReduce = ticksizeToReduce;
+    }
+
+    public int getWaitTimeBetweePartialExits() {
+        return waitTimeBetweePartialExits;
+    }
+
+    public void setWaitTimeBetweePartialExits(int waitTimeBetweePartialExits) {
+        this.waitTimeBetweePartialExits = waitTimeBetweePartialExits;
+    }
+
     @Override
     public String toString() {
         return "ApplicationProperties{" +
@@ -434,6 +507,15 @@ public class ApplicationProperties {
                 ", excelToSaveAlerts='" + excelToSaveAlerts + '\'' +
                 ", growthAlertExcelPath='" + growthAlertExcelPath + '\'' +
                 ", shortAlertExcelPath='" + shortAlertExcelPath + '\'' +
+                ", tradingAllowDoubleExit=" + tradingAllowDoubleExit +
+                ", exitLtpMode='" + exitLtpMode + '\'' +
+                ", exitStratWaitTimeAfterCancel=" + exitStratWaitTimeAfterCancel +
+                ", squareoffCron='" + squareoffCron + '\'' +
+                ", squareoffZone='" + squareoffZone + '\'' +
+                ", exitMaxAttempt=" + exitMaxAttempt +
+                ", ticksizeToReduce=" + ticksizeToReduce +
+                ", waitTimeBetweePartialExits=" + waitTimeBetweePartialExits +
                 '}';
     }
 }
+

@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -346,6 +347,21 @@ public class BrokerApiClient {
                 .bodyToMono(TradeBookResponse.class);
     }
 
+    public Mono<TradeBookResponse_v1> getTradeBook_v1(String token) {
+        return brokerWebClient.get()
+                .uri("/rest/secure/angelbroking/order/v1/getTradeBook")
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .retrieve()
+                .bodyToMono(TradeBookResponse_v1.class);
+    }
+
     public Mono<JsonNode> getIndividualOrderStatus(String orderId, String authToken) {
 
         log.info("Fetching order status for orderId={}", orderId);
@@ -512,5 +528,77 @@ public class BrokerApiClient {
                 .doOnError(err ->
                         log.error("Failed to fetch NSE Intraday leverage", err)
                 );
+    }
+
+    public Mono<BigDecimal> getLtp(String exchange, String token, String authToken, String mode) {
+
+        Map<String, Object> body = Map.of(
+                "mode", mode,
+                "exchangeTokens", Map.of(exchange, List.of(token))
+        );
+
+        return brokerWebClient.post()
+                .uri("/rest/secure/angelbroking/market/v1/quote/")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .map(json ->
+                        new BigDecimal(
+                                json.at("/data/fetched/0/ltp").asText()
+                        )
+                );
+    }
+
+    public Mono<MarketQuote> getQuote(
+            String exchange,
+            String symbolToken,
+            String authToken,
+            String mode
+    ) {
+
+        Map<String, Object> body = Map.of(
+                "mode", mode,
+                "exchangeTokens", Map.of(exchange, List.of(symbolToken))
+        );
+
+        return brokerWebClient.post()
+                .uri("/rest/secure/angelbroking/market/v1/quote/")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .map(json -> {
+
+                    JsonNode fetched = json.at("/data/fetched/0");
+
+                    BigDecimal ltp = fetched.get("ltp").decimalValue();
+
+                    BigDecimal bestBid = fetched
+                            .at("/depth/buy/0/price")
+                            .decimalValue();
+
+                    BigDecimal bestAsk = fetched
+                            .at("/depth/sell/0/price")
+                            .decimalValue();
+
+                    return new MarketQuote(ltp, bestBid, bestAsk);
+                });
     }
 }

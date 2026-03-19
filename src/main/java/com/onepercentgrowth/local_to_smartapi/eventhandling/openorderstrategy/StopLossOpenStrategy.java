@@ -60,7 +60,7 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
         int remainingQty = Math.max(0, ctx.getLastBuyFilledQty() - filledQty);
 
 //        if (remainingQty > 0 && ctx.getSellOrderId() != null) {
-        if (remainingQty > 0 && ctx.isSellPlaced() && ctx.isSellOpen()) {
+        if (remainingQty > 0 && ctx.isSellPlaced() && ctx.isSellOpen() && !ctx.isTradeCompleted()) {
 
 //            BigDecimal executedPrice =
 //                    new BigDecimal(response.getOrderStatusData().getPrice());

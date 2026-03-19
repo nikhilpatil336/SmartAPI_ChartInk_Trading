@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class OrderContext {
 
@@ -15,6 +17,7 @@ public class OrderContext {
     private String tradingSymbol;
     private String symbolToken;
     private int quantity;
+    private String exchange;
 
     private String buyVariety;
     private String sellVariety;
@@ -42,6 +45,11 @@ public class OrderContext {
     private boolean SLCanceled = false;
     private boolean tradeCompleted;
     private PositionSide positionSide;
+
+    private boolean exitInProgress = false;
+    private final List<String> exitOrderIds = new CopyOnWriteArrayList<>();
+    private String currentExitOrderId;
+    private String currentExitVariety;
 
     public OrderContext(
             String buyOrderId,
@@ -133,6 +141,14 @@ public class OrderContext {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public String getExchange() {
+        return exchange;
+    }
+
+    public void setExchange(String exchange) {
+        this.exchange = exchange;
     }
 
     public String getBuyVariety() {
@@ -303,6 +319,40 @@ public class OrderContext {
         this.positionSide = positionSide;
     }
 
+    public boolean isExitInProgress() {
+        return exitInProgress;
+    }
+
+    public void setExitInProgress(boolean exitInProgress) {
+        this.exitInProgress = exitInProgress;
+    }
+
+    public List<String> getExitOrderIds() {
+        return exitOrderIds;
+    }
+
+    public String getCurrentExitOrderId() {
+        return currentExitOrderId;
+    }
+
+    public void setCurrentExitOrderId(String currentExitOrderId) {
+        this.currentExitOrderId = currentExitOrderId;
+    }
+
+    public String getCurrentExitVariety() {
+        return currentExitVariety;
+    }
+
+    public void setCurrentExitVariety(String currentExitVariety) {
+        this.currentExitVariety = currentExitVariety;
+    }
+
+    public void addExitOrder(String orderId, String variety) {
+        exitOrderIds.add(orderId);
+        currentExitOrderId = orderId;
+        currentExitVariety = variety;
+    }
+
     public boolean isLong() {
         return positionSide == PositionSide.LONG;
     }
@@ -317,6 +367,14 @@ public class OrderContext {
 
     public String getTargetOrderId() {
         return isLong() ? sellOrderId : buyOrderId;
+    }
+
+    public synchronized boolean tryStartExit() {
+        if (exitInProgress) {
+            return false;
+        }
+        exitInProgress = true;
+        return true;
     }
 
     @Override
@@ -352,4 +410,3 @@ public class OrderContext {
                 '}';
     }
 }
-
