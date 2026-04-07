@@ -12,8 +12,12 @@ import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
@@ -50,15 +54,102 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
                 && response.getOrderStatusData().getOrderid().equals(ctx.getStopLossOrderId());
     }
 
+//    @Override
+//    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
+//
+//        if (ctx.isTradeCompleted()) {
+//            log.warn("Duplicate SELL completion ignored | orderId={}",
+//                    response.getOrderStatusData().getOrderid());
+//            return;
+//        }
+//        ctx.setTradeCompleted(true);
+//
+//        log.warn(
+//                "STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={}",
+//                ctx.getTradingSymbol(),
+//                ctx.getBuyOrderId(),
+//                ctx.getStopLossOrderId(),
+//                ctx.getQuantity()
+//        );
+//
+//
+//        String sellOrderId = ctx.getSellOrderId();
+//        String sellVariety = ctx.getSellVariety();
+//
+//        if (sellOrderId == null) {
+//            log.warn(
+//                    "No SELL to cancel after SL | stock={} | buyOrderId={}",
+//                    ctx.getTradingSymbol(),
+//                    ctx.getBuyOrderId()
+//            );
+//            return;
+//        }
+//
+//
+//        String jwtToken = tokenManager.getValidJwtToken();
+//
+//        executionService
+//                .placeCancelOrder(sellOrderId, sellVariety, jwtToken, "SELL")
+//                .retry(3)
+//                .doOnSuccess(resp -> {
+//                    log.info(
+//                            "SELL cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
+//                            ctx.getTradingSymbol(),
+//                            ctx.getBuyOrderId(),
+//                            sellOrderId
+//                    );
+//                    ctx.setSellOpen(false);
+////                    orderRegistry.remove(ctx); // trade complete
+//                })
+//                .subscribe();
+//
+//        ctx.setSLOpen(false);
+//
+////        double executedPrice =
+////                Double.parseDouble(response.getOrderStatusData().getPrice());
+//
+//        BigDecimal executedPrice =
+//                new BigDecimal(response.getOrderStatusData().getPrice());
+//
+////        int quantity = ctx.getQuantity();
+//        int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//
+//        String normalizedSymbol =
+//                Utility.normalize(ctx.getTradingSymbol());
+//
+//        balanceService.onSell(
+//                executedPrice,
+//                ctx.getBuyPrice(),
+//                quantity,
+//                applicationProperties.getLeverageMultiplierToUseForLong(),
+//                balanceService.getUsableBalance(),
+//                leverageService.get(normalizedSymbol).multiplier()
+//        );
+//
+//        log.info(
+//                "Balance updated after SL | stock={} | price={} | qty={} | leveragedUsed={} | leverage={}",
+//                ctx.getTradingSymbol(),
+//                executedPrice,
+//                quantity,
+//                applicationProperties.getLeverageMultiplierToUseForLong(),
+//                leverageService.get(normalizedSymbol).multiplier()
+//        );
+//
+//
+////        log.warn("STOPLOSS hit, balance updated: price={}, qty={}",
+////                executedPrice, quantity);
+//    }
+
     @Override
-    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
+    public Mono<Void> onFilled(OrderContext ctx, OrderStatusResponse response) {
 
         if (ctx.isTradeCompleted()) {
-            log.warn("Duplicate SELL completion ignored | orderId={}",
+            log.warn("Duplicate SL completion ignored | orderId={}",
                     response.getOrderStatusData().getOrderid());
-            return;
+            return Mono.empty();
         }
-        ctx.setTradeCompleted(true);
+
+//        ctx.setTradeCompleted(true);
 
         log.warn(
                 "STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={}",
@@ -68,72 +159,95 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
                 ctx.getQuantity()
         );
 
+        AtomicBoolean failed = new AtomicBoolean(false);
 
         String sellOrderId = ctx.getSellOrderId();
-        String sellVariety = ctx.getSellVariety();
-
-        if (sellOrderId == null) {
-            log.warn(
-                    "No SELL to cancel after SL | stock={} | buyOrderId={}",
-                    ctx.getTradingSymbol(),
-                    ctx.getBuyOrderId()
-            );
-            return;
-        }
-
+//        String sellVariety = ctx.getSellVariety();
 
         String jwtToken = tokenManager.getValidJwtToken();
 
-        executionService
-                .placeCancelOrder(sellOrderId, sellVariety, jwtToken, "SELL")
-                .retry(3)
-                .doOnSuccess(resp -> {
-                    log.info(
-                            "SELL cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
-                            ctx.getTradingSymbol(),
-                            ctx.getBuyOrderId(),
-                            sellOrderId
-                    );
-                    ctx.setSellOpen(false);
-//                    orderRegistry.remove(ctx); // trade complete
-                })
-                .subscribe();
+        Mono<Void> cancelSellMono = Mono.empty();
 
-        ctx.setSLOpen(false);
+        if (ctx.getSellOrderId() != null && ctx.isSellOpen()) {
+            cancelSellMono = executionService
+                    .placeCancelOrder(
+                            ctx.getSellOrderId(),
+                            ctx.getSellVariety(),
+                            jwtToken,
+                            "SELL"
+                    )
+                    .timeout(Duration.ofSeconds(5))
+                    .retryWhen(
+                            Retry.backoff(3, Duration.ofMillis(200))
+                                    .doBeforeRetry(rs ->
+                                            log.warn("Retrying BUY cancel... attempt={}", rs.totalRetries())
+                                    )
+                    )
+                    .doOnSuccess(resp -> {
+                        log.info(
+                                "SELL cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
+                                ctx.getTradingSymbol(),
+                                ctx.getBuyOrderId(),
+                                ctx.getSellOrderId()
+                        );
+                        ctx.setSellOpen(false);
+                    })
+//                    .doOnError(e ->
+//                            log.error("Failed to cancel SELL | orderId={}",
+//                                    ctx.getSellOrderId(), e)
+//                    )
+//                    .onErrorResume(e -> Mono.empty())
+                    .onErrorResume(e -> {
+                        failed.set(true);
+                        ctx.markInconsistent();
+                        log.error("Failed to cancel BUY - marking inconsistent | orderId={}", sellOrderId, e);
+                        return Mono.empty();
+                    })
+                    .then();
+        }
 
-//        double executedPrice =
-//                Double.parseDouble(response.getOrderStatusData().getPrice());
+//        ctx.setSLOpen(false);
 
         BigDecimal executedPrice =
                 new BigDecimal(response.getOrderStatusData().getPrice());
 
-//        int quantity = ctx.getQuantity();
-        int quantity = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+        int quantity =
+                Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
         String normalizedSymbol =
                 Utility.normalize(ctx.getTradingSymbol());
 
-        balanceService.onSell(
-                executedPrice,
-                ctx.getBuyPrice(),
-                quantity,
-                applicationProperties.getLeverageMultiplierToUseForLong(),
-                balanceService.getUsableBalance(),
-                leverageService.get(normalizedSymbol).multiplier()
+        Mono<Void> balanceMono = Mono.fromRunnable(() ->
+                balanceService.onSell(
+                        executedPrice,
+                        ctx.getBuyPrice(),
+                        quantity,
+                        applicationProperties.getLeverageMultiplierToUseForLong(),
+                        balanceService.getUsableBalance(),
+                        leverageService.get(normalizedSymbol).multiplier()
+                )
         );
 
-        log.info(
-                "Balance updated after SL | stock={} | price={} | qty={} | leveragedUsed={} | leverage={}",
-                ctx.getTradingSymbol(),
-                executedPrice,
-                quantity,
-                applicationProperties.getLeverageMultiplierToUseForLong(),
-                leverageService.get(normalizedSymbol).multiplier()
-        );
+//        return cancelSellMono.then(balanceMono);
 
+        return cancelSellMono
+                .then(Mono.defer(() -> {
 
-//        log.warn("STOPLOSS hit, balance updated: price={}, qty={}",
-//                executedPrice, quantity);
+                    if (failed.get()) {
+                        log.warn("Skipping balance due to cancel failure");
+                        return Mono.empty();
+                    }
+
+                    // ✅ SAFE STATE UPDATE
+                    ctx.setSLOpen(false);
+                    ctx.setTradeCompleted(true);
+
+                    return balanceMono
+                            .onErrorResume(e -> {
+                                log.error("Balance update failed", e);
+                                return Mono.empty();
+                            });
+                }));
     }
 }
 

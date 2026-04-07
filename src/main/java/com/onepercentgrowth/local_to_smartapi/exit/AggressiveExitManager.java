@@ -110,12 +110,16 @@ public class AggressiveExitManager {
     ) {
 
         // Prevent duplicate exit triggers
-        if (ctx.isExitInProgress()) {
-            log.warn("Exit already in progress for {}", ctx.getTradingSymbol());
+//        if (ctx.isExitInProgress()) {
+//            log.warn("Exit already in progress for {}", ctx.getTradingSymbol());
+//            return Mono.empty();
+//        }
+        if (!ctx.tryStartExit()) {
             return Mono.empty();
         }
 
-        ctx.setExitInProgress(true);
+//        ctx.setExitInProgress(true);
+//        ctx.endExit();
 
         int maxAttempts = applicationProperties.getExitMaxAttempt();
 
@@ -216,8 +220,8 @@ public class AggressiveExitManager {
 
                 .doFinally(signal -> {
 
-                    ctx.setExitInProgress(false);
-//                    ctx.endExit();
+//                    ctx.setExitInProgress(false);
+                    ctx.endExit();
 
                     log.info("Exit flow finished | symbol={} | reason={}",
                             ctx.getTradingSymbol(),

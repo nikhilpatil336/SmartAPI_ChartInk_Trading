@@ -6,7 +6,11 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class OrderContext {
 
@@ -28,9 +32,17 @@ public class OrderContext {
     private BigDecimal stoplossLimitPrice;
     private BigDecimal stoplossTriggerPrice;
 
-    private int lastBuyFilledQty = 0;
-    private int lastSellFilledQty = 0;
-    private int lastStoplossFilledQty = 0;
+//    private int lastBuyFilledQty = 0;
+//    private final AtomicInteger lastSellFilledQty = new AtomicInteger(0);
+//    private int lastStoplossFilledQty = 0;
+
+    private final AtomicInteger currentSellFilledQty = new AtomicInteger(0);
+    private final AtomicInteger currentBuyFilledQty = new AtomicInteger(0);
+    private final AtomicInteger currentStoplossFilledQty = new AtomicInteger(0);
+
+    private final AtomicInteger lastSellFilledQty = new AtomicInteger(0);
+    private final AtomicInteger lastBuyFilledQty = new AtomicInteger(0);
+    private final AtomicInteger lastStoplossFilledQty = new AtomicInteger(0);
 
     private boolean buyPlaced = false;
     private boolean sellPlaced = false;
@@ -46,10 +58,17 @@ public class OrderContext {
     private boolean tradeCompleted;
     private PositionSide positionSide;
 
-    private boolean exitInProgress = false;
+//    private boolean exitInProgress = false;
+
+    private final AtomicBoolean exitInProgress = new AtomicBoolean(false);
+    private final AtomicInteger netPositionQty = new AtomicInteger(0);
     private final List<String> exitOrderIds = new CopyOnWriteArrayList<>();
+
+
     private String currentExitOrderId;
     private String currentExitVariety;
+
+    private volatile boolean systemInconsistent = false;
 
     public OrderContext(
             String buyOrderId,
@@ -70,18 +89,6 @@ public class OrderContext {
         this.sellVariety = sellVariety;
         this.stopLossVariety = stopLossVariety;
     }
-
-//    public OrderContext(
-////            String buyOrderId,
-//            String tradingSymbol,
-//            String symbolToken,
-//            int quantity
-//    ) {
-////        this.buyOrderId = buyOrderId;
-//        this.tradingSymbol = tradingSymbol;
-//        this.symbolToken = symbolToken;
-//        this.quantity = quantity;
-//    }
 
     public OrderContext(
             PositionSide positionSide,
@@ -191,6 +198,18 @@ public class OrderContext {
         this.sellPrice = sellPrice;
     }
 
+    public AtomicInteger getCurrentSellFilledQty() {
+        return currentSellFilledQty;
+    }
+
+    public AtomicInteger getCurrentBuyFilledQty() {
+        return currentBuyFilledQty;
+    }
+
+    public AtomicInteger getCurrentStoplossFilledQty() {
+        return currentStoplossFilledQty;
+    }
+
     public BigDecimal getStoplossLimitPrice() {
         return stoplossLimitPrice;
     }
@@ -207,28 +226,16 @@ public class OrderContext {
         this.stoplossTriggerPrice = stoplossTriggerPrice;
     }
 
-    public int getLastBuyFilledQty() {
-        return lastBuyFilledQty;
-    }
-
-    public void setLastBuyFilledQty(int lastBuyFilledQty) {
-        this.lastBuyFilledQty = lastBuyFilledQty;
-    }
-
-    public int getLastSellFilledQty() {
+    public AtomicInteger getLastSellFilledQty() {
         return lastSellFilledQty;
     }
 
-    public void setLastSellFilledQty(int lastSellFilledQty) {
-        this.lastSellFilledQty = lastSellFilledQty;
+    public AtomicInteger getLastBuyFilledQty() {
+        return lastBuyFilledQty;
     }
 
-    public int getLastStoplossFilledQty() {
+    public AtomicInteger getLastStoplossFilledQty() {
         return lastStoplossFilledQty;
-    }
-
-    public void setLastStoplossFilledQty(int lastStoplossFilledQty) {
-        this.lastStoplossFilledQty = lastStoplossFilledQty;
     }
 
     public boolean isBuyPlaced() {
@@ -319,16 +326,24 @@ public class OrderContext {
         this.positionSide = positionSide;
     }
 
-    public boolean isExitInProgress() {
+    public boolean isLong() {
+        return positionSide == PositionSide.LONG;
+    }
+
+    public boolean isShort() {
+        return positionSide == PositionSide.SHORT;
+    }
+
+    public String getEntryOrderId() {
+        return isLong() ? buyOrderId : sellOrderId;
+    }
+
+    public String getTargetOrderId() {
+        return isLong() ? sellOrderId : buyOrderId;
+    }
+
+    public AtomicBoolean getExitInProgress() {
         return exitInProgress;
-    }
-
-    public void setExitInProgress(boolean exitInProgress) {
-        this.exitInProgress = exitInProgress;
-    }
-
-    public List<String> getExitOrderIds() {
-        return exitOrderIds;
     }
 
     public String getCurrentExitOrderId() {
@@ -347,35 +362,124 @@ public class OrderContext {
         this.currentExitVariety = currentExitVariety;
     }
 
+    public List<String> getExitOrderIds() {
+        return exitOrderIds;
+    }
+
+    public AtomicInteger getNetPositionQty() {
+        return netPositionQty;
+    }
+
     public void addExitOrder(String orderId, String variety) {
         exitOrderIds.add(orderId);
         currentExitOrderId = orderId;
         currentExitVariety = variety;
     }
 
-    public boolean isLong() {
-        return positionSide == PositionSide.LONG;
+    public boolean tryStartExit() {
+        return exitInProgress.compareAndSet(false, true);
     }
 
-    public boolean isShort() {
-        return positionSide == PositionSide.SHORT;
+    public void endExit() {
+        exitInProgress.set(false);
     }
 
-    public String getEntryOrderId() {
-        return isLong() ? buyOrderId : sellOrderId;
+    public void markInconsistent() {
+        this.systemInconsistent = true;
     }
 
-    public String getTargetOrderId() {
-        return isLong() ? sellOrderId : buyOrderId;
-    }
+    public static class SellUpdate {
+        public final int delta;
+        public final int remainingQty;
 
-    public synchronized boolean tryStartExit() {
-        if (exitInProgress) {
-            return false;
+        public SellUpdate(int delta, int remainingQty) {
+            this.delta = delta;
+            this.remainingQty = remainingQty;
         }
-        exitInProgress = true;
-        return true;
     }
+
+//    public synchronized int safeReduceSell(int filledQty) {
+//        int previous = lastSellFilledQty.get();
+//        int delta = filledQty - previous;
+//
+//        if (delta <= 0) return netPositionQty.get();
+//
+//        lastSellFilledQty.set(filledQty);
+//        return netPositionQty.addAndGet(-delta);
+//    }
+
+    public synchronized SellUpdate reduceSell(int filledQty) {
+
+        int previous = lastSellFilledQty.get();
+        int delta = filledQty - previous;
+
+        if (delta <= 0) {
+            return new SellUpdate(0, netPositionQty.get());
+        }
+
+        lastSellFilledQty.set(filledQty);
+        int remainingQty = netPositionQty.addAndGet(-delta);
+
+        return new SellUpdate(delta, remainingQty);
+    }
+
+    public static class StopLossUpdate {
+        public final int delta;
+        public final int remainingQty;
+
+        public StopLossUpdate(int delta, int remainingQty) {
+            this.delta = delta;
+            this.remainingQty = remainingQty;
+        }
+    }
+
+    public synchronized StopLossUpdate reduceStopLoss(int filledQty) {
+
+        int previous = lastStoplossFilledQty.get();
+        int delta = filledQty - previous;
+
+        if (delta <= 0) {
+            return new StopLossUpdate(0, netPositionQty.get());
+        }
+
+        lastStoplossFilledQty.set(filledQty);
+        int remainingQty = netPositionQty.addAndGet(-delta);
+
+        return new StopLossUpdate(delta, remainingQty);
+    }
+
+    public static class BuyUpdate {
+        public final int delta;
+        public final int remainingQty;
+
+        public BuyUpdate(int delta, int remainingQty) {
+            this.delta = delta;
+            this.remainingQty = remainingQty;
+        }
+    }
+
+    public synchronized BuyUpdate reduceBuy(int filledQty) {
+
+        int previous = lastBuyFilledQty.get();
+        int delta = filledQty - previous;
+
+        if (delta <= 0) {
+            return new BuyUpdate(0, netPositionQty.get());
+        }
+
+        lastBuyFilledQty.set(filledQty);
+        int remainingQty = netPositionQty.addAndGet(-delta); // 🔥 CRITICAL
+
+        return new BuyUpdate(delta, remainingQty);
+    }
+
+//    public synchronized boolean tryStartExit() {
+//        if (exitInProgress) {
+//            return false;
+//        }
+//        exitInProgress = true;
+//        return true;
+//    }
 
     @Override
     public String toString() {
@@ -386,6 +490,7 @@ public class OrderContext {
                 ", tradingSymbol='" + tradingSymbol + '\'' +
                 ", symbolToken='" + symbolToken + '\'' +
                 ", quantity=" + quantity +
+                ", exchange='" + exchange + '\'' +
                 ", buyVariety='" + buyVariety + '\'' +
                 ", sellVariety='" + sellVariety + '\'' +
                 ", stopLossVariety='" + stopLossVariety + '\'' +
@@ -393,8 +498,11 @@ public class OrderContext {
                 ", sellPrice=" + sellPrice +
                 ", stoplossLimitPrice=" + stoplossLimitPrice +
                 ", stoplossTriggerPrice=" + stoplossTriggerPrice +
-                ", lastBuyFilledQty=" + lastBuyFilledQty +
+                ", currentSellFilledQty=" + currentSellFilledQty +
+                ", currentBuyFilledQty=" + currentBuyFilledQty +
+                ", currentStoplossFilledQty=" + currentStoplossFilledQty +
                 ", lastSellFilledQty=" + lastSellFilledQty +
+                ", lastBuyFilledQty=" + lastBuyFilledQty +
                 ", lastStoplossFilledQty=" + lastStoplossFilledQty +
                 ", buyPlaced=" + buyPlaced +
                 ", sellPlaced=" + sellPlaced +
@@ -407,6 +515,13 @@ public class OrderContext {
                 ", SLCanceled=" + SLCanceled +
                 ", tradeCompleted=" + tradeCompleted +
                 ", positionSide=" + positionSide +
+                ", exitInProgress=" + exitInProgress +
+                ", netPositionQty=" + netPositionQty +
+                ", exitOrderIds=" + exitOrderIds +
+                ", currentExitOrderId='" + currentExitOrderId + '\'' +
+                ", currentExitVariety='" + currentExitVariety + '\'' +
+                ", systemInconsistent=" + systemInconsistent +
                 '}';
     }
 }
+

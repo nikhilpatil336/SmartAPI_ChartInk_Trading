@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,8 @@ public class OrderEventDispatcher {
 
     private volatile boolean running = true;
     private Thread dispatcherThread;
+
+    private final ConcurrentHashMap<String, ExecutorService> symbolExecutors = new ConcurrentHashMap<>();
 
     @Autowired
     public OrderEventDispatcher(
@@ -69,13 +72,36 @@ public class OrderEventDispatcher {
     }
 
 
+//    private void dispatchLoop() {
+//        while (running && !Thread.currentThread().isInterrupted()) {
+//            try {
+//                // Blocks if queue is empty
+//                OrderStatusResponse event = queue.take();
+//
+//                workerPool.submit(() -> process(event));
+//
+//            } catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//                break;
+//            }
+//        }
+//
+//        log.info("OrderEventDispatcher stopped.");
+//    }
+
     private void dispatchLoop() {
         while (running && !Thread.currentThread().isInterrupted()) {
             try {
-                // Blocks if queue is empty
                 OrderStatusResponse event = queue.take();
 
-                workerPool.submit(() -> process(event));
+                String symbol = event.getOrderStatusData().getTradingsymbol();
+
+                ExecutorService executor = symbolExecutors.computeIfAbsent(
+                        symbol,
+                        s -> Executors.newSingleThreadExecutor()
+                );
+
+                executor.submit(() -> process(event));
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

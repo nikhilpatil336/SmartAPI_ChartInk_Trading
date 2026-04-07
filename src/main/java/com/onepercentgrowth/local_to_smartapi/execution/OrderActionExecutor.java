@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
 @Component
@@ -28,7 +30,12 @@ public class OrderActionExecutor {
         String jwt = tokenManager.getValidJwtToken();
 
         return executionService.placeCancelOrder(orderId, variety, jwt, orderType)
-                .retry(3)
+                .retryWhen(
+                        Retry.backoff(3, Duration.ofMillis(200))
+                                .doBeforeRetry(rs ->
+                                        log.warn("Retrying Cancle Order... attempt={}", rs.totalRetries())
+                                )
+                )
                 .doOnSuccess(resp ->
                         log.info("Order cancelled | orderId={}", orderId))
                 .doOnError(e ->
@@ -55,7 +62,12 @@ public class OrderActionExecutor {
             Supplier<Mono<Void>> fallback
     ) {
         return modifyMono
-                .retry(2)
+                .retryWhen(
+                        Retry.backoff(3, Duration.ofMillis(200))
+                                .doBeforeRetry(rs ->
+                                        log.warn("Retrying Modify or replace... attempt={}", rs.totalRetries())
+                                )
+                )
                 .then()
                 .onErrorResume(e -> {
                     log.warn("MODIFY failed → fallback", e);

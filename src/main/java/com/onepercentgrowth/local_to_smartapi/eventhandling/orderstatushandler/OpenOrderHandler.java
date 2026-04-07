@@ -39,7 +39,16 @@ public class OpenOrderHandler implements IOrderStatusHandler {
                     strategies.stream()
                             .filter(s -> s.supports(ctx, response))
                             .findFirst()
-                            .ifPresent(s -> s.onFilled(ctx, response));
+//                            .ifPresent(s -> s.onFilled(ctx, response));
+                            .ifPresent(strategy ->
+                                    strategy.onFilled(ctx, response)
+                                            .doOnError(e ->
+                                                    log.error("Error processing OPEN event | orderId={}",
+                                                            orderId, e)
+                                            )
+                                            .subscribe() // 🔥 REQUIRED
+//                                            .block()
+                            );
 
                 }, () -> log.warn("OPEN event ignored, no context for orderId={}", orderId));
     }
