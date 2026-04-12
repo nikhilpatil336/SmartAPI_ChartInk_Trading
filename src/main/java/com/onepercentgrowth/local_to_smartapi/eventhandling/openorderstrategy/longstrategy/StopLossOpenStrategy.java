@@ -337,7 +337,7 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processStopLossFill(ctx, response, delta, failed));
+            return cancelMono.then(processStopLossFill(ctx, response, delta, failed, update));
         });
     }
 
@@ -345,15 +345,17 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
             OrderContext ctx,
             OrderStatusResponse response,
             int delta,
-            AtomicBoolean failed
+            AtomicBoolean failed,
+            OrderContext.StopLossUpdate update
     ) {
 
         return Mono.defer(() -> {
 
             // ✅ UPDATE POSITION FIRST (CRITICAL)
-            ctx.getNetPositionQty().addAndGet(-delta);
-
-            int remainingQty = ctx.getNetPositionQty().get();
+//            ctx.getNetPositionQty().addAndGet(-delta);
+//
+//            int remainingQty = ctx.getNetPositionQty().get();
+            int remainingQty = update.remainingQty;
 
             if (!(remainingQty > 0 && ctx.isSellPlaced() && ctx.isSellOpen() && !ctx.isTradeCompleted())) {
                 return Mono.empty();

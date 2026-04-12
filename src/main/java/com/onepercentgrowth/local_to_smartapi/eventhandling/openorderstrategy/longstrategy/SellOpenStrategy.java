@@ -373,7 +373,7 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processSellFill(ctx, response, delta, failed));
+            return cancelMono.then(processSellFill(ctx, response, delta, failed, update));
         });
     }
 
@@ -381,15 +381,17 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
             OrderContext ctx,
             OrderStatusResponse response,
             int delta,
-            AtomicBoolean failed
+            AtomicBoolean failed,
+            OrderContext.SellUpdate update
     ) {
 
         return Mono.defer(() -> {
 
             // ✅ UPDATE POSITION FIRST (CRITICAL)
-            ctx.getNetPositionQty().addAndGet(-delta);
-
-            int remainingQty = ctx.getNetPositionQty().get();
+//            ctx.getNetPositionQty().addAndGet(-delta);
+//
+//            int remainingQty = ctx.getNetPositionQty().get();
+            int remainingQty = update.remainingQty;
 
             if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted())) {
                 return Mono.empty();
@@ -410,7 +412,8 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                                         ctx.getStoplossTriggerPrice().doubleValue(),
                                         ctx.getStoplossLimitPrice().doubleValue(),
                                         ctx.getStopLossOrderId(),
-                                        jwt
+                                        jwt,
+                                        "SELL"
                                 ),
                                 () -> aggressiveExitManager.placeAggressiveExit(
                                         ctx,

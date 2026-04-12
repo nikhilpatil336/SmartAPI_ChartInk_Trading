@@ -177,9 +177,14 @@ public class ShortTargetFilledStrategy implements IFillOrderStrategy {
         return Mono.defer(() -> {
 
             // ✅ EXIT GUARD
-            if (!ctx.tryStartExit()) {
-                log.warn("Duplicate SHORT TARGET completion ignored | orderId={}",
-                        response.getOrderStatusData().getOrderid());
+//            if (!ctx.tryStartExit()) {
+//                log.warn("Duplicate SHORT TARGET completion ignored | orderId={}",
+//                        response.getOrderStatusData().getOrderid());
+//                return Mono.empty();
+//            }
+
+            if(ctx.isBuyOpen())
+            {
                 return Mono.empty();
             }
 
@@ -187,10 +192,14 @@ public class ShortTargetFilledStrategy implements IFillOrderStrategy {
                     Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
             // 🔴 IMPORTANT: you need this method
-            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
-            int delta = update.delta;
+//            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+//            int delta = update.delta;
+
+            int delta = filledQty - ctx.getLastBuyFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastBuyFilledQty().set(filledQty);
 
             log.info("SHORT TARGET COMPLETE | stock={} | delta={}",
                     ctx.getTradingSymbol(), delta);

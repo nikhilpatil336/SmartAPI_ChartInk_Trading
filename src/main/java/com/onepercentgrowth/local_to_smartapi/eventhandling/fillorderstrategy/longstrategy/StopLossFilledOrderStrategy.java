@@ -143,111 +143,115 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
     @Override
     public Mono<Void> onFilled(OrderContext ctx, OrderStatusResponse response) {
 
-        if (ctx.isTradeCompleted()) {
-            log.warn("Duplicate SL completion ignored | orderId={}",
-                    response.getOrderStatusData().getOrderid());
-            return Mono.empty();
-        }
+        return Mono.defer(() -> {
+
+
+//        if (ctx.isTradeCompleted()) {
+//            log.warn("Duplicate SL completion ignored | orderId={}",
+//                    response.getOrderStatusData().getOrderid());
+//            return Mono.empty();
+//        }
 
 //        ctx.setTradeCompleted(true);
 
-        log.warn(
-                "STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={}",
-                ctx.getTradingSymbol(),
-                ctx.getBuyOrderId(),
-                ctx.getStopLossOrderId(),
-                ctx.getQuantity()
-        );
+            log.warn(
+                    "STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={}",
+                    ctx.getTradingSymbol(),
+                    ctx.getBuyOrderId(),
+                    ctx.getStopLossOrderId(),
+                    ctx.getQuantity()
+            );
 
-        AtomicBoolean failed = new AtomicBoolean(false);
+            AtomicBoolean failed = new AtomicBoolean(false);
 
-        String sellOrderId = ctx.getSellOrderId();
+            String sellOrderId = ctx.getSellOrderId();
 //        String sellVariety = ctx.getSellVariety();
 
-        String jwtToken = tokenManager.getValidJwtToken();
+            String jwtToken = tokenManager.getValidJwtToken();
 
-        Mono<Void> cancelSellMono = Mono.empty();
+            Mono<Void> cancelSellMono = Mono.empty();
 
-        if (ctx.getSellOrderId() != null && ctx.isSellOpen()) {
-            cancelSellMono = executionService
-                    .placeCancelOrder(
-                            ctx.getSellOrderId(),
-                            ctx.getSellVariety(),
-                            jwtToken,
-                            "SELL"
-                    )
-                    .timeout(Duration.ofSeconds(5))
-                    .retryWhen(
-                            Retry.backoff(3, Duration.ofMillis(200))
-                                    .doBeforeRetry(rs ->
-                                            log.warn("Retrying BUY cancel... attempt={}", rs.totalRetries())
-                                    )
-                    )
-                    .doOnSuccess(resp -> {
-                        log.info(
-                                "SELL cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
-                                ctx.getTradingSymbol(),
-                                ctx.getBuyOrderId(),
-                                ctx.getSellOrderId()
-                        );
-                        ctx.setSellOpen(false);
-                    })
+            if (ctx.getSellOrderId() != null && ctx.isSellOpen()) {
+                cancelSellMono = executionService
+                        .placeCancelOrder(
+                                ctx.getSellOrderId(),
+                                ctx.getSellVariety(),
+                                jwtToken,
+                                "SELL"
+                        )
+                        .timeout(Duration.ofSeconds(5))
+                        .retryWhen(
+                                Retry.backoff(3, Duration.ofMillis(200))
+                                        .doBeforeRetry(rs ->
+                                                log.warn("Retrying BUY cancel... attempt={}", rs.totalRetries())
+                                        )
+                        )
+                        .doOnSuccess(resp -> {
+                            log.info(
+                                    "SELL cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
+                                    ctx.getTradingSymbol(),
+                                    ctx.getBuyOrderId(),
+                                    ctx.getSellOrderId()
+                            );
+                            ctx.setSellOpen(false);
+                        })
 //                    .doOnError(e ->
 //                            log.error("Failed to cancel SELL | orderId={}",
 //                                    ctx.getSellOrderId(), e)
 //                    )
 //                    .onErrorResume(e -> Mono.empty())
-                    .onErrorResume(e -> {
-                        failed.set(true);
-                        ctx.markInconsistent();
-                        log.error("Failed to cancel BUY - marking inconsistent | orderId={}", sellOrderId, e);
-                        return Mono.empty();
-                    })
-                    .then();
-        }
+                        .onErrorResume(e -> {
+                            failed.set(true);
+                            ctx.markInconsistent();
+                            log.error("Failed to cancel BUY - marking inconsistent | orderId={}", sellOrderId, e);
+                            return Mono.empty();
+                        })
+                        .then();
+            }
 
 //        ctx.setSLOpen(false);
 
-        BigDecimal executedPrice =
-                new BigDecimal(response.getOrderStatusData().getPrice());
+            BigDecimal executedPrice =
+                    new BigDecimal(response.getOrderStatusData().getPrice());
 
-        int quantity =
-                Integer.parseInt(response.getOrderStatusData().getFilledshares());
+            int quantity =
+                    Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-        String normalizedSymbol =
-                Utility.normalize(ctx.getTradingSymbol());
+            String normalizedSymbol =
+                    Utility.normalize(ctx.getTradingSymbol());
 
-        Mono<Void> balanceMono = Mono.fromRunnable(() ->
-                balanceService.onSell(
-                        executedPrice,
-                        ctx.getBuyPrice(),
-                        quantity,
-                        applicationProperties.getLeverageMultiplierToUseForLong(),
-                        balanceService.getUsableBalance(),
-                        leverageService.get(normalizedSymbol).multiplier()
-                )
-        );
+            Mono<Void> balanceMono = Mono.fromRunnable(() ->
+                    balanceService.onSell(
+                            executedPrice,
+                            ctx.getBuyPrice(),
+                            quantity,
+                            applicationProperties.getLeverageMultiplierToUseForLong(),
+                            balanceService.getUsableBalance(),
+                            leverageService.get(normalizedSymbol).multiplier()
+                    )
+            );
 
 //        return cancelSellMono.then(balanceMono);
 
-        return cancelSellMono
-                .then(Mono.defer(() -> {
+            return cancelSellMono
+                    .then(Mono.defer(() -> {
 
-                    if (failed.get()) {
-                        log.warn("Skipping balance due to cancel failure");
-                        return Mono.empty();
-                    }
+                        if (failed.get()) {
+                            log.warn("Skipping balance due to cancel failure");
+                            return Mono.empty();
+                        }
 
-                    // ✅ SAFE STATE UPDATE
-                    ctx.setSLOpen(false);
-                    ctx.setTradeCompleted(true);
+                        // ✅ SAFE STATE UPDATE
+                        ctx.setSLOpen(false);
+                        ctx.setTradeCompleted(true);
 
-                    return balanceMono
-                            .onErrorResume(e -> {
-                                log.error("Balance update failed", e);
-                                return Mono.empty();
-                            });
-                }));
+                        return balanceMono
+                                .onErrorResume(e -> {
+                                    log.error("Balance update failed", e);
+                                    return Mono.empty();
+                                });
+                    }));
+        });
     }
 }
 

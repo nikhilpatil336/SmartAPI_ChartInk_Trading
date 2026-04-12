@@ -1,9 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
-import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
-import com.onepercentgrowth.local_to_smartapi.exit.AggressiveExitManager;
-import com.onepercentgrowth.local_to_smartapi.exit.ExitType;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -22,50 +19,44 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
-public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
+public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
 
     private static final Logger log =
-            LoggerFactory.getLogger(ShortTargetOpenStrategy.class);
+            LoggerFactory.getLogger(ShortStopLossOpenStrategy.class);
 
     private final BalanceService balanceService;
     private final TokenManager tokenManager;
     private final OrderExecutionService executionService;
     private final ApplicationProperties properties;
     private final LeverageService leverageService;
-    private final OrderActionExecutor orderActionExecutor;
-    private final AggressiveExitManager aggressiveExitManager;
 
-    public ShortTargetOpenStrategy(
+    public ShortStopLossOpenStrategy(
             BalanceService balanceService,
             TokenManager tokenManager,
             OrderExecutionService executionService,
             ApplicationProperties properties,
-            LeverageService leverageService,
-            OrderActionExecutor orderActionExecutor,
-            AggressiveExitManager aggressiveExitManager) {
+            LeverageService leverageService) {
 
         this.balanceService = balanceService;
         this.tokenManager = tokenManager;
         this.executionService = executionService;
         this.properties = properties;
         this.leverageService = leverageService;
-        this.orderActionExecutor = orderActionExecutor;
-        this.aggressiveExitManager = aggressiveExitManager;
     }
 
     @Override
     public boolean supports(OrderContext ctx, OrderStatusResponse response) {
         return ctx.isShort()
                 && "BUY".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
-                && response.getOrderStatusData().getOrderid().equals(ctx.getBuyOrderId());
+                && response.getOrderStatusData().getOrderid().equals(ctx.getStopLossOrderId());
     }
 
 //    @Override
 //    public void onFilled(OrderContext ctx, OrderStatusResponse response) {
 //
 //        int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
-//        int lastBuyFilled = ctx.getLastBuyFilledQty();
-//        int delta = filledQty - ctx.getLastBuyFilledQty();
+////        int lastStoplossFilled = ctx.getLastStoplossFilledQty();
+//        int delta = filledQty - ctx.getLastStoplossFilledQty();
 //
 //        if (delta <= 0) return;
 //
@@ -73,55 +64,48 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //            cancelRemainingEntrySell(ctx);
 //        }
 //
-//        int remainingQty = Math.max(0, ctx.getLastBuyFilledQty() - filledQty);
+//        int remainingQty = Math.max(0, ctx.getLastSellFilledQty() - filledQty);
 //
-//        if (remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted()) {
+//        if (remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.isTradeCompleted()) {
 //
-//            log.info(
-//                    "BUY partial fill | stock={} | delta={} | totalFilled={}",
+//            log.warn(
+//                    "STOPLOSS partial hit | stock={} | delta={} | totalFilled={}",
 //                    ctx.getTradingSymbol(), delta, filledQty
 //            );
 //
 //            String jwt = tokenManager.getValidJwtToken();
 //
-//            orderActionExecutor.safeModifyOrReplace(
-//                    executionService.modifyStopLossOrder(
+//            executionService.modifyBuyOrder(
 //                            ctx.getTradingSymbol(),
 //                            ctx.getSymbolToken(),
 //                            remainingQty,
-//                            ctx.getStoplossTriggerPrice().doubleValue(),
-//                            ctx.getStoplossLimitPrice().doubleValue(),
-//                            ctx.getStopLossOrderId(),
-//                            tokenManager.getValidJwtToken()
-//                    ),
-//                    () -> aggressiveExitManager.placeAggressiveExit(
-//                            ctx,
-//                            remainingQty,
-//                            ExitType.MODIFY_FAILED
+//                            ctx.getBuyPrice().toString(),
+//                            ctx.getBuyOrderId(),
+//                            jwt
 //                    )
-//            ).subscribe();
+//                    .doOnError(e -> log.error("Failed to modify Buy order", e.getMessage()))
+//                    .subscribe();
 //
 //            BigDecimal executedPrice =
 //                    new BigDecimal(response.getOrderStatusData().getAverageprice());
 //
 //            String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
 //
-//            // ===== BOOK PROFIT =====
-//            balanceService.onBuy(
+//            // ===== BOOK LOSS =====
+//            balanceService.onShortCover(
 //                    executedPrice,
+//                    ctx.getSellPrice(),
 //                    delta,
 //                    properties.getLeverageMultiplierToUseForShort(),
 //                    balanceService.getUsableBalance(),
-//                    leverageService.get(
-//                            Utility.normalize(ctx.getTradingSymbol())
-//                    ).multiplier()
+//                    leverageService.get(normalizedSymbol).multiplier()
 //            );
 //
-////        cancelRemainingEntrySell(ctx);
+//    //        cancelRemainingEntrySell(ctx);
 //
-//            ctx.setLastBuyFilledQty(filledQty);
+//            ctx.setLastStoplossFilledQty(filledQty);
 //
-//            log.info("SHORT TARGET HIT | orderId={}", ctx.getBuyOrderId());
+//            log.info("SHORT STOPLOSS HIT | orderId={}", ctx.getStopLossOrderId());
 //        }
 //    }
 //
@@ -132,18 +116,18 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //        String jwt = tokenManager.getValidJwtToken();
 //
 //        executionService.placeCancelOrder(
-//                ctx.getSellOrderId(),
-//                ctx.getSellVariety(),
-//                jwt,
-//                "SELL"
-//        )
-//        .doOnSuccess(resp -> {
-//            ctx.setSellOpen(false);
-//            log.info("Remaining SELL cancelled as exit started | sellOrderId={}",
-//                    ctx.getSellOrderId());
-//        }).subscribe();
+//                        ctx.getSellOrderId(),
+//                        ctx.getSellVariety(),
+//                        jwt,
+//                        "SELL"
+//                )
+//                .doOnSuccess(resp -> {
+//                    ctx.setSellOpen(false);
+//                    log.info("Remaining BUY cancelled as exit started | buyOrderId={}",
+//                            ctx.getSellOrderId());
+//                }).subscribe();
 //
-//        ctx.setSellOpen(false);
+////        ctx.setSellOpen(false);
 //    }
 
 //    @Override
@@ -151,7 +135,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //
 //        int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 //
-//        OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+//        OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
 //
 //        int delta = update.delta;
 //        int remainingQty = update.remainingQty;
@@ -164,52 +148,55 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //            cancelMono = cancelRemainingEntrySell(ctx);
 //        }
 //
-//        return cancelMono.then(processShortTarget(ctx, response, delta, remainingQty));
+//        return cancelMono.then(processShortStopLoss(ctx, response, delta, remainingQty));
 //    }
 //
-//    private Mono<Void> processShortTarget(
+//
+//    private Mono<Void> processShortStopLoss(
 //            OrderContext ctx,
 //            OrderStatusResponse response,
 //            int delta,
 //            int remainingQty
 //    ) {
 //
-//        if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted())) {
+//        if (!(remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.isTradeCompleted())) {
 //            return Mono.empty();
 //        }
 //
-//        log.info("SHORT TARGET partial hit | stock={} | delta={} | remainingQty={}",
+//        log.warn("SHORT STOPLOSS partial hit | stock={} | delta={} | remainingQty={}",
 //                ctx.getTradingSymbol(), delta, remainingQty);
 //
 //        String jwt = tokenManager.getValidJwtToken();
 //
-//        // ===== MODIFY SL =====
-//        Mono<Void> modifySLMono = orderActionExecutor.safeModifyOrReplace(
-//                executionService.modifyStopLossOrder(
+//        // ===== MODIFY TARGET BUY =====
+//        Mono<Void> modifyBuyMono = executionService.modifyBuyOrder(
 //                        ctx.getTradingSymbol(),
 //                        ctx.getSymbolToken(),
 //                        remainingQty, // 🔥 FIXED
-//                        ctx.getStoplossTriggerPrice().doubleValue(),
-//                        ctx.getStoplossLimitPrice().doubleValue(),
-//                        ctx.getStopLossOrderId(),
+//                        ctx.getBuyPrice().toString(),
+//                        ctx.getBuyOrderId(),
 //                        jwt
-//                ),
-//                () -> aggressiveExitManager.placeAggressiveExit(
-//                        ctx,
-//                        remainingQty,
-//                        ExitType.MODIFY_FAILED
 //                )
-//        );
+//                .doOnSuccess(resp ->
+//                        log.info("TARGET BUY modified after SL | orderId={}", ctx.getBuyOrderId())
+//                )
+//                .doOnError(e ->
+//                        log.error("Failed to modify BUY after SL | orderId={}",
+//                                ctx.getBuyOrderId(), e)
+//                )
+//                .onErrorResume(e -> Mono.empty())
+//                .then();
 //
-//        // ===== BALANCE UPDATE =====
+//        // ===== BALANCE UPDATE (LOSS) =====
 //        BigDecimal executedPrice =
 //                new BigDecimal(response.getOrderStatusData().getAverageprice());
 //
 //        String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
 //
 //        Mono<Void> balanceMono = Mono.fromRunnable(() ->
-//                balanceService.onBuy(
+//                balanceService.onShortCover(
 //                        executedPrice,
+//                        ctx.getSellPrice(),
 //                        delta,
 //                        properties.getLeverageMultiplierToUseForShort(),
 //                        balanceService.getUsableBalance(),
@@ -217,13 +204,13 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //                )
 //        );
 //
-//        return modifySLMono
+//        return modifyBuyMono
 //                .then(balanceMono)
 //                .doOnSuccess(v ->
-//                        log.info("SHORT TARGET processed | orderId={}", ctx.getBuyOrderId())
+//                        log.info("SHORT STOPLOSS processed | orderId={}", ctx.getStopLossOrderId())
 //                )
 //                .onErrorResume(e -> {
-//                    log.error("Short target flow failed | orderId={}", ctx.getBuyOrderId(), e);
+//                    log.error("Short stoploss flow failed | orderId={}", ctx.getStopLossOrderId(), e);
 //                    return Mono.empty();
 //                });
 //    }
@@ -251,31 +238,32 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 //                .then();
 //    }
 
+
     @Override
     public Mono<Void> onFilled(OrderContext ctx, OrderStatusResponse response) {
 
         return Mono.defer(() -> {
 
             // ✅ ATOMIC GUARD
-//            if (!ctx.tryStartBuyFill()) {
+//            if (!ctx.tryStartShortSLFill()) {
 //                return Mono.empty();
 //            }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+            OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
 
             int delta = update.delta;
-            int remainingQty = update.remainingQty;
 
             if (delta <= 0) return Mono.empty();
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
-            // ===== CANCEL ENTRY SELL =====
+            // ===== CANCEL SELL =====
             Mono<Void> cancelMono = Mono.empty();
 
             if (ctx.isSellOpen()) {
+
                 cancelMono = Mono.defer(() -> {
                             String jwt = tokenManager.getValidJwtToken();
 
@@ -301,88 +289,97 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processShortTarget(ctx, response, delta, remainingQty, failed));
+            return cancelMono.then(processShortStopLoss(ctx, response, delta, failed, update));
         });
     }
 
-    private Mono<Void> processShortTarget(
+    private Mono<Void> processShortStopLoss(
             OrderContext ctx,
             OrderStatusResponse response,
             int delta,
-            int remainingQty,
-            AtomicBoolean failed
+            AtomicBoolean failed,
+            OrderContext.StopLossUpdate update
     ) {
 
-        if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted())) {
-            return Mono.empty();
-        }
+        return Mono.defer(() -> {
 
-        log.info("SHORT TARGET partial hit | stock={} | delta={} | remainingQty={}",
-                ctx.getTradingSymbol(), delta, remainingQty);
+            // ✅ UPDATE POSITION FIRST (CRITICAL)
+//            ctx.getNetPositionQty().addAndGet(-delta);
+//
+//            int remainingQty = ctx.getNetPositionQty().get();
+            int remainingQty = update.remainingQty;
 
-        // ===== MODIFY SL =====
-        Mono<Void> modifySLMono = Mono.defer(() -> {
-                    String jwt = tokenManager.getValidJwtToken();
 
-                    return orderActionExecutor.safeModifyOrReplace(
-                            executionService.modifyStopLossOrder(
-                                    ctx.getTradingSymbol(),
-                                    ctx.getSymbolToken(),
-                                    remainingQty,
-                                    ctx.getStoplossTriggerPrice().doubleValue(),
-                                    ctx.getStoplossLimitPrice().doubleValue(),
-                                    ctx.getStopLossOrderId(),
-                                    jwt
-                            ),
-                            () -> aggressiveExitManager.placeAggressiveExit(
-                                    ctx,
-                                    remainingQty,
-                                    ExitType.MODIFY_FAILED
-                            )
-                    );
-                })
-                .timeout(Duration.ofSeconds(5))
-                .retryWhen(Retry.backoff(3, Duration.ofMillis(200)))
-                .onErrorResume(e -> {
-                    failed.set(true);
-                    ctx.markInconsistent();
-                    log.error("SL modify failed", e);
-                    return Mono.empty();
-                });
+            if (!(remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.isTradeCompleted())) {
+                return Mono.empty();
+            }
 
-        // ===== BALANCE =====
-        BigDecimal executedPrice =
-                new BigDecimal(response.getOrderStatusData().getAverageprice());
+            log.warn("SHORT STOPLOSS partial hit | stock={} | delta={} | remainingQty={}",
+                    ctx.getTradingSymbol(), delta, remainingQty);
 
-        String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
+            // ===== MODIFY TARGET BUY =====
+            Mono<Void> modifyBuyMono = Mono.defer(() -> {
+                        String jwt = tokenManager.getValidJwtToken();
 
-        Mono<Void> balanceMono = Mono.fromRunnable(() ->
-                balanceService.onBuy(
-                        executedPrice,
-                        delta,
-                        properties.getLeverageMultiplierToUseForShort(),
-                        balanceService.getUsableBalance(),
-                        leverageService.get(normalizedSymbol).multiplier()
-                )
-        );
-
-        // ===== FINAL FLOW =====
-        return modifySLMono
-                .then(Mono.defer(() -> {
-
-                    if (failed.get()) {
-                        log.warn("Skipping balance due to failure");
+                        return executionService.modifyBuyOrder(
+                                ctx.getTradingSymbol(),
+                                ctx.getSymbolToken(),
+                                remainingQty,
+                                ctx.getBuyPrice().toString(),
+                                ctx.getBuyOrderId(),
+                                jwt
+                        );
+                    })
+                    .timeout(Duration.ofSeconds(5))
+                    .retryWhen(Retry.backoff(3, Duration.ofMillis(200)))
+                    .doOnSuccess(resp ->
+                            log.info("TARGET BUY modified after SL | orderId={}", ctx.getBuyOrderId())
+                    )
+                    .onErrorResume(e -> {
+                        failed.set(true);
+                        ctx.markInconsistent();
+                        log.error("Failed to modify BUY after SL", e);
                         return Mono.empty();
-                    }
+                    })
+                    .then();
 
-                    return balanceMono
-                            .onErrorResume(e -> {
-                                log.error("Balance update failed", e);
-                                return Mono.empty();
-                            });
-                }))
-                .doOnSuccess(v ->
-                        log.info("SHORT TARGET processed | orderId={}", ctx.getBuyOrderId())
-                );
+            // ===== BALANCE =====
+            BigDecimal executedPrice =
+                    new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+            String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
+
+            Mono<Void> balanceMono = Mono.fromRunnable(() ->
+                    balanceService.onShortCover(
+                            executedPrice,
+                            ctx.getSellPrice(),
+                            delta,
+                            properties.getLeverageMultiplierToUseForShort(),
+                            balanceService.getUsableBalance(),
+                            leverageService.get(normalizedSymbol).multiplier()
+                    )
+            );
+
+            // ===== FINAL FLOW =====
+            return modifyBuyMono
+                    .then(Mono.defer(() -> {
+
+                        if (failed.get()) {
+                            log.warn("Skipping balance due to BUY modify failure");
+                            return Mono.empty();
+                        }
+
+                        return balanceMono
+                                .onErrorResume(e -> {
+                                    log.error("Balance update failed", e);
+                                    return Mono.empty();
+                                });
+                    }))
+                    .doOnSuccess(v ->
+                            log.info("SHORT STOPLOSS processed | orderId={}", ctx.getStopLossOrderId())
+                    );
+        });
     }
 }
+
+

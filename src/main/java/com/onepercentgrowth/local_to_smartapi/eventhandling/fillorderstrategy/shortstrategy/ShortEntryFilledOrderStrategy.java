@@ -227,18 +227,21 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
 
         return Mono.defer(() -> {
 
-            if (!ctx.isSellOpen()) {
+            if (ctx.isSellOpen()) {
                 return Mono.empty();
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
             // ✅ USE reduceSell (same pattern as reduceBuy)
-            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+            int delta = filledQty - ctx.getLastSellFilledQty().get();
 
-            int delta = update.delta;
+//            int delta = update.delta;
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastSellFilledQty().set(filledQty);
 
             BigDecimal executedPrice =
                     new BigDecimal(response.getOrderStatusData().getAverageprice());
@@ -284,7 +287,9 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                 buyMono = executionService.placeBuyOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.shortSellRemainingQty(filledQty),
                                 buyTargetPrice.toString(),
                                 jwt
                         )
@@ -312,7 +317,9 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                 buyMono = executionService.modifyBuyOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.shortSellRemainingQty(filledQty),
                                 buyTargetPrice.toString(),
                                 ctx.getBuyOrderId(),
                                 jwt
@@ -338,10 +345,13 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                 slMono = executionService.placeStopLossOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.shortSellRemainingQty(filledQty),
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
-                                jwt
+                                jwt,
+                            "BUY"
                         )
                         .retryWhen(
                                 Retry.backoff(3, Duration.ofMillis(200))
@@ -369,11 +379,14 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                 slMono = executionService.modifyStopLossOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.shortSellRemainingQty(filledQty),
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 ctx.getStopLossOrderId(),
-                                jwt
+                                jwt,
+                        "BUY"
                         )
                         .retryWhen(
                                 Retry.backoff(3, Duration.ofMillis(200))

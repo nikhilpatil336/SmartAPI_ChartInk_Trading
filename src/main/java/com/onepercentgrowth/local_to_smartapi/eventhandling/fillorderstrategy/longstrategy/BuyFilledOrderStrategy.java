@@ -334,17 +334,20 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
         return Mono.defer(() -> {
 
-            if (!ctx.isBuyOpen()) {
+            if (ctx.isBuyOpen()) {
                 return Mono.empty();
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+//            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
 
-            int delta = update.delta;
+//            int delta = update.delta;
+            int delta = filledQty - ctx.getLastBuyFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastBuyFilledQty().set(filledQty);
 
             BigDecimal executedPrice =
                     new BigDecimal(response.getOrderStatusData().getAverageprice());
@@ -389,7 +392,9 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 sellMono = executionService.placeSellOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.longBuyRemainingQty(filledQty),
                                 sellPrice.doubleValue(),
                                 jwt
                         )
@@ -416,7 +421,9 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 sellMono = executionService.modifySellOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.longBuyRemainingQty(filledQty),
                                 sellPrice.doubleValue(),
                                 ctx.getSellOrderId(),
                                 jwt
@@ -441,10 +448,13 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 slMono = executionService.placeStopLossOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.longBuyRemainingQty(filledQty),
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
-                                jwt
+                                jwt,
+                                "SELL"
                         )
                         .retryWhen(
                                 Retry.backoff(3, Duration.ofMillis(200))
@@ -470,11 +480,14 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                 slMono = executionService.modifyStopLossOrder(
                                 ctx.getTradingSymbol(),
                                 ctx.getSymbolToken(),
-                                ctx.getNetPositionQty().get(),
+//                                ctx.getNetPositionQty().get(),
+//                                update.remainingQty,
+                                ctx.longBuyRemainingQty(filledQty),
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 ctx.getStopLossOrderId(),
-                                jwt
+                                jwt,
+                                "SELL"
                         )
                         .retryWhen(
                                 Retry.backoff(3, Duration.ofMillis(200))

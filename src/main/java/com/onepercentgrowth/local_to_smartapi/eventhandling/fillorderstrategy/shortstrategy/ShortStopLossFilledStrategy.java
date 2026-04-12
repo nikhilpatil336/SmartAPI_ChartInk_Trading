@@ -191,11 +191,11 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
         return Mono.defer(() -> {
 
             // ✅ EXIT GUARD
-            if (!ctx.tryStartExit()) {
-                log.warn("Duplicate SHORT SL completion ignored | orderId={}",
-                        response.getOrderStatusData().getOrderid());
-                return Mono.empty();
-            }
+//            if (!ctx.tryStartExit()) {
+//                log.warn("Duplicate SHORT SL completion ignored | orderId={}",
+//                        response.getOrderStatusData().getOrderid());
+//                return Mono.empty();
+//            }
 
             log.warn(
                     "SHORT STOPLOSS HIT | stock={} | sellOrderId={} | slOrderId={} | qty={}",

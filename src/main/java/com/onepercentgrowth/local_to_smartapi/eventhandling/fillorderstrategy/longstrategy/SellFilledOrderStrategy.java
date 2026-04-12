@@ -142,18 +142,26 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
         return Mono.defer(() -> {
 
             // ✅ EXIT GUARD (VERY IMPORTANT)
-            if (!ctx.tryStartExit()) {
-                log.warn("Duplicate LONG SELL completion ignored | orderId={}",
-                        response.getOrderStatusData().getOrderid());
+//            if (!ctx.tryStartExit()) {
+//                log.warn("Duplicate LONG SELL completion ignored | orderId={}",
+//                        response.getOrderStatusData().getOrderid());
+//                return Mono.empty();
+//            }
+
+            if(ctx.isSellOpen())
+            {
                 return Mono.empty();
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
-            int delta = update.delta;
+//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+//            int delta = update.delta;
+            int delta = filledQty - ctx.getLastSellFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastSellFilledQty().set(filledQty);
 
             log.info("LONG SELL COMPLETE | stock={} | delta={}",
                     ctx.getTradingSymbol(), delta);

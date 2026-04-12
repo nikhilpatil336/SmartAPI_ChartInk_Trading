@@ -439,7 +439,8 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                             return executionService.placeSellOrder(
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
-                                            ctx.getNetPositionQty().get(),
+//                                            ctx.getNetPositionQty().get(),
+                                            update.remainingQty,
                                             sellPrice.doubleValue(),
                                             jwt
                                     )
@@ -459,7 +460,8 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                             return executionService.modifySellOrder(
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
-                                            ctx.getNetPositionQty().get(),
+//                                            ctx.getNetPositionQty().get(),
+                                            update.remainingQty,
                                             sellPrice.doubleValue(),
                                             ctx.getSellOrderId(),
                                             jwt
@@ -493,10 +495,12 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                             return executionService.placeStopLossOrder(
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
-                                            ctx.getNetPositionQty().get(),
+//                                            ctx.getNetPositionQty().get(),
+                                            update.remainingQty,
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
-                                            jwt
+                                            jwt,
+                                            "SELL"
                                     )
                                     .doOnSuccess(resp -> {
                                         ctx.setStopLossOrderId(resp.getData().getOrderid());
@@ -515,11 +519,13 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                             return executionService.modifyStopLossOrder(
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
-                                            ctx.getNetPositionQty().get(),
+//                                            ctx.getNetPositionQty().get(),
+                                            update.remainingQty,
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
                                             ctx.getStopLossOrderId(),
-                                            jwt
+                                            jwt,
+                                    "SELL"
                                     )
                                     .doOnSuccess(resp ->
                                             log.info("SL modified | orderId={}", ctx.getStopLossOrderId())
