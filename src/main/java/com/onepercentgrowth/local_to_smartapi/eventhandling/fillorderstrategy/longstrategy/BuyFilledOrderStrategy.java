@@ -1,8 +1,8 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.longstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
-import com.onepercentgrowth.local_to_smartapi.model.OrderResponse;
 import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
@@ -334,14 +334,19 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
         return Mono.defer(() -> {
 
-            if (ctx.isBuyOpen()) {
+            if (ctx.getTradeCompleted().get()) {
+                log.warn("Duplicate BUY completion ignored | orderId={}",
+                        response.getOrderStatusData().getOrderid());
+                return Mono.empty();
+            }
+
+            if (!ctx.isBuyPartiallyFilled() && ctx.isBuyOpen()) {
                 return Mono.empty();
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
 //            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
-
 //            int delta = update.delta;
             int delta = filledQty - ctx.getLastBuyFilledQty().get();
 
@@ -384,6 +389,8 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
             String jwt = tokenManager.getValidJwtToken();
 
+            int remainingQty = ctx.longBuyRemainingQty(delta);
+
             // ===== SELL FLOW =====
             Mono<Void> sellMono;
 
@@ -394,7 +401,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.longBuyRemainingQty(filledQty),
+                                remainingQty,
                                 sellPrice.doubleValue(),
                                 jwt
                         )
@@ -423,7 +430,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.longBuyRemainingQty(filledQty),
+                                remainingQty,
                                 sellPrice.doubleValue(),
                                 ctx.getSellOrderId(),
                                 jwt
@@ -450,7 +457,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.longBuyRemainingQty(filledQty),
+                                remainingQty,
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 jwt,
@@ -482,7 +489,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.longBuyRemainingQty(filledQty),
+                                remainingQty,
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 ctx.getStopLossOrderId(),
@@ -591,4 +598,3 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
     }
 
 }
-

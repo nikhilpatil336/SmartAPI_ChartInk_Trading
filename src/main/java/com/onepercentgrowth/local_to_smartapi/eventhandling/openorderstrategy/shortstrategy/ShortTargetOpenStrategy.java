@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.shortstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.IOpenOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
 import com.onepercentgrowth.local_to_smartapi.exit.AggressiveExitManager;
 import com.onepercentgrowth.local_to_smartapi.exit.ExitType;
@@ -263,12 +264,18 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+//            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
+//
+//            int delta = update.delta;
+//            int remainingQty = update.remainingQty;
+//
+//            if (delta <= 0) return Mono.empty();
 
-            int delta = update.delta;
-            int remainingQty = update.remainingQty;
+            int delta = filledQty - ctx.getLastBuyFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastBuyFilledQty().set(filledQty);
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
@@ -301,7 +308,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processShortTarget(ctx, response, delta, remainingQty, failed));
+            return cancelMono.then(processShortTarget(ctx, response, delta, ctx.shortBuyRemainingQty(delta), failed));
         });
     }
 
@@ -313,7 +320,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
             AtomicBoolean failed
     ) {
 
-        if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted())) {
+        if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.getTradeCompleted().get())) {
             return Mono.empty();
         }
 

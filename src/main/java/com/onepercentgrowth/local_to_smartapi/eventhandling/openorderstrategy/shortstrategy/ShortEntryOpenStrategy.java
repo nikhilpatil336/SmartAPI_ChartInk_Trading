@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.shortstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.IOpenOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -389,15 +390,19 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
-
-            int delta = update.delta;
+//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+//
+//            int delta = update.delta;
+            int delta = filledQty - ctx.getLastSellFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
 
+            ctx.setSellPartiallyFilled(true);
+            ctx.getLastSellFilledQty().set(filledQty);
+
             if (!ctx.isSellOpen()) {
                 ctx.setSellOpen(true);
-                log.info("SHORT ENTRY SELL OPEN | orderId={}", ctx.getSellOrderId());
+                log.info("SHORT ENTRY SELL OPEN | sellOrderId={}", ctx.getSellOrderId());
             }
 
             BigDecimal intendedPrice =
@@ -430,6 +435,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
+            int remainingQty = ctx.shortSellRemainingQty(delta);
+
             String jwt = tokenManager.getValidJwtToken();
 
             // ===== BUY FLOW =====
@@ -442,7 +449,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
-                                            update.remainingQty,
+//                                            update.remainingQty,
+                                            remainingQty,
                                             buyPrice.toString(),
                                             jwt
                                     )
@@ -463,7 +471,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
-                                            update.remainingQty,
+//                                            update.remainingQty,
+                                            remainingQty,
                                             buyPrice.toString(),
                                             ctx.getBuyOrderId(),
                                             jwt
@@ -493,7 +502,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
-                                            update.remainingQty,
+//                                            update.remainingQty,
+                                            remainingQty,
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
                                             jwt,
@@ -518,7 +528,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getTradingSymbol(),
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
-                                            update.remainingQty,
+//                                            update.remainingQty,
+                                            remainingQty,
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
                                             ctx.getStopLossOrderId(),

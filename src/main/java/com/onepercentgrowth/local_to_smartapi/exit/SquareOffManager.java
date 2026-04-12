@@ -100,7 +100,8 @@ public class SquareOffManager {
 
     public Mono<Void> squareOff(OrderContext ctx) {
 
-        if (!ctx.tryStartExit()) {
+//        if (!ctx.tryStartExit()) {
+        if(ctx.getTradeCompleted().get()){
             return Mono.empty();
         }
 
@@ -120,6 +121,8 @@ public class SquareOffManager {
                 .then(orderBookService.fetchTradeBook_v1())
 
                 .flatMap(tradeBook -> {
+
+                    ctx.getTradeCompleted().set(true);
 
                     List<TradeBookEntry> trades = Optional.ofNullable(tradeBook.getData())
                             .orElse(List.of())

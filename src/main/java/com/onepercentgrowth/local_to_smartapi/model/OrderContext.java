@@ -52,16 +52,22 @@ public class OrderContext {
     private boolean sellOpen = false;
     private boolean SLOpen = false;
 
+    private boolean buyPartiallyFilled = false;
+    private boolean sellPartiallyFilled = false;
+    private boolean SLPartiallyFilled = false;
+
     private boolean buyCanceled = false;
     private boolean sellCanceled = false;
     private boolean SLCanceled = false;
-    private boolean tradeCompleted;
+    private AtomicBoolean tradeCompleted = new AtomicBoolean(false);;
     private PositionSide positionSide;
 
 //    private boolean exitInProgress = false;
 
     private final AtomicBoolean exitInProgress = new AtomicBoolean(false);
     private final AtomicInteger netPositionQty = new AtomicInteger(0);
+
+    private final AtomicInteger remainingQty = new AtomicInteger(0);
     private final List<String> exitOrderIds = new CopyOnWriteArrayList<>();
 
 
@@ -310,11 +316,20 @@ public class OrderContext {
         this.SLCanceled = SLCanceled;
     }
 
-    public boolean isTradeCompleted() {
+//    public boolean isTradeCompleted() {
+//        return tradeCompleted;
+//    }
+//
+//    public void setTradeCompleted(boolean tradeCompleted) {
+//        this.tradeCompleted = tradeCompleted;
+//    }
+
+
+    public AtomicBoolean getTradeCompleted() {
         return tradeCompleted;
     }
 
-    public void setTradeCompleted(boolean tradeCompleted) {
+    public void setTradeCompleted(AtomicBoolean tradeCompleted) {
         this.tradeCompleted = tradeCompleted;
     }
 
@@ -370,6 +385,42 @@ public class OrderContext {
         return netPositionQty;
     }
 
+    public AtomicInteger getRemainingQty() {
+        return remainingQty;
+    }
+
+    public boolean isSystemInconsistent() {
+        return systemInconsistent;
+    }
+
+    public void setSystemInconsistent(boolean systemInconsistent) {
+        this.systemInconsistent = systemInconsistent;
+    }
+
+    public boolean isBuyPartiallyFilled() {
+        return buyPartiallyFilled;
+    }
+
+    public void setBuyPartiallyFilled(boolean buyPartiallyFilled) {
+        this.buyPartiallyFilled = buyPartiallyFilled;
+    }
+
+    public boolean isSellPartiallyFilled() {
+        return sellPartiallyFilled;
+    }
+
+    public void setSellPartiallyFilled(boolean sellPartiallyFilled) {
+        this.sellPartiallyFilled = sellPartiallyFilled;
+    }
+
+    public boolean isSLPartiallyFilled() {
+        return SLPartiallyFilled;
+    }
+
+    public void setSLPartiallyFilled(boolean SLPartiallyFilled) {
+        this.SLPartiallyFilled = SLPartiallyFilled;
+    }
+
     public void addExitOrder(String orderId, String variety) {
         exitOrderIds.add(orderId);
         currentExitOrderId = orderId;
@@ -386,6 +437,42 @@ public class OrderContext {
 
     public void markInconsistent() {
         this.systemInconsistent = true;
+    }
+
+
+    public int longBuyRemainingQty(int filledQty)
+    {
+//        lastBuyFilledQty.set(filledQty);
+        remainingQty.set(remainingQty.addAndGet(filledQty));
+        return remainingQty.get();
+    }
+
+    public int longSellRemainingQty(int filledQty)
+    {
+//        lastSellFilledQty.set(filledQty);
+        remainingQty.set(remainingQty.addAndGet(-filledQty));
+        return remainingQty.get();
+    }
+
+    public int shortBuyRemainingQty(int filledQty)
+    {
+//        lastBuyFilledQty.set(filledQty);
+        remainingQty.set(remainingQty.addAndGet(-filledQty));
+        return remainingQty.get();
+    }
+
+    public int shortSellRemainingQty(int filledQty)
+    {
+//        lastSellFilledQty.set(filledQty);
+        remainingQty.set(remainingQty.addAndGet(filledQty));
+        return remainingQty.get();
+    }
+
+    public int stopLossRemainingQty(int filledQty)
+    {
+//        lastStoplossFilledQty.set(filledQty);
+        remainingQty.set(remainingQty.addAndGet(-filledQty));
+        return remainingQty.get();
     }
 
     public static class SellUpdate {
@@ -418,7 +505,15 @@ public class OrderContext {
         }
 
         lastSellFilledQty.set(filledQty);
-        int remainingQty = netPositionQty.addAndGet(-delta);
+
+        int remainingQty;
+
+        if(netPositionQty.get() < lastSellFilledQty.get())
+            remainingQty = netPositionQty.addAndGet(lastSellFilledQty.get()); // 🔥 CRITICAL
+        else
+            remainingQty = netPositionQty.addAndGet(-lastSellFilledQty.get());
+
+//         = netPositionQty.addAndGet(delta);
 
         return new SellUpdate(delta, remainingQty);
     }
@@ -443,7 +538,13 @@ public class OrderContext {
         }
 
         lastStoplossFilledQty.set(filledQty);
-        int remainingQty = netPositionQty.addAndGet(-delta);
+
+        int remainingQty;
+
+        if(netPositionQty.get() < lastStoplossFilledQty.get())
+            remainingQty = netPositionQty.addAndGet(lastStoplossFilledQty.get()); // 🔥 CRITICAL
+        else
+            remainingQty = netPositionQty.addAndGet(-lastStoplossFilledQty.get());
 
         return new StopLossUpdate(delta, remainingQty);
     }
@@ -468,7 +569,13 @@ public class OrderContext {
         }
 
         lastBuyFilledQty.set(filledQty);
-        int remainingQty = netPositionQty.addAndGet(-delta); // 🔥 CRITICAL
+
+        int remainingQty;
+
+        if(netPositionQty.get() < lastBuyFilledQty.get())
+             remainingQty = netPositionQty.addAndGet(lastBuyFilledQty.get()); // 🔥 CRITICAL
+        else
+            remainingQty = netPositionQty.addAndGet(-lastBuyFilledQty.get());
 
         return new BuyUpdate(delta, remainingQty);
     }

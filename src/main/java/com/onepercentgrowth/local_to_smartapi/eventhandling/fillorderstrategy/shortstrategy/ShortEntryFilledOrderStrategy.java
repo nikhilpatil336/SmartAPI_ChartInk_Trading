@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.shortstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.StopLossPrice;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
@@ -227,7 +228,13 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
 
         return Mono.defer(() -> {
 
-            if (ctx.isSellOpen()) {
+            if (ctx.getTradeCompleted().get()) {
+                log.warn("Duplicate SELL completion ignored | orderId={}",
+                        response.getOrderStatusData().getOrderid());
+                return Mono.empty();
+            }
+
+            if (!ctx.isSellPartiallyFilled() && ctx.isSellOpen()) {
                 return Mono.empty();
             }
 
@@ -279,6 +286,8 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
 
             String jwt = tokenManager.getValidJwtToken();
 
+            int remainingQty = ctx.shortSellRemainingQty(delta);
+
             // ===== TARGET BUY FLOW =====
             Mono<Void> buyMono;
 
@@ -289,7 +298,7 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.shortSellRemainingQty(filledQty),
+                                remainingQty,
                                 buyTargetPrice.toString(),
                                 jwt
                         )
@@ -319,7 +328,7 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.shortSellRemainingQty(filledQty),
+                                remainingQty,
                                 buyTargetPrice.toString(),
                                 ctx.getBuyOrderId(),
                                 jwt
@@ -347,7 +356,7 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.shortSellRemainingQty(filledQty),
+                                remainingQty,
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 jwt,
@@ -381,7 +390,7 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
                                 ctx.getSymbolToken(),
 //                                ctx.getNetPositionQty().get(),
 //                                update.remainingQty,
-                                ctx.shortSellRemainingQty(filledQty),
+                                remainingQty,
                                 slPrice.triggerPrice().doubleValue(),
                                 slPrice.limitPrice().doubleValue(),
                                 ctx.getStopLossOrderId(),

@@ -152,7 +152,8 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             String symbolToken,
             int quantity,
             double triggerPrice,
-            double limitPrice
+            double limitPrice,
+            String orderType
     ) {
         log.info("Trigger price for stoploss limit order is {}", triggerPrice);
 
@@ -160,7 +161,8 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
         req.setVariety("STOPLOSS");
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
-        req.setTransactiontype("SELL");
+//        req.setTransactiontype("SELL");
+        req.setTransactiontype(orderType);
         req.setExchange("NSE");
         req.setOrdertype("STOPLOSS_LIMIT");
         req.setProducttype("INTRADAY");
@@ -196,7 +198,8 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
             int quantity,
             double triggerPrice,
             String orderId,
-            double limitPrice
+            double limitPrice,
+            String orderType
     ) {
         ChartinkMIS_SL_Limit_OrderRequest req = new ChartinkMIS_SL_Limit_OrderRequest();
         req.setOrderid(orderId);
@@ -204,7 +207,7 @@ public class ChartinkOrderRequestFactory implements OrderRequestFactory {
         req.setTradingsymbol(Utility.ensureEqSuffix(stockName));
         req.setSymboltoken(symbolToken);
         req.setExchange("NSE");
-        req.setTransactiontype("SELL");
+        req.setTransactiontype(orderType);
         req.setOrdertype("STOPLOSS_LIMIT");
         req.setProducttype("INTRADAY");
         req.setDuration("DAY");

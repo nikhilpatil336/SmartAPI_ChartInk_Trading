@@ -1,9 +1,9 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.longstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
-import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.LeverageService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
@@ -143,13 +143,13 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 
             // ✅ EXIT GUARD (VERY IMPORTANT)
 //            if (!ctx.tryStartExit()) {
-//                log.warn("Duplicate LONG SELL completion ignored | orderId={}",
-//                        response.getOrderStatusData().getOrderid());
-//                return Mono.empty();
-//            }
+            if (ctx.getTradeCompleted().get()) {
+                log.warn("Duplicate LONG SELL completion ignored | orderId={}",
+                        response.getOrderStatusData().getOrderid());
+                return Mono.empty();
+            }
 
-            if(ctx.isSellOpen())
-            {
+            if (!ctx.isSellOpen()) {
                 return Mono.empty();
             }
 
@@ -163,22 +163,21 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 
             ctx.getLastSellFilledQty().set(filledQty);
 
-            log.info("LONG SELL COMPLETE | stock={} | delta={}",
-                    ctx.getTradingSymbol(), delta);
+            log.info(
+                    "SELL hit | stock={} | buyOrderId={} | sellOrderId={} | qty={} | delta={}",
+                    ctx.getTradingSymbol(),
+                    ctx.getBuyOrderId(),
+                    ctx.getSellOrderId(),
+                    ctx.getQuantity(),
+                    delta
+            );
 
 //            ctx.setSellOpen(false);
 //            ctx.setTradeCompleted(true);
 
-            BigDecimal executedPrice =
-                    new BigDecimal(response.getOrderStatusData().getAverageprice());
-
-            String normalizedSymbol =
-                    Utility.normalize(ctx.getTradingSymbol());
+            AtomicBoolean failed = new AtomicBoolean(false);
 
             String slOrderId = ctx.getStopLossOrderId();
-            String slVariety = ctx.getStopLossVariety();
-
-            AtomicBoolean failed = new AtomicBoolean(false);
 
             // ===== BALANCE FIRST =====
 //            Mono<Void> balanceMono = Mono.fromRunnable(() ->
@@ -192,18 +191,17 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 //                    )
 //            );
 
+            String jwt = tokenManager.getValidJwtToken();
+
             // ===== CANCEL SL =====
             Mono<Void> cancelSLMono = Mono.empty();
 
 //            String slOrderId = ctx.getStopLossOrderId();
 //            String slVariety = ctx.getStopLossVariety();
 
-            if (slOrderId != null && ctx.isSLOpen()) {
-
-                String jwt = tokenManager.getValidJwtToken();
-
+            if (ctx.getStopLossOrderId() != null && ctx.isSLOpen()) {
                 cancelSLMono = executionService
-                        .placeCancelOrder(slOrderId, slVariety, jwt, "STOPLOSS")
+                        .placeCancelOrder(ctx.getStopLossOrderId(), ctx.getStopLossVariety(), jwt, "STOPLOSS")
                         .timeout(Duration.ofSeconds(5))
                         .retryWhen(
                                 Retry.backoff(3, Duration.ofMillis(200))
@@ -212,9 +210,16 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
                                         )
                         )
                         .doOnSuccess(resp -> {
+                            log.info(
+                                    "STOPLOSS cancelled after SELL | stock={} | buyOrderId={} | SLOrderId={}",
+                                    ctx.getTradingSymbol(),
+                                    ctx.getBuyOrderId(),
+                                    ctx.getStopLossOrderId()
+                            );
+
                             ctx.setSLOpen(false);
 
-                            log.info("LONG SL cancelled | orderId={}", slOrderId);
+//                            log.info("LONG SL cancelled | orderId={}", slOrderId);
                         })
 //                        .doOnError(e ->
 //                                log.error("Failed to cancel SL | orderId={}", slOrderId, e)
@@ -236,6 +241,15 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 //                        return Mono.empty();
 //                    })
 //                    .then(cancelSLMono);
+
+            BigDecimal executedPrice =
+                    new BigDecimal(response.getOrderStatusData().getAverageprice());
+
+            String normalizedSymbol =
+                    Utility.normalize(ctx.getTradingSymbol());
+
+//            String slOrderId = ctx.getStopLossOrderId();
+//            String slVariety = ctx.getStopLossVariety();
 
             // ===== BALANCE =====
             Mono<Void> balanceMono = Mono.fromRunnable(() ->
@@ -260,7 +274,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 
                         // ✅ SAFE STATE UPDATE
                         ctx.setSellOpen(false);
-                        ctx.setTradeCompleted(true);
+                        ctx.getTradeCompleted().set(true);
 
                         return balanceMono
                                 .onErrorResume(e -> {

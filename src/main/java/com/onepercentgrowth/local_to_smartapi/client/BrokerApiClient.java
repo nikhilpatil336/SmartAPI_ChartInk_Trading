@@ -9,6 +9,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,16 +29,19 @@ public class BrokerApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(BrokerApiClient.class);
 
-    private final WebClient brokerWebClient;
+    private final WebClient directClient;
+    private final WebClient proxyClient;
     private AngelApiProperties angelConfig;
     private TokenStorageService tokenStorageService;
 
     public BrokerApiClient(
-            WebClient brokerWebClient,
+            @Qualifier("directBrokerWebClient") WebClient directClient,
+            @Qualifier("proxyBrokerWebClient") WebClient proxyClient,
             AngelApiProperties angelConfig,
             TokenStorageService tokenStorageService
     ) {
-        this.brokerWebClient = brokerWebClient;
+        this.directClient = directClient;
+        this.proxyClient = proxyClient;
         this.angelConfig = angelConfig;
         this.tokenStorageService = tokenStorageService;
     }
@@ -93,7 +97,10 @@ public class BrokerApiClient {
 
         log.info("Calling Angel login API for client={}", request.getClientcode());
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/auth/angelbroking/user/v1/loginByPassword")
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
@@ -115,7 +122,10 @@ public class BrokerApiClient {
 
         log.info("Calling Angel token refresh API");
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/auth/angelbroking/jwt/v1/generateTokens")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -138,7 +148,10 @@ public class BrokerApiClient {
 
         log.info("Generating new JWT tokens for refreshToken={}", refreshToken);
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/auth/angelbroking/jwt/v1/generateTokens")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -175,7 +188,10 @@ public class BrokerApiClient {
 
         log.info("Logging out client={}", clientCode);
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/secure/angelbroking/user/v1/logout")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -200,7 +216,10 @@ public class BrokerApiClient {
 
         log.info("Starting ScripMaster download request...");
 
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json")
                 .headers(headers -> {
                     headers.add("Authorization", "Bearer " + accessToken);
@@ -240,7 +259,10 @@ public class BrokerApiClient {
 
         log.info("Starting ScripMaster STREAM download request...");
 
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json")
                 .headers(headers -> {
                     headers.add("Authorization", "Bearer " + accessToken);
@@ -295,8 +317,10 @@ public class BrokerApiClient {
 
     public Mono<RmsResponse> fetchRmsBalance(String authToken) {
 
-        return brokerWebClient
-                .get()   // RMS needs GET
+//        return brokerWebClient.get()   // RMS needs GET
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/user/v1/getRMS")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Accept", "application/json")
@@ -318,7 +342,10 @@ public class BrokerApiClient {
 
 
     public Mono<OrderBookResponse_v2> getOrderBook(String token) {
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/order/v1/getOrderBook")
                 .header("Authorization", "Bearer " + token)
                 .header("Accept", "application/json")
@@ -333,7 +360,10 @@ public class BrokerApiClient {
     }
 
     public Mono<TradeBookResponse> getTradeBook(String token) {
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/order/v1/getTradeBook")
                 .header("Authorization", "Bearer " + token)
                 .header("Accept", "application/json")
@@ -348,7 +378,10 @@ public class BrokerApiClient {
     }
 
     public Mono<TradeBookResponse_v1> getTradeBook_v1(String token) {
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/order/v1/getTradeBook")
                 .header("Authorization", "Bearer " + token)
                 .header("Accept", "application/json")
@@ -368,7 +401,10 @@ public class BrokerApiClient {
 
         ObjectMapper objectMapper = new ObjectMapper();
 
-        return brokerWebClient.get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/order/v1/details/{orderId}", orderId)
                 .header("Authorization", "Bearer " + authToken)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -443,7 +479,8 @@ public class BrokerApiClient {
 
         log.info("Placing order: {}", orderRequest);
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/placeOrder")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -465,7 +502,8 @@ public class BrokerApiClient {
 
         log.info("Modifying order: {}", orderRequest);
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/modifyOrder")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -487,7 +525,8 @@ public class BrokerApiClient {
 
         log.info("Cancelling order: {}", cancelOrderRequest);
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/cancelOrder")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -509,8 +548,10 @@ public class BrokerApiClient {
 
         log.info("Fetching NSE Intraday leverage");
 
-        return brokerWebClient
-                .get()
+//        return brokerWebClient.get()
+        return
+                directClient.get()
+//                proxyClient.get()
                 .uri("/rest/secure/angelbroking/marketData/v1/nseIntraday")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Accept", "application/json")
@@ -537,7 +578,10 @@ public class BrokerApiClient {
                 "exchangeTokens", Map.of(exchange, List.of(token))
         );
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/secure/angelbroking/market/v1/quote/")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")
@@ -570,7 +614,10 @@ public class BrokerApiClient {
                 "exchangeTokens", Map.of(exchange, List.of(symbolToken))
         );
 
-        return brokerWebClient.post()
+//        return brokerWebClient.post()
+        return
+                directClient.post()
+//                proxyClient.post()
                 .uri("/rest/secure/angelbroking/market/v1/quote/")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Content-Type", "application/json")

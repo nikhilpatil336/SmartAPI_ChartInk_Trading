@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.longstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.IOpenOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
 import com.onepercentgrowth.local_to_smartapi.exit.AggressiveExitManager;
 import com.onepercentgrowth.local_to_smartapi.exit.ExitType;
@@ -335,11 +336,16 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
-
-            int delta = update.delta;
+//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+//
+//            int delta = update.delta;
+//
+//            if (delta <= 0) return Mono.empty();
+            int delta = filledQty - ctx.getLastSellFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastSellFilledQty().set(filledQty);
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
@@ -373,7 +379,7 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processSellFill(ctx, response, delta, failed, update));
+            return cancelMono.then(processSellFill(ctx, response, delta, failed, ctx.longSellRemainingQty(delta)));
         });
     }
 
@@ -382,7 +388,7 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
             OrderStatusResponse response,
             int delta,
             AtomicBoolean failed,
-            OrderContext.SellUpdate update
+            int remainingQty
     ) {
 
         return Mono.defer(() -> {
@@ -391,9 +397,9 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
 //            ctx.getNetPositionQty().addAndGet(-delta);
 //
 //            int remainingQty = ctx.getNetPositionQty().get();
-            int remainingQty = update.remainingQty;
+//            int remainingQty = update.remainingQty;
 
-            if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.isTradeCompleted())) {
+            if (!(remainingQty > 0 && ctx.isSlPlaced() && ctx.isSLOpen() && !ctx.getTradeCompleted().get())) {
                 return Mono.empty();
             }
 
@@ -462,7 +468,10 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                                     log.error("Balance update failed", e);
                                     return Mono.empty();
                                 });
-                    }));
+                    }))
+                    .doOnSuccess(v ->
+                            log.info("LONG SELL processed | orderId={}", ctx.getStopLossOrderId())
+                    );
         });
     }
 

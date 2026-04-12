@@ -27,26 +27,50 @@ public class FilledOrderHandler implements IOrderStatusHandler {
         return "COMPLETE";
     }
 
+//    @Override
+//    public void handle(OrderStatusResponse response) {
+//
+//        log.info("websocket status response: {} ", response);
+//
+//        String orderId =
+//                response.getOrderStatusData().getOrderid();
+//
+//        orderRegistry.getByAnyOrderId(orderId)
+//                .ifPresentOrElse(ctx -> {
+//
+//                    log.info("Retrieved object from registry: {}", ctx);
+//
+//                    strategies.stream()
+//                            .filter(s -> s.supports(ctx, response))
+//                            .findFirst()
+//                            .ifPresent(s -> s.onFilled(ctx, response));
+//
+//                }, () -> log.warn("No OrderContext found for orderId={}", orderId));
+//
+//    }
     @Override
     public void handle(OrderStatusResponse response) {
 
-        log.info("websocket status response: {} ", response);
-
-        String orderId =
-                response.getOrderStatusData().getOrderid();
+        String orderId = response.getOrderStatusData().getOrderid();
 
         orderRegistry.getByAnyOrderId(orderId)
                 .ifPresentOrElse(ctx -> {
 
-                    log.info("Retrieved object from registry: {}", ctx);
-
                     strategies.stream()
                             .filter(s -> s.supports(ctx, response))
                             .findFirst()
-                            .ifPresent(s -> s.onFilled(ctx, response));
+    //                            .ifPresent(s -> s.onFilled(ctx, response));
+                            .ifPresent(strategy ->
+                                            strategy.onFilled(ctx, response)
+                                                    .doOnError(e ->
+                                                            log.error("Error processing FILLED event | orderId={}",
+                                                                    orderId, e)
+                                                    )
+                                                    .subscribe() // 🔥 REQUIRED
+    //                                            .block()
+                            );
 
-                }, () -> log.warn("No OrderContext found for orderId={}", orderId));
-
+                }, () -> log.warn("OPEN event ignored, no context for orderId={}", orderId));
     }
 }
 

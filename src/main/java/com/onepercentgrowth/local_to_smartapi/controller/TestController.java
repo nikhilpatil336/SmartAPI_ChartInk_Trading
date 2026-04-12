@@ -17,10 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.io.*;
@@ -138,8 +135,8 @@ public class TestController {
         orderEventQueue.publish(response);
     }
 
-    @GetMapping("/modify")
-    public void modify()
+    @GetMapping("/modify/{orderType}")
+    public void modify(@PathVariable String orderType)
     {
         String tradingSymbol = "TATASTEEL-EQ";
         String symbolToken = "3499";
@@ -153,7 +150,8 @@ public class TestController {
                         quantity,
                         10,
                         price,
-                        tokenManager.getValidJwtToken()
+                        tokenManager.getValidJwtToken(),
+                        orderType
                 )
                 .flatMap(orderResponse ->
                         orderExecutionService.modifyStopLossOrder(
@@ -163,7 +161,8 @@ public class TestController {
                                 0,
                                 price, // new price (can be different)
                                 orderResponse.getData().getOrderid(),
-                                tokenManager.getValidJwtToken()
+                                tokenManager.getValidJwtToken(),
+                                orderType
                         )
                 )
                 .doOnSuccess(resp ->
@@ -179,7 +178,7 @@ public class TestController {
 
 
     @PostMapping(
-            value = "/test/webhookRequest",
+            value = "/save/webhookrequest",
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<String> webhookRequest(

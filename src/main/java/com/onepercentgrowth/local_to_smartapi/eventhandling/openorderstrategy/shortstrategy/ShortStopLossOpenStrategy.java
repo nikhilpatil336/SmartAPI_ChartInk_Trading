@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.shortstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.IOpenOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -251,11 +252,17 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
+//            OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
+//
+//            int delta = update.delta;
+//
+//            if (delta <= 0) return Mono.empty();
 
-            int delta = update.delta;
+            int delta = filledQty - ctx.getLastStoplossFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastStoplossFilledQty().set(filledQty);
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
@@ -289,7 +296,7 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processShortStopLoss(ctx, response, delta, failed, update));
+            return cancelMono.then(processShortStopLoss(ctx, response, delta, failed, ctx.stopLossRemainingQty(delta)));
         });
     }
 
@@ -298,7 +305,7 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
             OrderStatusResponse response,
             int delta,
             AtomicBoolean failed,
-            OrderContext.StopLossUpdate update
+            int remainingQty
     ) {
 
         return Mono.defer(() -> {
@@ -307,10 +314,10 @@ public class ShortStopLossOpenStrategy implements IOpenOrderStrategy {
 //            ctx.getNetPositionQty().addAndGet(-delta);
 //
 //            int remainingQty = ctx.getNetPositionQty().get();
-            int remainingQty = update.remainingQty;
+//            int remainingQty = update.remainingQty;
 
 
-            if (!(remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.isTradeCompleted())) {
+            if (!(remainingQty > 0 && ctx.isBuyPlaced() && ctx.isBuyOpen() && !ctx.getTradeCompleted().get())) {
                 return Mono.empty();
             }
 

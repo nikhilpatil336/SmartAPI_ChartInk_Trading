@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.shortstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -197,12 +198,42 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
 //                return Mono.empty();
 //            }
 
+            if (ctx.getTradeCompleted().get()) {
+                log.warn("Duplicate SL completion ignored | orderId={}",
+                        response.getOrderStatusData().getOrderid());
+                return Mono.empty();
+            }
+
+            if(!ctx.isSLOpen())
+            {
+                return Mono.empty();
+            }
+
             log.warn(
                     "SHORT STOPLOSS HIT | stock={} | sellOrderId={} | slOrderId={} | qty={}",
                     ctx.getTradingSymbol(),
                     ctx.getSellOrderId(),
                     ctx.getStopLossOrderId(),
                     ctx.getQuantity()
+            );
+
+            int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
+
+//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
+//            int delta = update.delta;
+            int delta = filledQty - ctx.getLastStoplossFilledQty().get();
+
+            if (delta <= 0) return Mono.empty();
+
+            ctx.getLastStoplossFilledQty().set(filledQty);
+
+            log.info(
+                    "SHORT STOPLOSS hit | stock={} | buyOrderId={} | slOrderId={} | qty={} | delta={}",
+                    ctx.getTradingSymbol(),
+                    ctx.getBuyOrderId(),
+                    ctx.getStopLossOrderId(),
+                    ctx.getQuantity(),
+                    delta
             );
 
             AtomicBoolean failed = new AtomicBoolean(false);
@@ -234,9 +265,10 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
                         )
                         .doOnSuccess(resp -> {
                             log.info(
-                                    "SHORT TARGET cancelled after SL | stock={} | buyOrderId={}",
+                                    "SHORT TARGET cancelled after SL | stock={} | buyOrderId={} | sellOrderId={}",
                                     ctx.getTradingSymbol(),
-                                    ctx.getBuyOrderId()
+                                    ctx.getBuyOrderId(),
+                                    ctx.getSellOrderId()
                             );
                             ctx.setBuyOpen(false);
                         })
@@ -262,8 +294,8 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
             BigDecimal executedPrice =
                     new BigDecimal(response.getOrderStatusData().getAverageprice());
 
-            int quantity =
-                    Integer.parseInt(response.getOrderStatusData().getFilledshares());
+//            int quantity =
+//                    Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
             String normalizedSymbol =
                     Utility.normalize(ctx.getTradingSymbol());
@@ -271,7 +303,7 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
             Mono<Void> balanceMono = Mono.fromRunnable(() ->
                     balanceService.onBuy(
                             executedPrice,
-                            quantity,
+                            delta,
                             applicationProperties.getLeverageMultiplierToUseForShort(),
                             balanceService.getUsableBalance(),
                             leverageService.get(normalizedSymbol).multiplier()
@@ -296,7 +328,7 @@ public class ShortStopLossFilledStrategy implements IFillOrderStrategy {
 
                         // ✅ SAFE STATE UPDATE
                         ctx.setSLOpen(false);
-                        ctx.setTradeCompleted(true);
+                        ctx.getTradeCompleted().set(true);
 
                         return balanceMono
                                 .onErrorResume(e -> {

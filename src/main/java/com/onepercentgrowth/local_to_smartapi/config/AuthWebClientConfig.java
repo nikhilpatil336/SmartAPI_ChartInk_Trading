@@ -17,7 +17,7 @@ public class AuthWebClientConfig {
     @Bean
     public WebClient authWebClient() {
         return WebClient.builder()
-                .baseUrl(properties.getBaseUrl())
+                .baseUrl(properties.getDirectBaseUrl())
                 .build();
     }
 }

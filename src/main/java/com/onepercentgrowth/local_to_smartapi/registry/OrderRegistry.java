@@ -323,7 +323,11 @@ public class OrderRegistry {
 //        return byBuyId.values();
 //    }
 
-    public Flux<OrderContext> getAllContexts() {
+    public Flux<OrderContext> getAllBuyContexts() {
         return Flux.fromIterable(byBuyId.values());
+    }
+
+    public Flux<OrderContext> getAllSellContexts() {
+        return Flux.fromIterable(bySellId.values());
     }
 }

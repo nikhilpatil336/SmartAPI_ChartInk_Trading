@@ -199,7 +199,8 @@ public class OrderService_v2 {
                                                 symboltoken,
                                                 quantity,
                                                 slPrice.triggerPrice().doubleValue(),
-                                                slPrice.limitPrice().doubleValue()
+                                                slPrice.limitPrice().doubleValue(),
+                                                "SELL"
                                         );
 
                                 Mono<OrderResponse> sellMono =

@@ -1,6 +1,7 @@
-package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy;
+package com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.longstrategy;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.eventhandling.openorderstrategy.IOpenOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
@@ -299,11 +300,17 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
 
-            OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
+//            OrderContext.StopLossUpdate update = ctx.reduceStopLoss(filledQty);
+//
+//            int delta = update.delta;
+//
+//            if (delta <= 0) return Mono.empty();
 
-            int delta = update.delta;
+            int delta = filledQty - ctx.getLastStoplossFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            ctx.getLastStoplossFilledQty().set(filledQty);
 
             AtomicBoolean failed = new AtomicBoolean(false);
 
@@ -337,7 +344,7 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processStopLossFill(ctx, response, delta, failed, update));
+            return cancelMono.then(processStopLossFill(ctx, response, delta, failed, ctx.stopLossRemainingQty(delta)));
         });
     }
 
@@ -346,7 +353,7 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
             OrderStatusResponse response,
             int delta,
             AtomicBoolean failed,
-            OrderContext.StopLossUpdate update
+            int remainingQty
     ) {
 
         return Mono.defer(() -> {
@@ -355,9 +362,9 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
 //            ctx.getNetPositionQty().addAndGet(-delta);
 //
 //            int remainingQty = ctx.getNetPositionQty().get();
-            int remainingQty = update.remainingQty;
+//            int remainingQty = update.remainingQty;
 
-            if (!(remainingQty > 0 && ctx.isSellPlaced() && ctx.isSellOpen() && !ctx.isTradeCompleted())) {
+            if (!(remainingQty > 0 && ctx.isSellPlaced() && ctx.isSellOpen() && !ctx.getTradeCompleted().get())) {
                 return Mono.empty();
             }
 
@@ -428,30 +435,30 @@ public class StopLossOpenStrategy implements IOpenOrderStrategy {
         });
     }
 
-    private Mono<Void> cancelRemainingBuy(OrderContext ctx) {
-
-        return Mono.defer(() -> {
-                    String jwt = tokenManager.getValidJwtToken();
-
-                    return executionService.placeCancelOrder(
-                            ctx.getBuyOrderId(),
-                            ctx.getBuyVariety(),
-                            jwt,
-                            "BUY"
-                    );
-                })
-                .timeout(Duration.ofSeconds(5))
-                .retryWhen(Retry.backoff(3, Duration.ofMillis(200)))
-                .doOnSuccess(resp -> {
-                    ctx.setBuyOpen(false);
-                    log.info("Remaining BUY cancelled | orderId={}", ctx.getBuyOrderId());
-                })
-                .onErrorResume(e -> {
-                    ctx.markInconsistent();
-                    log.error("Failed to cancel BUY", e);
-                    return Mono.empty();
-                })
-                .then();
-    }
+//    private Mono<Void> cancelRemainingBuy(OrderContext ctx) {
+//
+//        return Mono.defer(() -> {
+//                    String jwt = tokenManager.getValidJwtToken();
+//
+//                    return executionService.placeCancelOrder(
+//                            ctx.getBuyOrderId(),
+//                            ctx.getBuyVariety(),
+//                            jwt,
+//                            "BUY"
+//                    );
+//                })
+//                .timeout(Duration.ofSeconds(5))
+//                .retryWhen(Retry.backoff(3, Duration.ofMillis(200)))
+//                .doOnSuccess(resp -> {
+//                    ctx.setBuyOpen(false);
+//                    log.info("Remaining BUY cancelled | orderId={}", ctx.getBuyOrderId());
+//                })
+//                .onErrorResume(e -> {
+//                    ctx.markInconsistent();
+//                    log.error("Failed to cancel BUY", e);
+//                    return Mono.empty();
+//                })
+//                .then();
+//    }
 
 }

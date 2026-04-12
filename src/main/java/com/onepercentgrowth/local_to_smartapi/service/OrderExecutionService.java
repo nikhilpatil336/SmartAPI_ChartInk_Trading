@@ -129,7 +129,8 @@ public class OrderExecutionService {
             int quantity,
             double triggerPrice,
             double limitPrice,
-            String jwtToken
+            String jwtToken,
+            String orderType
     ) {
         IOrderRequest slRequest =
                 orderRequestFactory.createStopLossLimitOrder(
@@ -137,7 +138,8 @@ public class OrderExecutionService {
                         symbolToken,
                         quantity,
                         triggerPrice,
-                        limitPrice
+                        limitPrice,
+                        orderType
                 );
 
         log.info("Placing STOP LOSS order: {}", slRequest.toString());
@@ -154,7 +156,8 @@ public class OrderExecutionService {
             double newTriggerPrice,
             double newLimitPrice,
             String orderId,
-            String jwtToken
+            String jwtToken,
+            String orderType
     ) {
         IOrderRequest request =
                 orderRequestFactory.modifyLimitStopLossOrder(
@@ -163,7 +166,8 @@ public class OrderExecutionService {
                         quantity,
                         newTriggerPrice,
                         orderId,
-                        newLimitPrice
+                        newLimitPrice,
+                        orderType
                 );
 
         log.info("Modifying STOP LOSS order {}", request);

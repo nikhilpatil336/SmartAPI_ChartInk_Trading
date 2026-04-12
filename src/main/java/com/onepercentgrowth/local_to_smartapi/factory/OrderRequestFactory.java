@@ -47,7 +47,8 @@
                 String symbolToken,
                 int quantity,
                 double triggerPrice,
-                double limitPrice
+                double limitPrice,
+                String orderType
         );
 
 
@@ -65,7 +66,8 @@
                 int quantity,
                 double triggerPrice,
                 String orderId,
-                double limitPrice
+                double limitPrice,
+                String orderType
         );
 
         IOrderRequest createCancelOrder(
