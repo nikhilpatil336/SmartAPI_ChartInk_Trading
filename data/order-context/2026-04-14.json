@@ -1,0 +1,21 @@
+[ {
+  "buyOrderId" : "0414a5f685afAO",
+  "sellOrderId" : null,
+  "stopLossOrderId" : null,
+  "tradingSymbol" : "TATASTEEL",
+  "symbolToken" : "3499",
+  "quantity" : 10,
+  "exchange" : "NSE",
+  "buyVariety" : "NORMAL",
+  "sellVariety" : null,
+  "stopLossVariety" : null,
+  "buyPrice" : null,
+  "sellPrice" : null,
+  "stoplossLimitPrice" : null,
+  "stoplossTriggerPrice" : null,
+  "netPositionQty" : 0,
+  "tradeCompleted" : false,
+  "exitInProgress" : false,
+  "exitOrders" : [ ],
+  "positionSide" : "LONG"
+} ]

@@ -14,6 +14,7 @@ public class ApplicationProperties {
     private String scripmasterFilePath;
     private String filteredScripmasterFilePath;
     private String slOrderstoreFilePath;
+    private String orderContextFilePath;
     private double balanceMinimumAllowed;
     private int stockBuyMinimumQuantityRequired;
     private double buyProfitPercentageMultiplier;
@@ -60,7 +61,7 @@ public class ApplicationProperties {
     private String squareoffZone;
     private int exitMaxAttempt;
     private double ticksizeToReduce;
-    private int waitTimeBetweePartialExits;
+    private int waitTimeBetweenPartialExits;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -455,11 +456,19 @@ public class ApplicationProperties {
     }
 
     public int getWaitTimeBetweePartialExits() {
-        return waitTimeBetweePartialExits;
+        return waitTimeBetweenPartialExits;
     }
 
     public void setWaitTimeBetweePartialExits(int waitTimeBetweePartialExits) {
-        this.waitTimeBetweePartialExits = waitTimeBetweePartialExits;
+        this.waitTimeBetweenPartialExits = waitTimeBetweePartialExits;
+    }
+
+    public String getOrderContextFilePath() {
+        return orderContextFilePath;
+    }
+
+    public void setOrderContextFilePath(String orderContextFilePath) {
+        this.orderContextFilePath = orderContextFilePath;
     }
 
     @Override
@@ -469,6 +478,7 @@ public class ApplicationProperties {
                 ", scripmasterFilePath='" + scripmasterFilePath + '\'' +
                 ", filteredScripmasterFilePath='" + filteredScripmasterFilePath + '\'' +
                 ", slOrderstoreFilePath='" + slOrderstoreFilePath + '\'' +
+                ", orderContextFilePath='" + orderContextFilePath + '\'' +
                 ", balanceMinimumAllowed=" + balanceMinimumAllowed +
                 ", stockBuyMinimumQuantityRequired=" + stockBuyMinimumQuantityRequired +
                 ", buyProfitPercentageMultiplier=" + buyProfitPercentageMultiplier +
@@ -514,7 +524,7 @@ public class ApplicationProperties {
                 ", squareoffZone='" + squareoffZone + '\'' +
                 ", exitMaxAttempt=" + exitMaxAttempt +
                 ", ticksizeToReduce=" + ticksizeToReduce +
-                ", waitTimeBetweePartialExits=" + waitTimeBetweePartialExits +
+                ", waitTimeBetweePartialExits=" + waitTimeBetweenPartialExits +
                 '}';
     }
 }

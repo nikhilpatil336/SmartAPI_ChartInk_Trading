@@ -326,7 +326,8 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
     public boolean supports(OrderContext ctx, OrderStatusResponse response) {
         return ctx.isLong()
                 && "BUY".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
-                && ctx.getBuyOrderId().equals(response.getOrderStatusData().getOrderid());
+                && ctx.getBuyOrderId().equals(response.getOrderStatusData().getOrderid())
+                && ctx.getSellOrderId() == null && ctx.getStopLossOrderId() == null;
     }
 
     @Override

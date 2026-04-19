@@ -58,7 +58,8 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
     public boolean supports(OrderContext ctx, OrderStatusResponse response) {
         return ctx.isShort()
                 && "SELL".equalsIgnoreCase(response.getOrderStatusData().getTransactiontype())
-                && response.getOrderStatusData().getOrderid().equals(ctx.getSellOrderId());
+                && response.getOrderStatusData().getOrderid().equals(ctx.getSellOrderId())
+                && ctx.getBuyOrderId() == null && ctx.getStopLossOrderId() == null;
     }
 
 //    @Override

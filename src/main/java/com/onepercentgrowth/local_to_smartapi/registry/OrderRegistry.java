@@ -330,4 +330,8 @@ public class OrderRegistry {
     public Flux<OrderContext> getAllSellContexts() {
         return Flux.fromIterable(bySellId.values());
     }
+
+    public Collection<OrderContext> getAllContextsSnapshot() {
+        return byBuyId.values(); // single source of truth
+    }
 }

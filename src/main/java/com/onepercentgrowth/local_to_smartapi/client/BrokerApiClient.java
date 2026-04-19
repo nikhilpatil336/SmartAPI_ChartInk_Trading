@@ -317,10 +317,30 @@ public class BrokerApiClient {
 
     public Mono<RmsResponse> fetchRmsBalance(String authToken) {
 
-//        return brokerWebClient.get()   // RMS needs GET
-        return
-                directClient.get()
-//                proxyClient.get()
+        return directClient.get()  // RMS needs GET
+
+//        return
+//                directClient.mutate() // creates a copy of this client
+//                .filter((request, next) -> {
+//                    log.info("➡️ Request: {} {}", request.method(), request.url());
+//
+//                    request.headers().forEach((name, values) ->
+//                            values.forEach(value -> log.info("➡️ Header: {}={}", name, value))
+//                    );
+//
+//                    return next.exchange(request);
+//                })
+//                .filter((request, next) ->
+//                        next.exchange(request).doOnNext(response -> {
+//                            log.info("⬅️ Response Status: {}", response.statusCode());
+//
+//                            response.headers().asHttpHeaders().forEach((name, values) ->
+//                                    values.forEach(value -> log.info("⬅️ Header: {}={}", name, value))
+//                            );
+//                        })
+//                )
+//                .build().get()
+
                 .uri("/rest/secure/angelbroking/user/v1/getRMS")
                 .header("Authorization", "Bearer " + authToken)
                 .header("Accept", "application/json")

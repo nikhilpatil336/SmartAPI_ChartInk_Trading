@@ -4,6 +4,7 @@ import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.*;
 import com.onepercentgrowth.local_to_smartapi.storage.LeverageStorageService;
+import com.onepercentgrowth.local_to_smartapi.storage.OrderContextStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public class ApplicationStartupService {
     private final LeverageService leverageService;
     private final FnoUniverseService fnoUniverseService;
     private final ApplicationProperties applicationProperties;
+    private final OrderContextStorageService orderContextStorageService;
 
     @Value("${myapp.sl-orderstore-file-path}")
     private String slOrderBaseDir;
@@ -50,7 +52,8 @@ public class ApplicationStartupService {
             LeverageStorageService leverageStorageService,
             LeverageService leverageService,
             FnoUniverseService fnoUniverseService,
-            ApplicationProperties applicationProperties
+            ApplicationProperties applicationProperties,
+            OrderContextStorageService orderContextStorageService
     ) {
         this.scripMasterStorageService = scripMasterStorageService;
         this.scripMasterService = scripMasterService;
@@ -63,12 +66,17 @@ public class ApplicationStartupService {
         this.leverageService = leverageService;
         this.fnoUniverseService = fnoUniverseService;
         this.applicationProperties = applicationProperties;
+        this.orderContextStorageService = orderContextStorageService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
 
         log.info("Application startup sequence initiated");
+
+        log.info("Loading OrderContext from storage...");
+//        orderContextStorageService.loadToday();
+        orderContextStorageService.loadLatest();
 
 //        // ---- Scrip master ----
 ////        scripMasterStorageService.loadFromFile();
@@ -287,6 +295,7 @@ public class ApplicationStartupService {
         log.info("myapp.excel-to-save-alerts={}", applicationProperties.getExcelToSaveAlerts());
         log.info("myapp.growth-alert-excel-path={}", applicationProperties.getGrowthAlertExcelPath());
         log.info("myapp.short-alert-excel-path={}", applicationProperties.getShortAlertExcelPath());
+        log.info("myapp.order-context-file-path={}", applicationProperties.getOrderContextFilePath());
 
         log.info("---- Trading ----");
         log.info("myapp.trading-window-enable={}", applicationProperties.isTradingWindowEnable());
