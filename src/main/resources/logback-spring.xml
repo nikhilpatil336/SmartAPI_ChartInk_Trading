@@ -2,10 +2,10 @@
 <configuration>
 
     <!-- ===== LOG FILE LOCATION for My PC windowns system ===== -->
-    <property name="LOG_PATH" value="D:/1 percent growth trading/logs"/>
+<!--    <property name="LOG_PATH" value="D:/1 percent growth trading/logs"/>-->
 
     <!-- ===== LOG FILE LOCATION Raspberry pi linux system ===== -->
-<!--    <property name="LOG_PATH" value="/home/trade_conf/logs"/>-->
+    <property name="LOG_PATH" value="/home/trade_conf/logs"/>
 
 
     <property name="LOG_FILE" value="${LOG_PATH}/application.log"/>

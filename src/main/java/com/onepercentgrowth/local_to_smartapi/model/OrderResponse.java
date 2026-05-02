@@ -1,9 +1,13 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.onepercentgrowth.local_to_smartapi.deserializer.DataDeserializer;
+
 public class OrderResponse {
 
     private boolean status;
     private String message;
+    @  JsonDeserialize(using = DataDeserializer.class)
     private Data data;
 
     public static class Data {

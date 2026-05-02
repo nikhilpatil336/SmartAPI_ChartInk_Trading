@@ -1,6 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.exit;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
 import com.onepercentgrowth.local_to_smartapi.marketdata.MarketDataService;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
@@ -109,6 +110,11 @@ public class AggressiveExitManager {
             ExitType reason
     ) {
 
+        if (quantity <= 0) {
+            log.warn("Invalid exit quantity | {}", quantity);
+            return Mono.empty();
+        }
+
         // Prevent duplicate exit triggers
 //        if (ctx.isExitInProgress()) {
 //            log.warn("Exit already in progress for {}", ctx.getTradingSymbol());
@@ -138,26 +144,62 @@ public class AggressiveExitManager {
 
                             .flatMap(quote -> {
 
-                                double bestBid = quote.getBestBid().doubleValue();
+//                                double bestBid = quote.getBestBid().doubleValue();
+//                                double tick = applicationProperties.getTicksizeToReduce();
+//
+//                                double price = bestBid - tick;
+//
+//                                log.warn("Exit attempt={} | remaining={} | price={}",
+//                                        attempt,
+//                                        remainingQty.get(),
+//                                        price);
+//
+//                                return executionService.placeSellOrder(
+//                                                ctx.getTradingSymbol(),
+//                                                ctx.getSymbolToken(),
+//                                                remainingQty.get(),
+//                                                price,
+//                                                tokenManager.getValidJwtToken()
+//                                        )
+//
+//                                        // store exit order
+//                                        .flatMap(orderResponse -> {
+//
+//                                            ctx.addExitOrder(orderResponse.getData().getOrderid(), "NORMAL");
+//
+//                                            orderRegistry.registerExit(orderResponse.getData().getOrderid(), ctx);
+//
+//                                            log.info("Exit order placed | orderId={} | attempt={}",
+//                                                    orderResponse,
+//                                                    attempt);
+//
+//                                            return Mono.just(orderResponse);
+//                                        });
+
                                 double tick = applicationProperties.getTicksizeToReduce();
 
-                                double price = bestBid - tick;
+                                boolean isLong = ctx.getPositionSide() == PositionSide.LONG;
 
-                                log.warn("Exit attempt={} | remaining={} | price={}",
-                                        attempt,
-                                        remainingQty.get(),
-                                        price);
+                                double price;
 
-                                return executionService.placeSellOrder(
-                                                ctx.getTradingSymbol(),
-                                                ctx.getSymbolToken(),
-                                                remainingQty.get(),
-                                                price,
-                                                tokenManager.getValidJwtToken()
-                                        )
+                                if (isLong) {
+                                    double bestBid = quote.getBestBid().doubleValue();
+                                    price = bestBid - tick;
 
-                                        // store exit order
-                                        .flatMap(orderResponse -> {
+                                    log.warn("Exit attempt={} | side={} | remaining={} | price={}",
+                                            attempt,
+                                            ctx.getPositionSide(),
+                                            remainingQty.get(),
+                                            price);
+
+                                    return executionService.placeSellOrder(
+                                            ctx.getTradingSymbol(),
+                                            ctx.getSymbolToken(),
+                                            remainingQty.get(),
+                                            price,
+                                            tokenManager.getValidJwtToken()
+                                    )
+                                            .flatMap(orderResponse -> {
 
                                             ctx.addExitOrder(orderResponse.getData().getOrderid(), "NORMAL");
 
@@ -169,6 +211,37 @@ public class AggressiveExitManager {
 
                                             return Mono.just(orderResponse);
                                         });
+                                } else {
+                                    double bestAsk = quote.getBestAsk().doubleValue();
+                                    price = bestAsk + tick;
+                                    String priceStr = String.valueOf(price);
+
+                                    log.warn("Exit attempt={} | side={} | remaining={} | price={}",
+                                            attempt,
+                                            ctx.getPositionSide(),
+                                            remainingQty.get(),
+                                            price);
+
+                                    return executionService.placeBuyOrder(
+                                            ctx.getTradingSymbol(),
+                                            ctx.getSymbolToken(),
+                                            remainingQty.get(),
+                                            priceStr,
+                                            tokenManager.getValidJwtToken()
+                                    )
+                                            .flatMap(orderResponse -> {
+
+                                            ctx.addExitOrder(orderResponse.getData().getOrderid(), "NORMAL");
+
+                                            orderRegistry.registerExit(orderResponse.getData().getOrderid(), ctx);
+
+                                            log.info("Exit order placed | orderId={} | attempt={}",
+                                                    orderResponse,
+                                                    attempt);
+
+                                            return Mono.just(orderResponse);
+                                        });
+                                }
                             })
 
                             // wait briefly for fills
@@ -179,14 +252,27 @@ public class AggressiveExitManager {
 
                             .flatMap(tradeBook -> {
 
-                                String exitOrderId = ctx.getCurrentExitOrderId();
+//                                String exitOrderId = ctx.getCurrentExitOrderId();
+//
+//                                int filled = getFilledQty(
+//                                        tradeBook.getData(),
+//                                        exitOrderId
+//                                );
+//
+//                                remainingQty.set(quantity - filled);
 
-                                int filled = getFilledQty(
-                                        tradeBook.getData(),
-                                        exitOrderId
-                                );
+                                int totalFilled = tradeBook.getData().stream()
+                                        .filter(t -> ctx.getExitOrderIds().contains(t.getOrderid()))
+                                        .mapToInt(t -> {
+                                            try {
+                                                return Integer.parseInt(t.getFillsize());
+                                            } catch (Exception e) {
+                                                return 0;
+                                            }
+                                        })
+                                        .sum();
 
-                                remainingQty.set(quantity - filled);
+                                remainingQty.set(quantity - totalFilled);
 
                                 if (remainingQty.get() <= 0) {
 
@@ -196,6 +282,8 @@ public class AggressiveExitManager {
 
                                     return Mono.error(new RuntimeException("EXIT_DONE"));
                                 }
+
+                                String exitOrderId = ctx.getCurrentExitOrderId();
 
                                 log.warn("Partial fill | remaining={} | canceling order={}",
                                         remainingQty.get(),

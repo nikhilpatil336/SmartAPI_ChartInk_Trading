@@ -36,6 +36,8 @@ public class EODSquareOffScheduler {
 
     @Scheduled(cron = "${myapp.squareoff-cron}", zone = "${myapp.squareoff-zone}")
     public void runSquareOff() {
+        log.info("==========================================================================================");
+        log.info("Square off started");
 
         registry.getAllBuyContexts()
                 .flatMap(ctx ->

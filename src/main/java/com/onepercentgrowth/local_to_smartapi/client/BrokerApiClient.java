@@ -1,6 +1,8 @@
 package com.onepercentgrowth.local_to_smartapi.client;
 
+import com.google.gson.JsonObject;
 import com.onepercentgrowth.local_to_smartapi.exceptions.AuthExpiredException;
+import com.onepercentgrowth.local_to_smartapi.historicdata.HistoricalDataResponse;
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
@@ -495,72 +497,268 @@ public class BrokerApiClient {
 //                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
 //    }
 
+//    public Mono<OrderResponse> chartinkPlaceOrder(IOrderRequest orderRequest, String authToken) {
+//
+////        log.info("Placing order: {}", orderRequest);
+//        log.info("Placing order Request Body JSON: {}", new ObjectMapper().writeValueAsString(orderRequest));
+//
+////        return brokerWebClient.post()
+//        return proxyClient.post()
+//                .uri("/rest/secure/angelbroking/order/v1/placeOrder")
+//                .header("Authorization", "Bearer " + authToken)
+//                .header("Content-Type", "application/json")
+//                .header("Accept", "application/json")
+//                .header("X-UserType", angelConfig.getUserType())
+//                .header("X-SourceID", angelConfig.getSourceId())
+//                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+//                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+//                .header("X-MACAddress", angelConfig.getClientMacAddress())
+//                .header("X-PrivateKey", angelConfig.getPrivateKey())
+//                .bodyValue(orderRequest)
+////                .retrieve()
+////                .bodyToMono(OrderResponse.class)
+////                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+////                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+//
+//                .exchangeToMono(response ->
+//                        response.bodyToMono(String.class)
+//                                .doOnNext(body -> log.info("Raw Response: {}", body))
+//                                .flatMap(body -> {
+//                                    try {
+//                                        return Mono.just(new ObjectMapper().readValue(body, OrderResponse.class));
+//                                    } catch (Exception e) {
+//                                        log.error("Parsing failed. Raw response: {}", body, e);
+//                                        return Mono.error(e);
+//                                    }
+//                                })
+//                );
+//    }
+
     public Mono<OrderResponse> chartinkPlaceOrder(IOrderRequest orderRequest, String authToken) {
 
-        log.info("Placing order: {}", orderRequest);
+        ObjectMapper mapper = new ObjectMapper();
 
-//        return brokerWebClient.post()
+        try {
+            String requestJson = mapper.writeValueAsString(orderRequest);
+            log.info("Placing order Request Body JSON: {}", requestJson);
+        } catch (Exception e) {
+            log.warn("Failed to serialize request body", e);
+        }
+
         return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/placeOrder")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .headers(headers -> {
+                    headers.set("Authorization", "Bearer " + authToken);
+                    headers.set("Content-Type", "application/json");
+                    headers.set("Accept", "application/json");
+                    headers.set("X-UserType", angelConfig.getUserType());
+                    headers.set("X-SourceID", angelConfig.getSourceId());
+                    headers.set("X-ClientLocalIP", angelConfig.getClientLocalIp());
+                    headers.set("X-ClientPublicIP", angelConfig.getClientPublicIp());
+                    headers.set("X-MACAddress", angelConfig.getClientMacAddress());
+                    headers.set("X-PrivateKey", angelConfig.getPrivateKey());
+
+                    // 🔥 Log request headers (mask sensitive ones)
+                    log.info("Request Headers: Authorization=Bearer ****, X-PrivateKey=****, Others={}",
+                            headers);
+                })
                 .bodyValue(orderRequest)
-                .retrieve()
-                .bodyToMono(OrderResponse.class)
-                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .exchangeToMono(response -> {
+
+                    // 🔥 Log response status
+                    log.info("Response Status: {}", response.statusCode());
+
+                    // 🔥 Log response headers
+                    log.info("Response Headers: {}", response.headers().asHttpHeaders());
+
+                    return response.bodyToMono(String.class)
+                            .doOnNext(body -> log.info("Raw Response Body: {}", body))
+                            .flatMap(body -> {
+                                try {
+                                    OrderResponse resp = mapper.readValue(body, OrderResponse.class);
+                                    return Mono.just(resp);
+                                } catch (Exception e) {
+                                    log.error("Parsing failed. Raw response: {}", body, e);
+                                    return Mono.error(e);
+                                }
+                            });
+                })
                 .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
     }
 
+//    public Mono<OrderResponse> chartinkModifyOrder(IOrderRequest orderRequest, String authToken) {
+//
+////        log.info("Modifying order: {}", orderRequest);
+//        log.info("Modifying order Request Body JSON: {}", new ObjectMapper().writeValueAsString(orderRequest));
+//
+////        return brokerWebClient.post()
+//        return proxyClient.post()
+//                .uri("/rest/secure/angelbroking/order/v1/modifyOrder")
+//                .header("Authorization", "Bearer " + authToken)
+//                .header("Content-Type", "application/json")
+//                .header("Accept", "application/json")
+//                .header("X-UserType", angelConfig.getUserType())
+//                .header("X-SourceID", angelConfig.getSourceId())
+//                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+//                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+//                .header("X-MACAddress", angelConfig.getClientMacAddress())
+//                .header("X-PrivateKey", angelConfig.getPrivateKey())
+//                .bodyValue(orderRequest)
+////                .retrieve()
+////                .bodyToMono(OrderResponse.class)
+////                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+////                .doOnError(err -> log.error("Error Modifying order: {}", err.getMessage(), err));
+//                .exchangeToMono(response ->
+//                        response.bodyToMono(String.class)
+//                                .doOnNext(body -> log.info("Raw Response: {}", body))
+//                                .flatMap(body -> {
+//                                    try {
+//                                        return Mono.just(new ObjectMapper().readValue(body, OrderResponse.class));
+//                                    } catch (Exception e) {
+//                                        log.error("Parsing failed. Raw response: {}", body, e);
+//                                        return Mono.error(e);
+//                                    }
+//                                })
+//                );
+//    }
+//
+//    public Mono<OrderResponse> chartinkCancelOrder(IOrderRequest cancelOrderRequest, String authToken) {
+//
+////        log.info("Cancelling order: {}", cancelOrderRequest);
+//        log.info("Cancelling order Request Body JSON: {}", new ObjectMapper().writeValueAsString(cancelOrderRequest));
+//
+////        return brokerWebClient.post()
+//        return proxyClient.post()
+//                .uri("/rest/secure/angelbroking/order/v1/cancelOrder")
+//                .header("Authorization", "Bearer " + authToken)
+//                .header("Content-Type", "application/json")
+//                .header("Accept", "application/json")
+//                .header("X-UserType", angelConfig.getUserType())
+//                .header("X-SourceID", angelConfig.getSourceId())
+//                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+//                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+//                .header("X-MACAddress", angelConfig.getClientMacAddress())
+//                .header("X-PrivateKey", angelConfig.getPrivateKey())
+//                .bodyValue(cancelOrderRequest)
+////                .retrieve()
+////                .bodyToMono(OrderResponse.class)
+////                .doOnSuccess(resp -> log.info("Cancel Order Response: {}", resp))
+////                .doOnError(err -> log.error("Error cancelling order: {}", err.getMessage(), err));
+//                .exchangeToMono(response ->
+//                        response.bodyToMono(String.class)
+//                                .doOnNext(body -> log.info("Raw Response: {}", body))
+//                                .flatMap(body -> {
+//                                    try {
+//                                        return Mono.just(new ObjectMapper().readValue(body, OrderResponse.class));
+//                                    } catch (Exception e) {
+//                                        log.error("Parsing failed. Raw response: {}", body, e);
+//                                        return Mono.error(e);
+//                                    }
+//                                })
+//                );
+//    }
+
     public Mono<OrderResponse> chartinkModifyOrder(IOrderRequest orderRequest, String authToken) {
 
-        log.info("Modifying order: {}", orderRequest);
+        ObjectMapper mapper = new ObjectMapper();
 
-//        return brokerWebClient.post()
+        try {
+            String requestJson = mapper.writeValueAsString(orderRequest);
+            log.info("Modifying order Request Body JSON: {}", requestJson);
+        } catch (Exception e) {
+            log.warn("Failed to serialize modify request", e);
+        }
+
         return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/modifyOrder")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .headers(headers -> {
+                    headers.set("Authorization", "Bearer " + authToken);
+                    headers.set("Content-Type", "application/json");
+                    headers.set("Accept", "application/json");
+                    headers.set("X-UserType", angelConfig.getUserType());
+                    headers.set("X-SourceID", angelConfig.getSourceId());
+                    headers.set("X-ClientLocalIP", angelConfig.getClientLocalIp());
+                    headers.set("X-ClientPublicIP", angelConfig.getClientPublicIp());
+                    headers.set("X-MACAddress", angelConfig.getClientMacAddress());
+                    headers.set("X-PrivateKey", angelConfig.getPrivateKey());
+
+                    // Mask sensitive headers
+                    HttpHeaders safeHeaders = new HttpHeaders();
+                    safeHeaders.putAll(headers);
+                    safeHeaders.set("Authorization", "Bearer ****");
+                    safeHeaders.set("X-PrivateKey", "****");
+
+                    log.info("Modify Request Headers: {}", safeHeaders);
+                })
                 .bodyValue(orderRequest)
-                .retrieve()
-                .bodyToMono(OrderResponse.class)
-                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
-                .doOnError(err -> log.error("Error Modifying order: {}", err.getMessage(), err));
+                .exchangeToMono(response -> {
+
+                    log.info("Modify Response Status: {}", response.statusCode());
+                    log.info("Modify Response Headers: {}", response.headers().asHttpHeaders());
+
+                    return response.bodyToMono(String.class)
+                            .doOnNext(body -> log.info("Modify Raw Response Body: {}", body))
+                            .flatMap(body -> {
+                                try {
+                                    return Mono.just(mapper.readValue(body, OrderResponse.class));
+                                } catch (Exception e) {
+                                    log.error("Modify parsing failed. Raw response: {}", body, e);
+                                    return Mono.error(e);
+                                }
+                            });
+                })
+                .doOnError(err -> log.error("Error modifying order: {}", err.getMessage(), err));
     }
 
     public Mono<OrderResponse> chartinkCancelOrder(IOrderRequest cancelOrderRequest, String authToken) {
 
-        log.info("Cancelling order: {}", cancelOrderRequest);
+        ObjectMapper mapper = new ObjectMapper();
 
-//        return brokerWebClient.post()
+        try {
+            String requestJson = mapper.writeValueAsString(cancelOrderRequest);
+            log.info("Cancelling order Request Body JSON: {}", requestJson);
+        } catch (Exception e) {
+            log.warn("Failed to serialize cancel request", e);
+        }
+
         return proxyClient.post()
                 .uri("/rest/secure/angelbroking/order/v1/cancelOrder")
-                .header("Authorization", "Bearer " + authToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("X-UserType", angelConfig.getUserType())
-                .header("X-SourceID", angelConfig.getSourceId())
-                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
-                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
-                .header("X-MACAddress", angelConfig.getClientMacAddress())
-                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .headers(headers -> {
+                    headers.set("Authorization", "Bearer " + authToken);
+                    headers.set("Content-Type", "application/json");
+                    headers.set("Accept", "application/json");
+                    headers.set("X-UserType", angelConfig.getUserType());
+                    headers.set("X-SourceID", angelConfig.getSourceId());
+                    headers.set("X-ClientLocalIP", angelConfig.getClientLocalIp());
+                    headers.set("X-ClientPublicIP", angelConfig.getClientPublicIp());
+                    headers.set("X-MACAddress", angelConfig.getClientMacAddress());
+                    headers.set("X-PrivateKey", angelConfig.getPrivateKey());
+
+                    // Mask sensitive headers
+                    HttpHeaders safeHeaders = new HttpHeaders();
+                    safeHeaders.putAll(headers);
+                    safeHeaders.set("Authorization", "Bearer ****");
+                    safeHeaders.set("X-PrivateKey", "****");
+
+                    log.info("Cancel Request Headers: {}", safeHeaders);
+                })
                 .bodyValue(cancelOrderRequest)
-                .retrieve()
-                .bodyToMono(OrderResponse.class)
-                .doOnSuccess(resp -> log.info("Cancel Order Response: {}", resp))
+                .exchangeToMono(response -> {
+
+                    log.info("Cancel Response Status: {}", response.statusCode());
+                    log.info("Cancel Response Headers: {}", response.headers().asHttpHeaders());
+
+                    return response.bodyToMono(String.class)
+                            .doOnNext(body -> log.info("Cancel Raw Response Body: {}", body))
+                            .flatMap(body -> {
+                                try {
+                                    return Mono.just(mapper.readValue(body, OrderResponse.class));
+                                } catch (Exception e) {
+                                    log.error("Cancel parsing failed. Raw response: {}", body, e);
+                                    return Mono.error(e);
+                                }
+                            });
+                })
                 .doOnError(err -> log.error("Error cancelling order: {}", err.getMessage(), err));
     }
 
@@ -668,4 +866,76 @@ public class BrokerApiClient {
                     return new MarketQuote(ltp, bestBid, bestAsk);
                 });
     }
+
+    public Mono<HistoricalDataResponse> getHistoricalCandleData(
+            JsonObject request, String authToken
+    ) {
+
+        log.info("Calling Historical Candle API request: {}", request);
+
+        return directClient.post()
+                .uri("/rest/secure/angelbroking/historical/v1/getCandleData")
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("X-UserType", angelConfig.getUserType())
+                .header("X-SourceID", angelConfig.getSourceId())
+                .header("X-ClientLocalIP", angelConfig.getClientLocalIp())
+                .header("X-ClientPublicIP", angelConfig.getClientPublicIp())
+                .header("X-MACAddress", angelConfig.getClientMacAddress())
+                .header("X-PrivateKey", angelConfig.getPrivateKey())
+                .bodyValue(request.toString()) // ✅ IMPORTANT: don't use toString() if it's a POJO
+//                .exchangeToMono(response -> {
+//
+//                    // ✅ Log status + headers
+//                    log.info("Status Code: {}", response.statusCode());
+//                    log.info("Response Headers: {}", response.headers().asHttpHeaders());
+//
+//                    return response.bodyToMono(String.class)
+//                            .flatMap(body -> {
+//                                // ✅ Log raw response
+//                                log.info("RAW RESPONSE: {}", body);
+//
+//                                try {
+//                                    ObjectMapper mapper = new ObjectMapper();
+//                                    HistoricalDataResponse parsed =
+//                                            mapper.readValue(body, HistoricalDataResponse.class);
+//
+//                                    return Mono.just(parsed);
+//
+//                                } catch (Exception e) {
+//                                    log.error("Failed to parse response. Body was: {}", body, e);
+//                                    return Mono.error(new RuntimeException("Invalid JSON response"));
+//                                }
+//                            });
+//                })
+//                .doOnError(err ->
+//                        log.error("Historical API failed for request={}", request, err)
+//                );
+                .retrieve()
+                .bodyToMono(HistoricalDataResponse.class)
+//                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+    }
+
+//    private Mono<OrderResponse> handleResponse(ClientResponse response) {
+//        return response.bodyToMono(String.class)
+//                .doOnNext(body -> log.info("Raw Response: {}", body))
+//                .flatMap(body -> {
+//                    try {
+//                        ObjectMapper mapper = new ObjectMapper();
+//
+//                        // Optional: handle "" → null globally
+//                        mapper.coercionConfigFor(LogicalType.POJO)
+//                                .setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
+//
+//                        OrderResponse resp = mapper.readValue(body, OrderResponse.class);
+//                        return Mono.just(resp);
+//
+//                    } catch (Exception e) {
+//                        log.error("Parsing failed. Raw response: {}", body, e);
+//                        return Mono.error(e);
+//                    }
+//                });
+//    }
 }

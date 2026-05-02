@@ -27,4 +27,3 @@ public class OrderEventQueue {
         return queue.take(); // blocks if empty
     }
 }
-

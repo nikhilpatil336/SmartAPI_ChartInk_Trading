@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.websocket;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
@@ -13,8 +14,9 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Profile("prod")
 @Component
-public class OrderWebSocketConnector {
+public class OrderWebSocketConnector implements IOrderWebSocketConnector{
 
     private static final Logger log = LoggerFactory.getLogger(OrderWebSocketConnector.class);
 
@@ -73,6 +75,11 @@ public class OrderWebSocketConnector {
 
     public void connectWithAuth(String jwt, String apiKey, String clientCode) {
 
+        if (connected) {
+            log.warn("⚠ Already connected. Skipping new connection attempt.");
+            return;
+        }
+
         log.info("Attempting WebSocket connection... Attempt: {}", retryCount.get() + 1);
 
         HttpHeaders headers = new HttpHeaders();
@@ -96,9 +103,17 @@ public class OrderWebSocketConnector {
                                         log.error("❌ WebSocket runtime error", ex);
                                         scheduleReconnect(apiKey, clientCode);
                                     })
+//                                    .doFinally(signal -> {
+//                                        connected = false;
+//                                        log.warn("⚠ WebSocket session ended: {}", signal);
+//                                    });
+
                                     .doFinally(signal -> {
                                         connected = false;
                                         log.warn("⚠ WebSocket session ended: {}", signal);
+
+                                        // 🔥 THIS IS WHAT YOU WERE MISSING
+                                        scheduleReconnect(apiKey, clientCode);
                                     });
                         }
                 )
@@ -134,9 +149,11 @@ public class OrderWebSocketConnector {
             return;
         }
 
-        log.info("🔁 Reconnecting in {} ms (Attempt {})", retryDelayMs, retryCount.get());
+        long delay = Math.min(retryDelayMs * retryCount.get(), 60000);
 
-        Mono.delay(Duration.ofMillis(retryDelayMs))
+        log.info("🔁 Reconnecting in {} ms (Attempt {})", delay, retryCount.get());
+
+        Mono.delay(Duration.ofMillis(delay))
                 .flatMap(i -> tokenManager.getValidJwtTokenAsync())
                 .doOnNext(newJwt -> {
                     log.info("🔐 Refreshed JWT for reconnect");
@@ -152,7 +169,11 @@ public class OrderWebSocketConnector {
             return;
         }
 
-        Mono.delay(Duration.ofMillis(retryDelayMs))
+        long delay = Math.min(retryDelayMs * retryCount.get(), 60000);
+
+        log.info("🔁 Reconnecting in {} ms (Attempt {})", delay, retryCount.get());
+
+        Mono.delay(Duration.ofMillis(delay))
                 .flatMap(i -> tokenManager.getValidJwtTokenAsync())
                 .doOnNext(newJwt -> {
                     log.info("🔐 Refreshed JWT for reconnect");

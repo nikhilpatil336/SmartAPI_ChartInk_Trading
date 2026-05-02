@@ -3,6 +3,7 @@ package com.onepercentgrowth.local_to_smartapi.service;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.websocket.IOrderWebSocketConnector;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusWebSocketHandler;
 import com.onepercentgrowth.local_to_smartapi.websocket.WebSocketClientConfig;
 import org.slf4j.Logger;
@@ -152,12 +153,13 @@ public class OrderStatusWebSocketService {
 
     private final TokenManager tokenManager;
     private final AngelApiProperties angelApiProperties;
-    private final OrderWebSocketConnector connector;
+//    private final OrderWebSocketConnector connector;
+private final IOrderWebSocketConnector connector;
 
     public OrderStatusWebSocketService(
             TokenManager tokenManager,
             AngelApiProperties angelApiProperties,
-            OrderWebSocketConnector connector
+            IOrderWebSocketConnector connector
     ) {
         this.tokenManager = tokenManager;
         this.angelApiProperties = angelApiProperties;

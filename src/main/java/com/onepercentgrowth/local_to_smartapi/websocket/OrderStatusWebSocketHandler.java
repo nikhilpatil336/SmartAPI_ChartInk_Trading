@@ -178,7 +178,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.*;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 @Component
 public class OrderStatusWebSocketHandler implements WebSocketHandler {
@@ -192,12 +195,53 @@ public class OrderStatusWebSocketHandler implements WebSocketHandler {
         this.eventQueue = eventQueue;
     }
 
+//    @Override
+//    public Mono<Void> handle(WebSocketSession session) {
+//
+//        log.info("Connected to Order Status WebSocket");
+//
+//        Flux<WebSocketMessage> heartbeat = Flux.interval(Duration.ofSeconds(10))
+//                .map(i -> session.textMessage("ping"));
+//
+//        return session.receive()
+//                .map(WebSocketMessage::getPayloadAsText)
+//                .doOnNext(payload -> {
+//
+//                    if ("pong".equalsIgnoreCase(payload)) return;
+//
+//                    log.info("WS payload: {}", payload);
+//
+//                    try {
+//                        OrderStatusResponse response =
+//                                mapper.readValue(payload, OrderStatusResponse.class);
+//
+//                        if ("AB00".equals(response.getOrderStatus())) {
+//                            log.info("Order WS authenticated");
+//                            return;
+//                        }
+//
+//                        if (response.getOrderStatusData() != null) {
+//                            eventQueue.publish(response);
+//                        }
+//
+//                    } catch (Exception e) {
+//                        log.error("Failed to parse WS message", e);
+//                    }
+//                })
+//                .then();
+//    }
+
     @Override
     public Mono<Void> handle(WebSocketSession session) {
 
         log.info("Connected to Order Status WebSocket");
 
-        return session.receive()
+        // ✅ HEARTBEAT (CRITICAL)
+        Flux<WebSocketMessage> heartbeat = Flux.interval(Duration.ofSeconds(10))
+                .map(i -> session.textMessage("ping"));
+
+        // ✅ RECEIVE STREAM
+        Mono<Void> receive = session.receive()
                 .map(WebSocketMessage::getPayloadAsText)
                 .doOnNext(payload -> {
 
@@ -223,5 +267,9 @@ public class OrderStatusWebSocketHandler implements WebSocketHandler {
                     }
                 })
                 .then();
+
+        // ✅ SEND HEARTBEAT + RECEIVE
+        return session.send(heartbeat)
+                .and(receive);
     }
 }

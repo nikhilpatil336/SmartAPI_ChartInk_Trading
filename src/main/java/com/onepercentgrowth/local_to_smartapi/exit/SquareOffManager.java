@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.exit;
 
+import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import com.onepercentgrowth.local_to_smartapi.execution.OrderActionExecutor;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.model.TradeBookEntry;
@@ -136,7 +137,15 @@ public class SquareOffManager {
                     int sellFilled = getFilledQty(trades, ctx.getSellOrderId());
                     int slFilled = getFilledQty(trades, ctx.getStopLossOrderId());
 
-                    int netQty = buyFilled - sellFilled - slFilled;
+//                    int netQty = buyFilled - sellFilled - slFilled;
+
+                    int netQty;
+
+                    if (ctx.getPositionSide() == PositionSide.LONG) {
+                        netQty = buyFilled - sellFilled - slFilled;
+                    } else {
+                        netQty = sellFilled - buyFilled - slFilled;
+                    }
 
                     if (netQty <= 0) {
                         log.info("SquareOff skipped | symbol={} | no open position",
