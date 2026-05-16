@@ -116,7 +116,7 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(LoginResponse.class)
                 .doOnError(err ->
-                        log.error("Angel login API failed", err)
+                        log.error("Angel login API failed | error: {}", err.getMessage())
                 );
     }
 
@@ -142,7 +142,7 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(LoginResponse.class)
                 .doOnError(err ->
-                        log.error("Angel token refresh API failed", err)
+                        log.error("Angel token refresh API failed | error: {}", err.getMessage())
                 );
     }
 
@@ -168,7 +168,7 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(LoginResponse.class)
                 .doOnSuccess(resp -> log.info("GenerateTokens Response: {}", resp))
-                .doOnError(err -> log.error("Error generating JWT Tokens: {}", err.getMessage(), err));
+                .doOnError(err -> log.error("Error generating JWT Tokens: {}", err.getMessage()));
     }
 
     public int generateTotp(String secret) {
@@ -208,7 +208,7 @@ public class BrokerApiClient {
                 .retrieve()
                 .bodyToMono(LoginResponse.class)
                 .doOnSuccess(resp -> log.info("Logout Response: {}", resp))
-                .doOnError(err -> log.error("Logout failed: {}", err.getMessage(), err));
+                .doOnError(err -> log.error("Logout failed: {}", err.getMessage()));
     }
 
 
@@ -253,7 +253,7 @@ public class BrokerApiClient {
                     log.info("Total entries received: {}", list.size());
                 })
                 .doOnError(err -> {
-                    log.error("Error while downloading ScripMaster: {}", err.getMessage(), err);
+                    log.error("Error while downloading ScripMaster: {}", err.getMessage());
                 });
     }
 
@@ -293,7 +293,7 @@ public class BrokerApiClient {
                 })
                 .doOnComplete(() -> log.info("ScripMaster STREAM completed"))
                 .doOnError(err ->
-                        log.error("Error during ScripMaster STREAM", err)
+                        log.error("Error during ScripMaster STREAM | error: {}", err.getMessage())
                 );
     }
 
@@ -745,8 +745,7 @@ public class BrokerApiClient {
                 .bodyValue(cancelOrderRequest)
                 .exchangeToMono(response -> {
 
-                    log.info("Cancel Response Status: {}", response.statusCode());
-                    log.info("Cancel Response Headers: {}", response.headers().asHttpHeaders());
+                    log.info("Cancel Response Status: {} | Cancel Response Headers: {}", response.statusCode(), response.headers().asHttpHeaders());
 
                     return response.bodyToMono(String.class)
                             .doOnNext(body -> log.info("Cancel Raw Response Body: {}", body))
@@ -914,8 +913,8 @@ public class BrokerApiClient {
 //                );
                 .retrieve()
                 .bodyToMono(HistoricalDataResponse.class)
-//                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
-                .doOnError(err -> log.error("Error placing order: {}", err.getMessage(), err));
+                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .doOnError(err -> log.error("Error placing order: {}", err.getMessage()));
     }
 
 //    private Mono<OrderResponse> handleResponse(ClientResponse response) {

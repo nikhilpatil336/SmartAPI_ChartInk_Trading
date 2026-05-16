@@ -17,8 +17,8 @@ public class RejectedOrderHandler implements IOrderStatusHandler {
 
     @Override
     public void handle(OrderStatusResponse response) {
-        log.error("Order Rejected: " +
-                response.getErrorMessage());
+        log.error("Order ID: {} got rejected for stock: {} for reason: {}", response.getOrderStatusData().getOrderid(),
+                response.getOrderStatusData().getTradingsymbol(), response.getErrorMessage());
     }
 }
 

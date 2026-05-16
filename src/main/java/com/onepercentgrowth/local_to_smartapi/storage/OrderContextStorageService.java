@@ -131,7 +131,7 @@ public class OrderContextStorageService {
             log.info("OrderContext saved: {}", file.getAbsolutePath());
 
         } catch (Exception e) {
-            log.error("Failed to save OrderContext", e);
+            log.error("Failed to save OrderContext | error: {}", e.getMessage());
         }
     }
 
@@ -163,7 +163,7 @@ public class OrderContextStorageService {
             log.info("OrderContext loaded successfully from {}", file.getAbsolutePath());
 
         } catch (Exception e) {
-            log.error("Failed to load OrderContext", e);
+            log.error("Failed to load OrderContext | error: {}", e.getMessage());
         }
     }
 
@@ -195,7 +195,7 @@ public class OrderContextStorageService {
             log.info("OrderContext loaded from {}", file.getAbsolutePath());
 
         } catch (Exception e) {
-            log.error("Failed to load OrderContext", e);
+            log.error("Failed to load OrderContext | error: {}", e.getMessage());
         }
     }
 
@@ -223,7 +223,7 @@ public class OrderContextStorageService {
                     .orElse(null);
 
         } catch (Exception e) {
-            log.error("Failed to get latest OrderContext file", e);
+            log.error("Failed to get latest OrderContext file | error: {}", e.getMessage());
             return null;
         }
     }

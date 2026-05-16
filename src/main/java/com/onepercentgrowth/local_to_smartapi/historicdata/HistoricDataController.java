@@ -34,7 +34,7 @@ public class HistoricDataController {
         );
     }
 
-    @PostMapping("/process-excel")
+    @GetMapping("/process-excel")
     public String processExcel() {
         try {
             service.processExcelAndWriteBack();

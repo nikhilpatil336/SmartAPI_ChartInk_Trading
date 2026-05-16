@@ -34,7 +34,7 @@ public class OrderContextPersistenceScheduler {
             storageService.saveToday();
 
         } catch (Exception e) {
-            log.error("❌ Failed to persist OrderContexts", e);
+            log.error("❌ Failed to persist OrderContexts | error: {}", e.getMessage());
         }
     }
 }

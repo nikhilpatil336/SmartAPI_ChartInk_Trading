@@ -127,6 +127,8 @@ public class AggressiveExitManager {
 //        ctx.setExitInProgress(true);
 //        ctx.endExit();
 
+        log.info("placing aggressive exit for buyID: {}, sellID: {} and SL ID: {}", ctx.getBuyOrderId(), ctx.getSellOrderId(), ctx.getStopLossOrderId());
+
         int maxAttempts = applicationProperties.getExitMaxAttempt();
 
         AtomicInteger remainingQty = new AtomicInteger(quantity);

@@ -1,5 +1,8 @@
 package com.onepercentgrowth.local_to_smartapi.historicdata;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+
 public class Candle {
     private String timestamp;
     private double open;
@@ -7,6 +10,8 @@ public class Candle {
     private double low;
     private double close;
     private long volume;
+
+    private LocalDateTime time;
 
     public String getTimestamp() {
         return timestamp;
@@ -54,6 +59,13 @@ public class Candle {
 
     public void setVolume(long volume) {
         this.volume = volume;
+    }
+
+    public LocalDateTime getTime() {
+        if (time == null && timestamp != null) {
+            time = OffsetDateTime.parse(timestamp).toLocalDateTime();
+        }
+        return time;
     }
 
     @Override

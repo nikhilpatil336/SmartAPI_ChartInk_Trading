@@ -228,7 +228,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
                         .onErrorResume(e -> {
                             failed.set(true);
                             ctx.markInconsistent();
-                            log.error("Failed to cancel LONG SL - marking inconsistent | orderId={}", slOrderId, e);
+                            log.error("Failed to cancel LONG SL - marking inconsistent | orderId={} | error: {}", slOrderId, e.getMessage());
                             return Mono.empty();
                         })
                         .then();
@@ -278,7 +278,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 
                         return balanceMono
                                 .onErrorResume(e -> {
-                                    log.error("Balance update failed", e);
+                                    log.error("Balance update failed | error: {}", e.getMessage());
                                     return Mono.empty();
                                 });
                     }));

@@ -135,7 +135,11 @@ public class OrderEventDispatcher {
         try {
             handler.handle(event);
         } catch (Exception e) {
-            log.error("Handler failed for status: {} due to error", status, e);
+            log.error("Handler failed for status: {} | error: {}", status, e.getMessage());
         }
+    }
+
+    public void dispatchDirectly(OrderStatusResponse event) {
+        process(event);
     }
 }

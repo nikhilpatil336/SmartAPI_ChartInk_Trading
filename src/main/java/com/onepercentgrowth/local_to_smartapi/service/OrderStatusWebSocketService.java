@@ -183,7 +183,7 @@ private final IOrderWebSocketConnector connector;
 
                 })
                 .doOnError(e ->
-                        log.error("❌ WebSocket NOT started due to auth failure", e)
+                        log.error("❌ WebSocket NOT started due to auth failure | error: {}", e.getMessage())
                 )
                 .subscribe();
     }

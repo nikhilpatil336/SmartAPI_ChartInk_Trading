@@ -722,7 +722,7 @@ public class OrderService {
                         log.info("Service: Order status fetched successfully for orderId={}", orderId)
                 )
                 .doOnError(err ->
-                        log.error("Service: Failed to fetch order status for orderId={}", orderId, err)
+                        log.error("Service: Failed to fetch order status for orderId={} | error: {}", orderId, err.getMessage())
                 );
     }
 

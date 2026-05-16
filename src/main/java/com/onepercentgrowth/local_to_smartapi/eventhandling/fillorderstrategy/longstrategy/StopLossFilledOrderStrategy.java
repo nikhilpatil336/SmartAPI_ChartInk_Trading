@@ -219,7 +219,7 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
                         .onErrorResume(e -> {
                             failed.set(true);
                             ctx.markInconsistent();
-                            log.error("Failed to cancel BUY - marking inconsistent | orderId={}", sellOrderId, e);
+                            log.error("Failed to cancel BUY - marking inconsistent | orderId={} | error: {}", sellOrderId, e.getMessage());
                             return Mono.empty();
                         })
                         .then();
@@ -264,7 +264,7 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
 
                         return balanceMono
                                 .onErrorResume(e -> {
-                                    log.error("Balance update failed", e);
+                                    log.error("Balance update failed | error: {}", e.getMessage());
                                     return Mono.empty();
                                 });
                     }));

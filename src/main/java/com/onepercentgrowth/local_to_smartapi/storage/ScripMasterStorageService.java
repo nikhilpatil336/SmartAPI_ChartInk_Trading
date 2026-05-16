@@ -49,7 +49,7 @@ public class ScripMasterStorageService {
             log.info("ScripMaster saved to {} and the last update date is {}", applicationProperties.getScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
-            log.error("Failed to save ScripMaster file: {}", e.getMessage(), e);
+            log.error("Failed to save ScripMaster file: {}", e.getMessage());
         }
     }
 
@@ -69,7 +69,7 @@ public class ScripMasterStorageService {
             log.info("ScripMaster saved to {} and last update date is {}", applicationProperties.getFilteredScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
-            log.error("Failed to save ScripMaster file: {}", e.getMessage(), e);
+            log.error("Failed to save ScripMaster file: {}", e.getMessage());
         }
     }
 
@@ -90,7 +90,7 @@ public class ScripMasterStorageService {
             log.info("ScripMaster loaded from {}", applicationProperties.getScripmasterFilePath());
 
         } catch (Exception e) {
-            log.error("Failed to load ScripMaster file: {}", e.getMessage(), e);
+            log.error("Failed to load ScripMaster file: {}", e.getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ public class ScripMasterStorageService {
                     applicationProperties.getFilteredScripmasterFilePath(), this.lastUpdatedEpoch);
 
         } catch (Exception e) {
-            log.error("Failed to load Filtered ScripMaster file: {}", e.getMessage(), e);
+            log.error("Failed to load Filtered ScripMaster file: {}", e.getMessage());
         }
     }
 
@@ -149,7 +149,7 @@ public class ScripMasterStorageService {
 
             log.info("Saved FNO universe and last updated date is {}", System.currentTimeMillis()) ;
         } catch (Exception e) {
-            log.error("Failed to save FNO universe", e);
+            log.error("Failed to save FNO universe | error: {}", e.getMessage());
         }
     }
 
@@ -162,7 +162,7 @@ public class ScripMasterStorageService {
                     objectMapper.readValue(file, FnoUniverseModel.class);
             return model.items();
         } catch (Exception e) {
-            log.error("Failed to load FNO universe", e);
+            log.error("Failed to load FNO universe | error: {}", e.getMessage());
             return Set.of();
         }
     }

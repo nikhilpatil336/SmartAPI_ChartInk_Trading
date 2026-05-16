@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.eventhandling.orderstatushandler;
 
+import com.onepercentgrowth.local_to_smartapi.eventhandling.PendingOrderEventStore;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.websocket.OrderStatusResponse;
@@ -16,10 +17,16 @@ public class FilledOrderHandler implements IOrderStatusHandler {
 
     private final OrderRegistry orderRegistry;
     private final List<IFillOrderStrategy> strategies;
+    private final PendingOrderEventStore pendingOrderEventStore;
 
-    public FilledOrderHandler(OrderRegistry orderRegistry, List<IFillOrderStrategy> strategies) {
+    public FilledOrderHandler(
+            OrderRegistry orderRegistry,
+            List<IFillOrderStrategy> strategies,
+            PendingOrderEventStore pendingOrderEventStore
+    ) {
         this.orderRegistry = orderRegistry;
         this.strategies = strategies;
+        this.pendingOrderEventStore = pendingOrderEventStore;
     }
 
     @Override
@@ -63,14 +70,22 @@ public class FilledOrderHandler implements IOrderStatusHandler {
                             .ifPresent(strategy ->
                                             strategy.onFilled(ctx, response)
                                                     .doOnError(e ->
-                                                            log.error("Error processing FILLED event | orderId={}",
-                                                                    orderId, e)
+                                                            log.error("Error processing FILLED event | orderId={} | error: {}",
+                                                                    orderId, e.getMessage())
                                                     )
                                                     .subscribe() // 🔥 REQUIRED
     //                                            .block()
                             );
 
-                }, () -> log.warn("OPEN event ignored, no context for orderId={}", orderId));
+                },
+//                        () -> log.warn("OPEN event ignored, no context for orderId={}", orderId));
+                        () -> {
+
+                            pendingOrderEventStore.add(orderId, response);
+
+                            log.warn("Context missing, buffering event | orderId={}",
+                                    orderId);
+                        });
     }
 }
 

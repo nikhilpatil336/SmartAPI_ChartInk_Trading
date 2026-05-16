@@ -553,14 +553,14 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
             Mono<Void> sellSafe = sellMono.onErrorResume(e -> {
                 failed.set(true);
                 ctx.markInconsistent();
-                log.error("LONG SELL failed - marking inconsistent", e);
+                log.error("LONG SELL failed - marking inconsistent | error: {}", e.getMessage());
                 return Mono.empty();
             });
 
             Mono<Void> slSafe = slMono.onErrorResume(e -> {
                 failed.set(true);
                 ctx.markInconsistent();
-                log.error("LONG SL failed - marking inconsistent", e);
+                log.error("LONG SL failed - marking inconsistent | error: {}", e.getMessage());
                 return Mono.empty();
             });
 
@@ -591,7 +591,7 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
                         return balanceMono
                                 .onErrorResume(e -> {
-                                    log.error("Balance update failed", e);
+                                    log.error("Balance update failed | error: {}", e.getMessage());
                                     return Mono.empty();
                                 });
                     }));

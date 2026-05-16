@@ -37,23 +37,25 @@ public class EODSquareOffScheduler {
     @Scheduled(cron = "${myapp.squareoff-cron}", zone = "${myapp.squareoff-zone}")
     public void runSquareOff() {
         log.info("==========================================================================================");
-        log.info("Square off started");
+        log.info("Square off started for buy context");
 
         registry.getAllBuyContexts()
                 .flatMap(ctx ->
                         squareOffManager.squareOff(ctx)
                                 .onErrorResume(e -> {
-                                    log.error("SquareOff failed for {}", ctx.getTradingSymbol(), e);
+                                    log.error("SquareOff failed for {} | error: {}", ctx.getTradingSymbol(), e.getMessage());
                                     return Mono.empty();
                                 })
                 )
                 .subscribe();
 
+        log.info("Square off started for sell context");
+
         registry.getAllSellContexts()
                 .flatMap(ctx ->
                         squareOffManager.squareOff(ctx)
                                 .onErrorResume(e -> {
-                                    log.error("SquareOff failed for {}", ctx.getTradingSymbol(), e);
+                                    log.error("SquareOff failed for {} | error: {}", ctx.getTradingSymbol(), e.getMessage());
                                     return Mono.empty();
                                 })
                 )

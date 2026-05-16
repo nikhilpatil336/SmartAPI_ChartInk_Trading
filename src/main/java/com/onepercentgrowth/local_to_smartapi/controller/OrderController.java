@@ -116,5 +116,36 @@ public class OrderController {
     public Mono<JsonNode> getOrderStatus(@PathVariable String orderId) {
         return orderService.getOrderStatus(orderId);
     }
+
+    @PostMapping("/trade")
+    public Mono<OrderResponse> chartinkTradingOrder(
+            @RequestBody WebhookRequest webhookRequest) {
+
+        if (applicationProperties.isTradingWindowEnable()) {
+            LocalTime now = LocalTime.now(
+                    ZoneId.of(applicationProperties.getTradingWindowTimeZone())
+            );
+
+            if (now.isBefore(applicationProperties.getTradingWindowStartTime())
+                    || now.isAfter(applicationProperties.getTradingWindowEndTime())) {
+
+                return Mono.error(
+                        new ResponseStatusException(
+                                HttpStatus.FORBIDDEN,
+                                "Requests are allowed only between "
+                                        + applicationProperties.getTradingWindowStartTime()
+                                        + " and "
+                                        + applicationProperties.getTradingWindowEndTime()
+                        )
+                );
+            }
+        }
+
+//        log.info("Inside /trade endpoint");
+//        return orderService_v2.chartinkSimpleSellOrder(webhookRequest, TradingExchange.NSE.toString());
+        return orderService_v2.handleAlert(webhookRequest)
+                .switchIfEmpty(Mono.empty());
+    }
+
 }
 

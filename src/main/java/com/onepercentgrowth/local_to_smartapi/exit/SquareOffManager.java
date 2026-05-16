@@ -147,6 +147,10 @@ public class SquareOffManager {
                         netQty = sellFilled - buyFilled - slFilled;
                     }
 
+                    log.info("SquareOff Trade book fetched for the position side {} | buy order: {} quantity: {} | sell order: {} quantity: {}, " +
+                                    "SL order: {} quantity: {}, net quantity: {}", ctx.getPositionSide(), ctx.getBuyOrderId(), buyFilled, ctx.getSellOrderId(),
+                            sellFilled, ctx.getStopLossOrderId(), slFilled, netQty);
+
                     if (netQty <= 0) {
                         log.info("SquareOff skipped | symbol={} | no open position",
                                 ctx.getTradingSymbol());

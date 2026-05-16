@@ -59,7 +59,7 @@ public class TokenStorageService {
 
             log.info("Tokens written successfully to {}", applicationProperties.getTokenFilePath());
         } catch (Exception e) {
-            log.error("Failed to write tokens file: {}", e.getMessage(), e);
+            log.error("Failed to write tokens file: {}", e.getMessage());
         }
     }
 
@@ -80,7 +80,7 @@ public class TokenStorageService {
 
             log.info("Tokens loaded successfully from {}", applicationProperties.getTokenFilePath());
         } catch (Exception e) {
-            log.error("Failed to load tokens from file: {}", e.getMessage(), e);
+            log.error("Failed to load tokens from file: {}", e.getMessage());
         }
     }
 

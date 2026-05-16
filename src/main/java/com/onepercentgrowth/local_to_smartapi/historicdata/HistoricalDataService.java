@@ -83,7 +83,7 @@ public class HistoricalDataService {
         );
 
         // ✅ Step 3: Create range (previous + current day)
-        LocalDateTime from = target.minusDays(1).withHour(9).withMinute(15);
+        LocalDateTime from = target.minusDays(3).withHour(9).withMinute(15);
         LocalDateTime to = target.withHour(15).withMinute(30);
 
         JsonObject requestBody = new JsonObject();
@@ -503,7 +503,8 @@ public class HistoricalDataService {
 
 //            LocalDateTime from = target.minusDays(1).withHour(9).withMinute(15);
             LocalDateTime from = target.minusDays(3).withHour(9).withMinute(15);
-            LocalDateTime to = target.withHour(15).withMinute(30);
+//            LocalDateTime to = target.withHour(15).withMinute(30);
+            LocalDateTime to = target;
 
             JsonObject requestBody = new JsonObject();
             requestBody.addProperty("exchange", "NSE");

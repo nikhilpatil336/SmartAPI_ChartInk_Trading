@@ -170,7 +170,7 @@ public class TestController {
                                 resp.getData().getOrderid())
                 )
                 .doOnError(err ->
-                        log.error("SELL place/modify flow failed", err)
+                        log.error("SELL place/modify flow failed | error: {}", err.getMessage())
                 )
                 .onErrorResume(err -> Mono.empty())
                 .subscribe();
@@ -205,7 +205,7 @@ public class TestController {
             return ResponseEntity.ok("Webhook received successfully");
 
         } catch (Exception ex) {
-            log.error("❌ Error processing webhook", ex);
+            log.error("❌ Error processing webhook | error:{}", ex.getMessage());
             return ResponseEntity
                     .internalServerError()
                     .body("Error processing webhook");
@@ -238,7 +238,7 @@ public class TestController {
             return ResponseEntity.ok("Short Webhook received successfully");
 
         } catch (Exception ex) {
-            log.error("❌ Error processing SHORT webhook", ex);
+            log.error("❌ Error processing SHORT webhook | error: {}", ex.getMessage());
             return ResponseEntity
                     .internalServerError()
                     .body("Error processing SHORT webhook");

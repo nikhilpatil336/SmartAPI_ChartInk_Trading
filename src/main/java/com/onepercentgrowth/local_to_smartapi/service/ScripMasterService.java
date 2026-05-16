@@ -58,7 +58,7 @@ public class ScripMasterService {
                     this.rawScripList = list;
                     log.info("Successfully fetched raw ScripMaster list. Count={}", list.size());
                 })
-                .doOnError(err -> log.error("Error while downloading ScripMaster: {}", err.getMessage(), err))
+                .doOnError(err -> log.error("Error while downloading ScripMaster: {}", err.getMessage()))
                 .map(list -> {
                     log.info("Filtering only NSE symbols from ScripMaster...");
                     Map<String, String> result = filterOnlyEquityNse(list);

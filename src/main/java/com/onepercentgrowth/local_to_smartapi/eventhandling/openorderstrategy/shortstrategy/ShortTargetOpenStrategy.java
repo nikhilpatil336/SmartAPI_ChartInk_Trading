@@ -302,7 +302,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                         .onErrorResume(e -> {
                             failed.set(true);
                             ctx.markInconsistent();
-                            log.error("Failed to cancel SELL", e);
+                            log.error("Failed to cancel SELL | error:{}", e.getMessage());
                             return Mono.empty();
                         })
                         .then();
@@ -354,7 +354,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                 .onErrorResume(e -> {
                     failed.set(true);
                     ctx.markInconsistent();
-                    log.error("SL modify failed", e);
+                    log.error("SL modify failed | error: {}", e.getMessage());
                     return Mono.empty();
                 });
 
@@ -385,7 +385,7 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
 
                     return balanceMono
                             .onErrorResume(e -> {
-                                log.error("Balance update failed", e);
+                                log.error("Balance update failed | error: {}", e.getMessage());
                                 return Mono.empty();
                             });
                 }))

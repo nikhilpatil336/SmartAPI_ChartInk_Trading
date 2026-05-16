@@ -41,7 +41,7 @@ public class RmsStorageService {
             log.info("Saved RMS file and the last update date is {}", System.currentTimeMillis());
 
         } catch (Exception e) {
-            log.error("Failed to save RMS", e);
+            log.error("Failed to save RMS | error: {}", e.getMessage());
         }
     }
 

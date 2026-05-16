@@ -226,7 +226,7 @@ public class ApplicationStartupService {
                         log.info("Startup build complete");
 
                     })
-                    .doOnError(e -> log.error("Startup failed", e))
+                    .doOnError(e -> log.error("Startup failed | error: {}", e.getMessage()))
                     .subscribe();
         }
 

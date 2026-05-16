@@ -33,7 +33,7 @@ public class FnoUniverseStorageService {
             objectMapper.writeValue(file,
                     new FnoUniverseModel(fnoSet, System.currentTimeMillis()));
         } catch (Exception e) {
-            log.error("Failed to save FNO universe", e);
+            log.error("Failed to save FNO universe | error: {}", e.getMessage());
         }
     }
 
@@ -44,7 +44,7 @@ public class FnoUniverseStorageService {
         try {
             return objectMapper.readValue(file, FnoUniverseModel.class);
         } catch (Exception e) {
-            log.error("Failed to load FNO universe", e);
+            log.error("Failed to load FNO universe | error: {}", e.getMessage());
             return null;
         }
     }

@@ -62,6 +62,7 @@ public class ApplicationProperties {
     private int exitMaxAttempt;
     private double ticksizeToReduce;
     private int waitTimeBetweenPartialExits;
+    private int historicDataDays;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -471,6 +472,22 @@ public class ApplicationProperties {
         this.orderContextFilePath = orderContextFilePath;
     }
 
+    public int getWaitTimeBetweenPartialExits() {
+        return waitTimeBetweenPartialExits;
+    }
+
+    public void setWaitTimeBetweenPartialExits(int waitTimeBetweenPartialExits) {
+        this.waitTimeBetweenPartialExits = waitTimeBetweenPartialExits;
+    }
+
+    public int getHistoricDataDays() {
+        return historicDataDays;
+    }
+
+    public void setHistoricDataDays(int historicDataDays) {
+        this.historicDataDays = historicDataDays;
+    }
+
     @Override
     public String toString() {
         return "ApplicationProperties{" +
@@ -524,7 +541,8 @@ public class ApplicationProperties {
                 ", squareoffZone='" + squareoffZone + '\'' +
                 ", exitMaxAttempt=" + exitMaxAttempt +
                 ", ticksizeToReduce=" + ticksizeToReduce +
-                ", waitTimeBetweePartialExits=" + waitTimeBetweenPartialExits +
+                ", waitTimeBetweenPartialExits=" + waitTimeBetweenPartialExits +
+                ", historicDataDays=" + historicDataDays +
                 '}';
     }
 }

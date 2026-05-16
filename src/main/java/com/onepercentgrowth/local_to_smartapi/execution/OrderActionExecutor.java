@@ -39,7 +39,7 @@ public class OrderActionExecutor {
                 .doOnSuccess(resp ->
                         log.info("Order cancelled | orderId={}", orderId))
                 .doOnError(e ->
-                        log.error("Cancel failed | orderId={}", orderId, e))
+                        log.error("Cancel failed | orderId={} | error: {}", orderId, e.getMessage()))
                 .then();
     }
 

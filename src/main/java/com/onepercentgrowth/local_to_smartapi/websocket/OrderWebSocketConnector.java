@@ -119,12 +119,12 @@ public class OrderWebSocketConnector implements IOrderWebSocketConnector{
                 )
                 .doOnError(ex -> {
                     connected = false;
-                    log.error("❌ WebSocket connection failed", ex);
+                    log.error("❌ WebSocket connection failed", ex.getMessage());
                     scheduleReconnect(apiKey, clientCode);
                 })
                 .subscribe(
                         null,
-                        ex -> log.error("❌ Final WS error (onErrorDropped fix)", ex)
+                        ex -> log.error("❌ Final WS error (onErrorDropped fix)", ex.getMessage())
                 );
 
     }
