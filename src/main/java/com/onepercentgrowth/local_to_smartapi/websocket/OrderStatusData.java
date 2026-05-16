@@ -51,6 +51,9 @@ public class OrderStatusData {
     @JsonProperty("averageprice")
     private String averageprice;
 
+    @JsonProperty("text")
+    private String text;
+
     public String getOrderid() {
         return orderid;
     }
@@ -171,6 +174,14 @@ public class OrderStatusData {
         this.averageprice = averageprice;
     }
 
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
     @Override
     public String toString() {
         return "OrderStatusData{" +
@@ -189,6 +200,7 @@ public class OrderStatusData {
                 ", variety='" + variety + '\'' +
                 ", symboltoken='" + symboltoken + '\'' +
                 ", averageprice='" + averageprice + '\'' +
+                ", text='" + text + '\'' +
                 '}';
     }
 }

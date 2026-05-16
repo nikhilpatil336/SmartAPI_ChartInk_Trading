@@ -379,13 +379,14 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
 
             // ===== CALCULATIONS =====
             BigDecimal sellPrice =
-                    calculationService.calculateBuyProfitPrice(executedPrice);
+                    calculationService.calculateBuyProfitPrice(executedPrice, ctx.getTradingSymbol());
 
             StopLossPrice slPrice =
                     calculationService.calculateStopLossPrice(
                             executedPrice,
                             BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
-                            BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                            BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent()),
+                            ctx.getTradingSymbol()
                     );
 
             String jwt = tokenManager.getValidJwtToken();

@@ -217,7 +217,8 @@ public class OrderService_v2 {
                                         calculationService.calculateStopLossPrice(
                                                 BigDecimal.valueOf(triggerPrice),
                                                 BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
-                                                BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                                                BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent()),
+                                                stockName
                                         );
 
                                 IOrderRequest sellSlLimitOrder =
@@ -378,7 +379,12 @@ public class OrderService_v2 {
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
 //        double triggerPrice = Utility.roundToTick(Double.parseDouble(price));
-        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price));
+        BigDecimal tickSize = scripMasterService
+                .getNseEquityMap()
+                .get(stockName)
+                .getTickSize()
+                .divide(BigDecimal.valueOf(100));
+        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
 
 
         String symbolToken = scripMasterService.getTokenForName(stockName);
@@ -528,7 +534,14 @@ public class OrderService_v2 {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
-        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price));
+        BigDecimal tickSize = scripMasterService
+                .getNseEquityMap()
+                .get(stockName)
+                .getTickSize()
+                .divide(BigDecimal.valueOf(100));
+        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
+
+//        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
 
         String symbolToken = scripMasterService.getTokenForName(stockName);
         if (symbolToken == null) {
@@ -568,7 +581,7 @@ public class OrderService_v2 {
 //        BigDecimal maxBuyPrice = triggerPrice.multiply(BigDecimal.valueOf(applicationProperties.getSellProfitPercentageMultiplier()));
 
         BigDecimal maxBuyPrice =
-                calculationService.calculateSellStopLossPrice(triggerPrice);
+                calculationService.calculateSellStopLossPrice(triggerPrice, stockName);
 
         int calculatedQuantity = orderCalculationService.calculateSellQuantity(
                 usableCash,
@@ -673,7 +686,14 @@ public class OrderService_v2 {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
-        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price));
+        BigDecimal tickSize = scripMasterService
+                .getNseEquityMap()
+                .get(stockName)
+                .getTickSize()
+                .divide(BigDecimal.valueOf(100));
+        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
+
+//        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
 //        LocalDateTime now = LocalDateTime.now();
 
         DateTimeFormatter formatter =

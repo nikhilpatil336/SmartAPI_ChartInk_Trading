@@ -423,13 +423,14 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
 
             // ===== CALCULATIONS =====
             BigDecimal sellPrice =
-                    calculationService.calculateBuyProfitPrice(intendedPrice);
+                    calculationService.calculateBuyProfitPrice(intendedPrice, ctx.getTradingSymbol());
 
             StopLossPrice slPrice =
                     calculationService.calculateStopLossPrice(
                             intendedPrice,
                             BigDecimal.valueOf(properties.getTradingStoplossPercent()),
-                            BigDecimal.valueOf(properties.getTradingStoplossBufferPercent())
+                            BigDecimal.valueOf(properties.getTradingStoplossBufferPercent()),
+                            ctx.getTradingSymbol()
                     );
 
             AtomicBoolean failed = new AtomicBoolean(false);

@@ -1,6 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.startupservice;
 
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.model.ScripMasterRecord;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.*;
 import com.onepercentgrowth.local_to_smartapi.storage.LeverageStorageService;
@@ -191,7 +192,10 @@ public class ApplicationStartupService {
                         Set<String> fnoUniverse = fnoUniverseService.loadCached();
 
                         // 2️⃣ Build NSE Equity map
-                        Map<String, String> equityMap =
+//                        Map<String, String> equityMap =
+//                                scripMasterService.filterOnlyEquityNse(rawList);
+
+                        Map<String, ScripMasterRecord> equityMap =
                                 scripMasterService.filterOnlyEquityNse(rawList);
 
                         // 3️⃣ Apply scripmasterOnlyFnoStocks logic

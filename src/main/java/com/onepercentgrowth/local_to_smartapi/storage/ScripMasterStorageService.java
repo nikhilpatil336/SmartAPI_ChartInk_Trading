@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.storage;
 
+import com.onepercentgrowth.local_to_smartapi.model.ScripMasterRecord;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +27,8 @@ public class ScripMasterStorageService {
 
     private ApplicationProperties applicationProperties;
     private volatile List<Map<String, Object>> cachedRawList = null;
-    private volatile Map<String, String> cachedFilteredList = null;
+//    private volatile Map<String, String> cachedFilteredList = null;
+    private volatile Map<String, ScripMasterRecord> cachedFilteredList = null;
     private volatile long lastUpdatedEpoch = 0;
 
     public ScripMasterStorageService(ApplicationProperties applicationProperties) {
@@ -53,8 +55,9 @@ public class ScripMasterStorageService {
         }
     }
 
-    public synchronized void saveFilteredScripMaster(Map<String, String> list) {
-        try {
+//    public synchronized void saveFilteredScripMaster(Map<String, String> list) {
+    public synchronized void saveFilteredScripMaster(Map<String, ScripMasterRecord> list) {
+    try {
             File file = new File(applicationProperties.getFilteredScripmasterFilePath());
             file.getParentFile().mkdirs();
 
@@ -131,11 +134,19 @@ public class ScripMasterStorageService {
         return cachedRawList;
     }
 
-    public Map<String, String> getCachedFilteredList() {
+//    public Map<String, String> getCachedFilteredList() {
+//        return cachedFilteredList;
+//    }
+//
+//    public void setCachedFilteredList(Map<String, String> cachedFilteredList) {
+//        this.cachedFilteredList = cachedFilteredList;
+//    }
+
+        public Map<String, ScripMasterRecord> getCachedFilteredList() {
         return cachedFilteredList;
     }
 
-    public void setCachedFilteredList(Map<String, String> cachedFilteredList) {
+    public void setCachedFilteredList(Map<String, ScripMasterRecord> cachedFilteredList) {
         this.cachedFilteredList = cachedFilteredList;
     }
 
@@ -180,7 +191,8 @@ public class ScripMasterStorageService {
     ) {}
 
     private record FilteredScripFileModel(
-            Map<String, String> items,
+//            Map<String, String> items,
+            Map<String, ScripMasterRecord> items,
             long lastUpdatedEpoch
     ) {}
 }

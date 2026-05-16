@@ -1,6 +1,7 @@
 package com.onepercentgrowth.local_to_smartapi.service;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
+import com.onepercentgrowth.local_to_smartapi.model.ScripMasterRecord;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.storage.ScripMasterStorageService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +27,8 @@ public class ScripMasterService {
     private final ScripMasterStorageService scripMasterStorageService;
     private final ApplicationProperties applicationProperties;
     private final FnoUniverseService fnoUniverseService;
-    private volatile Map<String, String> nseEquityMap = new HashMap<>();
+//    private volatile Map<String, String> nseEquityMap = new HashMap<>();
+    private volatile Map<String, ScripMasterRecord> nseEquityMap = new HashMap<>();
     private volatile List<Map<String, Object>> rawScripList = null;
 //    private volatile RmsData rmsData = null;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -39,7 +42,8 @@ public class ScripMasterService {
         this.fnoUniverseService = fnoUniverseService;
     }
 
-    public Mono<Map<String, String>> fetchNseScripMaster() {
+//    public Mono<Map<String, String>> fetchNseScripMaster() {
+public Mono<Map<String, ScripMasterRecord>> fetchNseScripMaster() {
 
         log.info("Starting fetchNseScripMaster()");
 
@@ -61,7 +65,9 @@ public class ScripMasterService {
                 .doOnError(err -> log.error("Error while downloading ScripMaster: {}", err.getMessage()))
                 .map(list -> {
                     log.info("Filtering only NSE symbols from ScripMaster...");
-                    Map<String, String> result = filterOnlyEquityNse(list);
+//                    Map<String, String> result = filterOnlyEquityNse(list);
+//                    this.nseEquityMap = result;
+                    Map<String, ScripMasterRecord> result = filterOnlyEquityNse(list);
                     this.nseEquityMap = result;
                     log.info("NSE filter complete. NSE count={}", result.size());
                     return result;
@@ -211,7 +217,24 @@ public class ScripMasterService {
 //                });
 //    }
 
-    public Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
+//    public Map<String, String> filterOnlyEquityNse(List<Map<String, Object>> rawJsonList) {
+//
+//        return rawJsonList.stream()
+//                .filter(item -> "NSE".equals(item.get("exch_seg")))
+//                .filter(item -> {
+//                    String symbol = (String) item.get("symbol");
+//                    return symbol != null && symbol.endsWith("-EQ");
+//                })
+//                .collect(Collectors.toMap(
+//                        item -> item.get("name").toString(),
+//                        item -> item.get("token").toString(),
+//                        (existing, duplicate) -> existing
+//                ));
+//    }
+
+    public Map<String, ScripMasterRecord> filterOnlyEquityNse(
+            List<Map<String, Object>> rawJsonList
+    ) {
 
         return rawJsonList.stream()
                 .filter(item -> "NSE".equals(item.get("exch_seg")))
@@ -220,8 +243,17 @@ public class ScripMasterService {
                     return symbol != null && symbol.endsWith("-EQ");
                 })
                 .collect(Collectors.toMap(
+
                         item -> item.get("name").toString(),
-                        item -> item.get("token").toString(),
+
+                        item -> new ScripMasterRecord(
+                                item.get("token").toString(),
+                                new BigDecimal(item.get("tick_size").toString()),
+                                Integer.parseInt(item.get("lotsize").toString()),
+                                item.get("symbol").toString(),
+                                item.get("exch_seg").toString()
+                        ),
+
                         (existing, duplicate) -> existing
                 ));
     }
@@ -232,11 +264,20 @@ public class ScripMasterService {
         }
     }
 
-    public Map<String, String> getNseEquityMap() {
+//    public Map<String, String> getNseEquityMap() {
+//        return nseEquityMap;
+//    }
+//
+//    public void setNseEquityMap(Map<String, String> nseEquityMap) {
+//        this.nseEquityMap = nseEquityMap;
+//    }
+
+
+    public Map<String, ScripMasterRecord> getNseEquityMap() {
         return nseEquityMap;
     }
 
-    public void setNseEquityMap(Map<String, String> nseEquityMap) {
+    public void setNseEquityMap(Map<String, ScripMasterRecord> nseEquityMap) {
         this.nseEquityMap = nseEquityMap;
     }
 
@@ -278,8 +319,12 @@ public class ScripMasterService {
 //                });
 //    }
 
+//    public String getTokenForName(String name) {
+//        return nseEquityMap.get(name);
+//    }
+
     public String getTokenForName(String name) {
-        return nseEquityMap.get(name);
+        return nseEquityMap.get(name).getToken();
     }
 
 //    public RmsData getRmsData() {

@@ -1,5 +1,8 @@
 package com.onepercentgrowth.local_to_smartapi.utility;
 
+import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -24,8 +27,13 @@ public class Utility {
 //                .doubleValue();
 //    }
 
-    public static BigDecimal roundToTick(BigDecimal price) {
-        BigDecimal tickSize = new BigDecimal("0.05");
+    public static BigDecimal roundToTick(BigDecimal price, String name, BigDecimal tickSize) {
+//        BigDecimal tickSize = new BigDecimal("0.05");
+//        BigDecimal tickSize = scripMasterService
+//                .getNseEquityMap()
+//                .get(name)
+//                .getTickSize()
+//                .divide(BigDecimal.valueOf(100));
 
         return price
                 .divide(tickSize, 0, RoundingMode.HALF_UP)
@@ -50,8 +58,13 @@ public class Utility {
 //    }
 
 
-    public static BigDecimal roundDownToTick(BigDecimal price) {
-        BigDecimal tickSize = new BigDecimal("0.05");
+    public static BigDecimal roundDownToTick(BigDecimal price, String name, BigDecimal tickSize) {
+//        BigDecimal tickSize = new BigDecimal("0.05");
+//        BigDecimal tickSize = scripMasterService
+//                .getNseEquityMap()
+//                .get(name)
+//                .getTickSize()
+//                .divide(BigDecimal.valueOf(100));
 
         return price
                 .divide(tickSize, 0, RoundingMode.FLOOR)
@@ -59,8 +72,13 @@ public class Utility {
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal roundUpToTick(BigDecimal price) {
-        BigDecimal tickSize = new BigDecimal("0.05");
+    public static BigDecimal roundUpToTick(BigDecimal price, String name, BigDecimal tickSize) {
+//        BigDecimal tickSize = new BigDecimal("0.05");
+//        BigDecimal tickSize = scripMasterService
+//                .getNseEquityMap()
+//                .get(name)
+//                .getTickSize()
+//                .divide(BigDecimal.valueOf(100));
 
         return price
                 .divide(tickSize, 0, RoundingMode.CEILING)

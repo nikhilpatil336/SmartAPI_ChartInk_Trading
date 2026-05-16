@@ -276,13 +276,14 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
 
             // ===== CALCULATIONS =====
             BigDecimal buyTargetPrice =
-                    calculationService.calculateSellProfitPrice(executedPrice);
+                    calculationService.calculateSellProfitPrice(executedPrice, ctx.getTradingSymbol());
 
             StopLossPrice slPrice =
                     calculationService.calculateShortStopLossPrice(
                             executedPrice,
                             BigDecimal.valueOf(applicationProperties.getTradingStoplossPercent()),
-                            BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent())
+                            BigDecimal.valueOf(applicationProperties.getTradingStoplossBufferPercent()),
+                            ctx.getTradingSymbol()
                     );
 
             String jwt = tokenManager.getValidJwtToken();

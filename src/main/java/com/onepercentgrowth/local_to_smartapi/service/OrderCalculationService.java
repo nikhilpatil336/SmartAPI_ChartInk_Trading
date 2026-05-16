@@ -5,6 +5,7 @@ import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +19,9 @@ public class OrderCalculationService {
     private static final Logger log = LoggerFactory.getLogger(OrderCalculationService.class);
 
     private final ApplicationProperties applicationProperties;
+
+    @Autowired
+    private ScripMasterService scripMasterService;
 
     public OrderCalculationService(ApplicationProperties props) {
         this.applicationProperties = props;
@@ -129,7 +133,7 @@ public class OrderCalculationService {
 //        return Utility.roundDownToTick(executedPrice * applicationProperties.getStoplossPercentageMultiplier());
 //    }
 
-    public BigDecimal calculateBuyProfitPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateBuyProfitPrice(BigDecimal executedPrice, String stockName) {
         double buyProfitPercentageMultipler = applicationProperties.getBuyProfitPercentageMultiplier();
 
         if(buyProfitPercentageMultipler < 1)
@@ -141,10 +145,10 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(buyProfitPercentageMultipler);
 
-        return Utility.roundUpToTick(executedPrice.multiply(multiplier));
+        return Utility.roundUpToTick(executedPrice.multiply(multiplier), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
     }
 
-    public BigDecimal calculateBuyStopLossPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateBuyStopLossPrice(BigDecimal executedPrice, String stockName) {
         double buyStoplossPercentageMultiplier = applicationProperties.getBuyStoplossPercentageMultiplier();
 
         if(buyStoplossPercentageMultiplier > 1)
@@ -156,10 +160,10 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(buyStoplossPercentageMultiplier);
 
-        return Utility.roundDownToTick(executedPrice.multiply(multiplier));
+        return Utility.roundDownToTick(executedPrice.multiply(multiplier), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
     }
 
-    public BigDecimal calculateSellProfitPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateSellProfitPrice(BigDecimal executedPrice, String stockName) {
         double sellProfitPercentageMultiplier = applicationProperties.getSellProfitPercentageMultiplier();
 
         if(sellProfitPercentageMultiplier > 1) {
@@ -170,10 +174,10 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(sellProfitPercentageMultiplier);
 
-        return Utility.roundDownToTick(executedPrice.multiply(multiplier));
+        return Utility.roundDownToTick(executedPrice.multiply(multiplier), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
     }
 
-    public BigDecimal calculateSellStopLossPrice(BigDecimal executedPrice) {
+    public BigDecimal calculateSellStopLossPrice(BigDecimal executedPrice, String stockName) {
         double sellStoplossPercentageMultiplier = applicationProperties.getSellStoplossPercentageMultiplier();
 
         if(sellStoplossPercentageMultiplier < 1) {
@@ -184,14 +188,15 @@ public class OrderCalculationService {
         BigDecimal multiplier =
                 BigDecimal.valueOf(sellStoplossPercentageMultiplier);
 
-        return Utility.roundUpToTick(executedPrice.multiply(multiplier));
+        return Utility.roundUpToTick(executedPrice.multiply(multiplier), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
     }
 
 
     public StopLossPrice calculateStopLossPrice(
             BigDecimal buyPrice,
             BigDecimal slPercent,
-            BigDecimal bufferPercent
+            BigDecimal bufferPercent,
+            String stockName
     ) {
         BigDecimal logicalSL =
                 buyPrice.multiply(BigDecimal.ONE.subtract(slPercent));
@@ -200,15 +205,16 @@ public class OrderCalculationService {
                 logicalSL.multiply(BigDecimal.ONE.subtract(bufferPercent));
 
         return new StopLossPrice(
-                roundToTick(logicalSL),
-                roundToTick(limitPrice)
+                roundToTick(logicalSL, stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize()),
+                roundToTick(limitPrice, stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize())
         );
     }
 
     public StopLossPrice calculateShortStopLossPrice(
             BigDecimal buyPrice,
             BigDecimal slPercent,
-            BigDecimal bufferPercent
+            BigDecimal bufferPercent,
+            String stockName
     ) {
         BigDecimal logicalSL =
                 buyPrice.multiply(BigDecimal.ONE.add(slPercent));
@@ -217,8 +223,8 @@ public class OrderCalculationService {
                 logicalSL.multiply(BigDecimal.ONE.add(bufferPercent));
 
         return new StopLossPrice(
-                roundToTick(logicalSL),
-                roundToTick(limitPrice)
+                roundToTick(logicalSL, stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize()),
+                roundToTick(limitPrice, stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize())
         );
     }
 
