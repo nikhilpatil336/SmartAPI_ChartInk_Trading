@@ -6,11 +6,13 @@ import com.onepercentgrowth.local_to_smartapi.historicdata.HistoricalDataRespons
 import com.onepercentgrowth.local_to_smartapi.properties.AngelApiProperties;
 import com.onepercentgrowth.local_to_smartapi.model.*;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
+import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -913,7 +915,7 @@ public class BrokerApiClient {
 //                );
                 .retrieve()
                 .bodyToMono(HistoricalDataResponse.class)
-                .doOnSuccess(resp -> log.info("Order Response: {}", resp))
+                .doOnSuccess(resp -> log.info("Order Response for stock {} got successfully for date {}", request.get("symboltoken"), request.get("fromdate")))
                 .doOnError(err -> log.error("Error placing order: {}", err.getMessage()));
     }
 

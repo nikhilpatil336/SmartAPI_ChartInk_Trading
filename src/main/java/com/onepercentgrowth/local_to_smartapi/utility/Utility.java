@@ -5,6 +5,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class Utility {
 
@@ -35,9 +41,15 @@ public class Utility {
 //                .getTickSize()
 //                .divide(BigDecimal.valueOf(100));
 
+        BigDecimal adjustedTickSize = tickSize.divide(
+                BigDecimal.valueOf(100),
+                10,
+                RoundingMode.HALF_UP
+        );
+
         return price
-                .divide(tickSize, 0, RoundingMode.HALF_UP)
-                .multiply(tickSize)
+                .divide(adjustedTickSize, 0, RoundingMode.HALF_UP)
+                .multiply(adjustedTickSize)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -66,9 +78,15 @@ public class Utility {
 //                .getTickSize()
 //                .divide(BigDecimal.valueOf(100));
 
+        BigDecimal adjustedTickSize = tickSize.divide(
+                BigDecimal.valueOf(100),
+                10,
+                RoundingMode.HALF_UP
+        );
+
         return price
-                .divide(tickSize, 0, RoundingMode.FLOOR)
-                .multiply(tickSize)
+                .divide(adjustedTickSize, 0, RoundingMode.FLOOR)
+                .multiply(adjustedTickSize)
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -80,10 +98,60 @@ public class Utility {
 //                .getTickSize()
 //                .divide(BigDecimal.valueOf(100));
 
+        BigDecimal adjustedTickSize = tickSize.divide(
+                BigDecimal.valueOf(100),
+                10,
+                RoundingMode.HALF_UP
+        );
+
         return price
-                .divide(tickSize, 0, RoundingMode.CEILING)
-                .multiply(tickSize)
+                .divide(adjustedTickSize, 0, RoundingMode.CEILING)
+                .multiply(adjustedTickSize)
                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
+
+    public static LocalDateTime parseTriggeredAt(
+            String triggeredAt
+    ) {
+
+        // remove extra spaces
+        String cleaned = triggeredAt
+                .trim()
+                .replaceAll("\\s+", " ")
+                .replace(": ", ":")
+                .toUpperCase();
+
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern(
+                        "h:mm a",
+                        Locale.ENGLISH
+                );
+
+        LocalTime time =
+                LocalTime.parse(
+                        cleaned,
+                        formatter
+                );
+
+        return LocalDate.now(ZoneId.of("Asia/Kolkata"))
+                .atTime(time)
+                .withSecond(0)
+                .withNano(0);
+    }
+
+    public static LocalDateTime normalizeToCandleTime(
+            LocalDateTime triggerTime
+    ) {
+
+        int minute = triggerTime.getMinute();
+
+        int normalizedMinute = (minute / 5) * 5;
+
+        return triggerTime
+                .withMinute(normalizedMinute)
+                .withSecond(0)
+                .withNano(0);
     }
 
 }

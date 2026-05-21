@@ -1,9 +1,11 @@
 package com.onepercentgrowth.local_to_smartapi.model;
 
 import com.onepercentgrowth.local_to_smartapi.enums.AlertState;
+import com.onepercentgrowth.local_to_smartapi.historicdata.Candle;
 
 import java.time.LocalDateTime;
 import java.util.Deque;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 public class FirstAlertData {
@@ -19,6 +21,10 @@ public class FirstAlertData {
 
     private ScheduledFuture<?> fallbackTask;
 
+    private List<Candle> cachedCandles;
+
+    private String symbolToken;
+
     public FirstAlertData() {
     }
 
@@ -30,6 +36,20 @@ public class FirstAlertData {
         this.sma10 = sma10;
         this.sma20 = sma20;
         this.alertState = alertState;
+    }
+
+
+    public FirstAlertData(String symbol, LocalDateTime triggeredAt, double firstPrice, double secondPrice, double sma10, double sma20, AlertState alertState, ScheduledFuture<?> fallbackTask, List<Candle> cachedCandles, String symbolToken) {
+        this.symbol = symbol;
+        this.triggeredAt = triggeredAt;
+        this.firstPrice = firstPrice;
+        this.secondPrice = secondPrice;
+        this.sma10 = sma10;
+        this.sma20 = sma20;
+        this.alertState = alertState;
+        this.fallbackTask = fallbackTask;
+        this.cachedCandles = cachedCandles;
+        this.symbolToken = symbolToken;
     }
 
     public String getSymbol() {
@@ -96,6 +116,22 @@ public class FirstAlertData {
         this.fallbackTask = fallbackTask;
     }
 
+    public List<Candle> getCachedCandles() {
+        return cachedCandles;
+    }
+
+    public void setCachedCandles(List<Candle> cachedCandles) {
+        this.cachedCandles = cachedCandles;
+    }
+
+    public String getSymbolToken() {
+        return symbolToken;
+    }
+
+    public void setSymbolToken(String symbolToken) {
+        this.symbolToken = symbolToken;
+    }
+
     @Override
     public String toString() {
         return "FirstAlertData{" +
@@ -107,6 +143,8 @@ public class FirstAlertData {
                 ", sma20=" + sma20 +
                 ", alertState=" + alertState +
                 ", fallbackTask=" + fallbackTask +
+//                ", cachedCandles=" + cachedCandles +
+                ", symbolToken='" + symbolToken + '\'' +
                 '}';
     }
 }
