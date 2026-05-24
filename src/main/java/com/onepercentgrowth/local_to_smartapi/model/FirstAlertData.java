@@ -4,9 +4,9 @@ import com.onepercentgrowth.local_to_smartapi.enums.AlertState;
 import com.onepercentgrowth.local_to_smartapi.historicdata.Candle;
 
 import java.time.LocalDateTime;
-import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class FirstAlertData {
 
@@ -17,7 +17,7 @@ public class FirstAlertData {
     private double sma10;
     private double sma20;
 
-    private AlertState alertState;
+    private final AtomicReference<AlertState> alertState = new AtomicReference<>(AlertState.WAITING_SECOND_ALERT);
 
     private ScheduledFuture<?> fallbackTask;
 
@@ -35,7 +35,7 @@ public class FirstAlertData {
         this.secondPrice = secondPrice;
         this.sma10 = sma10;
         this.sma20 = sma20;
-        this.alertState = alertState;
+        this.alertState.set(alertState);
     }
 
 
@@ -46,7 +46,7 @@ public class FirstAlertData {
         this.secondPrice = secondPrice;
         this.sma10 = sma10;
         this.sma20 = sma20;
-        this.alertState = alertState;
+        this.alertState.set(alertState);
         this.fallbackTask = fallbackTask;
         this.cachedCandles = cachedCandles;
         this.symbolToken = symbolToken;
@@ -100,12 +100,8 @@ public class FirstAlertData {
         this.sma20 = sma20;
     }
 
-    public AlertState getAlertState() {
+    public AtomicReference<AlertState> getAlertState() {
         return alertState;
-    }
-
-    public void setAlertState(AlertState alertState) {
-        this.alertState = alertState;
     }
 
     public ScheduledFuture<?> getFallbackTask() {
@@ -141,7 +137,7 @@ public class FirstAlertData {
                 ", secondPrice=" + secondPrice +
                 ", sma10=" + sma10 +
                 ", sma20=" + sma20 +
-                ", alertState=" + alertState +
+                ", alertState=" + alertState.get() +
                 ", fallbackTask=" + fallbackTask +
 //                ", cachedCandles=" + cachedCandles +
                 ", symbolToken='" + symbolToken + '\'' +

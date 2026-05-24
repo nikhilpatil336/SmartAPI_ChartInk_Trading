@@ -1,0 +1,37 @@
+# Technical Decisions
+
+## Authentication & Sessions
+- **TOTP-based login via java-otp + googleauth** — AngelOne API mandates TOTP on every login; these libraries compute the time-based OTP from a secret key stored in `.env`.
+- **JWT stored in file + held in memory** — `TokenStorageService` writes the JWT to `data/token/tokens.json` on login; on restart, `TokenManager.init()` reads it back and skips re-login if still valid.
+- **Startup-only re-login; no periodic token refresh** — a `@Scheduled` 15-min refresh using the refresh token was written but commented out because AngelOne's refresh token API was unreliable; current approach re-logins on startup if the token is expired.
+- **`synchronized` block in `refreshTokens()`** — prevents two concurrent threads from both detecting an expired token and attempting simultaneous logins.
+- **No auth on incoming webhook endpoints** — acceptable; the Pi runs on a private home network and Chartink only POSTs to the URL you configure in their dashboard.
+
+## Data Storage
+- **File-based JSON, no database** — all state (tokens, scrip master, RMS, order context, SL store) lives in flat JSON files; avoids JPA/DB overhead on a Raspberry Pi where disk I/O is the bottleneck, not query complexity.
+- **`OrderContext` persisted every 5 min + on JVM shutdown** — `OrderContextPersistenceScheduler` handles the interval; `ShutdownHandler` (@PreDestroy) triggers a final save so no active order context is lost if the process is killed cleanly.
+- **`SlOrderStore` writes async via `CompletableFuture.runAsync()`** — fire-and-forget so file I/O never blocks the reactive order flow; errors are logged but not re-thrown (comment in source says "do NOT swallow").
+- **`AlertStateRegistry` is in-memory only, not persisted** — first-alert state is inherently ephemeral (10-minute window); losing it on restart just causes the next incoming alert to start a fresh first-alert cycle.
+
+## Configuration & Secrets
+- **Secrets in `.env` only, loaded via dotenv-java** — `application.properties` references them as `${ANGEL_CLIENT_ID}` etc.; the `.env` file is never committed; this is the only secrets boundary in the app.
+- **Single `ApplicationProperties` bean (`myapp.*`)** — all business config is centralized here; `@Value` is banned for business logic (one known exception in `ApplicationStartupService`) to make config discoverable in one place.
+- **Dual path blocks in `application.properties` (Windows/Pi), manual comment swap** — no Spring profile-based path switching; deemed over-engineering for a two-machine setup where you always know which block to activate.
+- **`fixedQuantityFlag` / `fixedQuantity` override** — when enabled, caps the leverage-calculated quantity at a fixed number (currently 5) to prevent over-trading during live strategy testing.
+- **Dummy IP/MAC headers hardcoded in `application.properties`** — AngelOne API requires these headers syntactically but does not validate the values; real device info is not needed for this use case.
+
+## Code Structure & Patterns
+- **Strategy pattern for WebSocket order events** — `FilledOrderHandler`/`OpenOrderHandler`/`RejectedOrderHandler` each look up the order's role in `OrderRegistry` and delegate to a per-role strategy (e.g., `BuyFilledStrategy`, `ShortStopLossFilledStrategy`); adding a new order type means adding a strategy class, not touching dispatch logic.
+- **`PendingOrderEventStore` as a race-condition buffer** — WebSocket fill events can arrive before `registerBuy/Sell` has stored the `OrderContext` (broker confirms faster than the reactive chain completes); the store buffers those events and replays them inline immediately after registration.
+- **`IOrderWebSocketConnector` interface + `@Profile` split** — `OrderWebSocketConnector` is `@Profile("prod")`; `DummyOrderWebSocketConnector` is `@Profile("test")`; lets you run the app locally without a live broker WebSocket.
+- **`cloneRequestForSingleStock()` in multi-stock alert processing** — Chartink sends comma-separated stocks in one webhook; the handler uses `Flux.concatMap` over each stock, cloning the request per stock so downstream handlers get isolated name/price data.
+- **`mapToOrderResult()` hardcodes `status = "COMPLETE"`** — the legacy v1 polling path (`chartinkBuyOrder`) assumed the order poll would return real status; hardcoding COMPLETE forces it to proceed immediately using the limit price instead of the average price. This bypasses polling and is intentional for the current workflow.
+- **`OrderService` (v1) kept alive** — `OrderController.getOrderStatus()` still references it; all new logic is in `OrderService_v2`. The v1 service is dead code except for that one controller method.
+
+## Disabled / Planned
+- **Fallback LTP alert** (`fallback-alert-enable=false`) — fires a synthetic second alert using broker LTP when no real second alert arrives within `fallback-alert-wait-time-ms` (default 5300 ms). Implemented in `OrderService_v2.triggerLtpFallback()`. Fallback calls `handleAlert()` (full entry path including balance check) rather than `handleSecondAlert()` directly. Idempotency: the CAS (`WAITING → PROCESSING`) is owned by `handleSingleStockAlert`; the fallback does not claim it early. If real 2nd alert arrives before fallback fires, the scheduled task is cancelled at line 973. If real alert races with fallback LTP fetch, the CAS in `handleSingleStockAlert` ensures only one proceeds. For testing on weekends/non-market hours, set `fallback-ltp-mock-enable=true` and `fallback-ltp-mock-price=<price>` to bypass the live LTP API. Kept disabled by default because LTP can trigger the wrong candle condition on slow-moving stocks; only enable when you understand the trade-off.
+- **Multi-stock batch fallback cleanup via `.doOnSuccess()`** — `handleAlert()` uses `Flux.concatMap(...).next()` which short-circuits after the first order is placed, leaving later stocks' fallback timers alive. Fixed by adding `.doOnSuccess()` that calls `alertStateRegistry.cancelFallbackIfPending(stock)` for every stock in the batch when a non-null `OrderResponse` is returned. Safe: no-op if task already cancelled; does not fire on first-alert batches (response is null).
+- **JWT periodic refresh** (commented `@Scheduled` in `TokenManager`) — planned 15-min pre-expiry refresh via refresh token; disabled because AngelOne's refresh token endpoint was unreliable; current approach relies on startup login (token lasts the trading day).
+- **Trading window gate** (`trading-window-enable=false`) — `ApplicationProperties` has the `tradingWindowEnable` field and time config; guard code exists but the flag is off to allow manual order testing at any hour.
+- **`PendingOrderEventStore.replayPendingEvents()`** (commented out) — had a circular dependency: `PendingOrderEventStore` needed `OrderEventDispatcher`, which created a Spring cycle; replaced by inline `pendingEvents.remove() + dispatchDirectly()` calls inside `chartinkSimpleBuyOrder/SellOrder`.
+- **`scheduleReconnectWithFreshToken()`** in `OrderWebSocketConnector` — dead code, duplicate of `scheduleReconnect()`; leftover from an earlier refactor; never called.

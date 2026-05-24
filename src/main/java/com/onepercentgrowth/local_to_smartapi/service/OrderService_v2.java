@@ -7,6 +7,7 @@ import com.onepercentgrowth.local_to_smartapi.enums.AlertState;
 import com.onepercentgrowth.local_to_smartapi.enums.PositionSide;
 import com.onepercentgrowth.local_to_smartapi.enums.TradingExchange;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventDispatcher;
+import com.onepercentgrowth.local_to_smartapi.marketdata.MarketDataService;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.OrderEventQueue;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.PendingOrderEventStore;
 import com.onepercentgrowth.local_to_smartapi.factory.OrderRequestFactory;
@@ -78,6 +79,8 @@ public class OrderService_v2 {
     private PendingOrderEventStore pendingOrderEventStore;
     @Autowired
     private OrderEventDispatcher orderEventDispatcher;
+    @Autowired
+    private MarketDataService marketDataService;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
@@ -920,14 +923,30 @@ public class OrderService_v2 {
 
                 .next()
 
-                .switchIfEmpty(Mono.empty());
+                .switchIfEmpty(Mono.empty())
+
+                // cancel fallback tasks for any stocks skipped by .next() short-circuit
+                .doOnSuccess(response -> {
+                    if (response != null) {
+                        for (String stock : stocks) {
+                            alertStateRegistry.cancelFallbackIfPending(stock.trim());
+                        }
+                    }
+                });
     }
 
     private Mono<OrderResponse> handleSingleStockAlert(String stockName, String price, LocalDateTime triggerTime, WebhookRequest webhookRequest) {
 
-        BigDecimal tickSize = scripMasterService.getNseEquityMap().get(stockName).getTickSize().divide(BigDecimal.valueOf(100));
+        BigDecimal tickSize = scripMasterService.getNseEquityMap().get(stockName).getTickSize();
 
         BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
+
+        // Feature: skip stock if a single share costs more than the available balance
+        BigDecimal availableBalance = balanceService.getUsableBalance();
+        if (triggerPrice.compareTo(availableBalance) > 0) {
+            log.info("Skipping stock: {} | triggerPrice: {} > availableBalance: {} (cannot afford even 1 share)", stockName, triggerPrice, availableBalance);
+            return Mono.empty();
+        }
 
 //        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy h:mm a", Locale.ENGLISH);
 //
@@ -951,6 +970,18 @@ public class OrderService_v2 {
         if (existing == null) {
 
             return handleFirstAlert(stockName, triggerTime, triggerPrice);
+        }
+
+        // atomic claim: only one thread (real alert vs fallback) proceeds to handleSecondAlert
+        if (!existing.getAlertState().compareAndSet(AlertState.WAITING_SECOND_ALERT, AlertState.PROCESSING)) {
+            log.info("Duplicate 2nd alert ignored for stock: {} | state already: {}", stockName, existing.getAlertState().get());
+            return Mono.empty();
+        }
+
+        // cancel the LTP fallback task — real second alert arrived first
+        if (existing.getFallbackTask() != null && !existing.getFallbackTask().isDone()) {
+            boolean cancelled = existing.getFallbackTask().cancel(false);
+            log.info("Cancelled fallback LTP task for stock: {} (real 2nd alert received) | cancelled={}", stockName, cancelled);
         }
 
         // IMPORTANT:
@@ -1000,6 +1031,17 @@ public class OrderService_v2 {
 
             alertStateRegistry.save(symbol, data);
 
+            if (applicationProperties.isFallbackAlertEnable()) {
+                long waitMs = applicationProperties.getFallbackAlertWaitTimeMs();
+                ScheduledFuture<?> future = scheduler.schedule(
+                        () -> triggerLtpFallback(symbol, data),
+                        waitMs,
+                        TimeUnit.MILLISECONDS
+                );
+                data.setFallbackTask(future);
+                log.info("Fallback LTP task scheduled for stock: {} | waitMs: {}", symbol, waitMs);
+            }
+
             return Mono.empty();
         });
     }
@@ -1010,9 +1052,9 @@ public class OrderService_v2 {
 
         String jwtToken = tokenManager.getValidJwtToken();
 
-        long minutesDiff = Duration.between(firstAlert.getTriggeredAt(), now).toMinutes();
-
-        // ⛔ Expiry check
+//        long minutesDiff = Duration.between(firstAlert.getTriggeredAt(), now).toMinutes();
+//
+////         ⛔ Expiry check
 //        if (minutesDiff > 10) {
 //
 ////            log.info("Alert details are: {}", alertStateRegistry.get(symbol).toString());
@@ -1105,6 +1147,43 @@ public class OrderService_v2 {
                 alertStateRegistry.remove(symbol);
             });
         });
+    }
+
+    private void triggerLtpFallback(String symbol, FirstAlertData data) {
+
+        log.info("Fallback triggered for stock: {}", symbol);
+
+        Mono<BigDecimal> ltpMono;
+
+        if (applicationProperties.isFallbackLtpMockEnable()) {
+            BigDecimal mockPrice = BigDecimal.valueOf(applicationProperties.getFallbackLtpMockPrice());
+            log.info("Using mock LTP for stock: {} | mockPrice: {}", symbol, mockPrice);
+            ltpMono = Mono.just(mockPrice);
+        } else {
+            ltpMono = marketDataService.getLastTradedPrice("NSE", data.getSymbolToken(), applicationProperties.getExitLtpMode());
+        }
+
+        ltpMono.flatMap(ltp -> {
+
+            log.info("LTP fetched for stock: {} | ltp: {}", symbol, ltp);
+
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
+
+            WebhookRequest syntheticRequest = new WebhookRequest();
+            syntheticRequest.setStocks(symbol);
+            syntheticRequest.setTrigger_prices(ltp.toPlainString());
+            syntheticRequest.setTriggered_at(now.format(DateTimeFormatter.ofPattern("hh:mm a")));
+            syntheticRequest.setScan_name("Fallback Alert");
+            syntheticRequest.setScan_url("fallback-alert");
+            syntheticRequest.setAlert_name("Fallback Alert for " + symbol);
+            syntheticRequest.setWebhook_url("");
+
+            return handleAlert(syntheticRequest);
+
+        }).subscribe(
+            result -> log.info("Fallback order placed for stock: {} | result: {}", symbol, result),
+            error  -> log.error("Fallback processing failed for stock: {} | error: {}", symbol, error.getMessage())
+        );
     }
 
     private Mono<List<Candle>> fetchHistoricalCandles(String symbolToken, int startOffset, int totalDays, String jwtToken) {

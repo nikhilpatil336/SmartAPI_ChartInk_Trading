@@ -63,6 +63,10 @@ public class ApplicationProperties {
     private double ticksizeToReduce;
     private int waitTimeBetweenPartialExits;
     private int historicDataDays;
+    private boolean fallbackAlertEnable;
+    private long fallbackAlertWaitTimeMs;
+    private boolean fallbackLtpMockEnable;
+    private double fallbackLtpMockPrice;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -488,6 +492,38 @@ public class ApplicationProperties {
         this.historicDataDays = historicDataDays;
     }
 
+    public boolean isFallbackAlertEnable() {
+        return fallbackAlertEnable;
+    }
+
+    public void setFallbackAlertEnable(boolean fallbackAlertEnable) {
+        this.fallbackAlertEnable = fallbackAlertEnable;
+    }
+
+    public long getFallbackAlertWaitTimeMs() {
+        return fallbackAlertWaitTimeMs;
+    }
+
+    public void setFallbackAlertWaitTimeMs(long fallbackAlertWaitTimeMs) {
+        this.fallbackAlertWaitTimeMs = fallbackAlertWaitTimeMs;
+    }
+
+    public boolean isFallbackLtpMockEnable() {
+        return fallbackLtpMockEnable;
+    }
+
+    public void setFallbackLtpMockEnable(boolean fallbackLtpMockEnable) {
+        this.fallbackLtpMockEnable = fallbackLtpMockEnable;
+    }
+
+    public double getFallbackLtpMockPrice() {
+        return fallbackLtpMockPrice;
+    }
+
+    public void setFallbackLtpMockPrice(double fallbackLtpMockPrice) {
+        this.fallbackLtpMockPrice = fallbackLtpMockPrice;
+    }
+
     @Override
     public String toString() {
         return "ApplicationProperties{" +
@@ -543,6 +579,10 @@ public class ApplicationProperties {
                 ", ticksizeToReduce=" + ticksizeToReduce +
                 ", waitTimeBetweenPartialExits=" + waitTimeBetweenPartialExits +
                 ", historicDataDays=" + historicDataDays +
+                ", fallbackAlertEnable=" + fallbackAlertEnable +
+                ", fallbackAlertWaitTimeMs=" + fallbackAlertWaitTimeMs +
+                ", fallbackLtpMockEnable=" + fallbackLtpMockEnable +
+                ", fallbackLtpMockPrice=" + fallbackLtpMockPrice +
                 '}';
     }
 }
