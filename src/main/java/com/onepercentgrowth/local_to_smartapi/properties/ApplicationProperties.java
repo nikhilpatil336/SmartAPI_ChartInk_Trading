@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 
 @Component
@@ -61,12 +62,17 @@ public class ApplicationProperties {
     private String squareoffZone;
     private int exitMaxAttempt;
     private double ticksizeToReduce;
+    private BigDecimal defaultTickSize;
     private int waitTimeBetweenPartialExits;
     private int historicDataDays;
     private boolean fallbackAlertEnable;
     private long fallbackAlertWaitTimeMs;
     private boolean fallbackLtpMockEnable;
     private double fallbackLtpMockPrice;
+
+    private String eodAnalyticsOutputFile;
+    private String eodAnalyticsInputAlertPath;
+    private String analyticsSquareoffTime;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -460,6 +466,14 @@ public class ApplicationProperties {
         this.ticksizeToReduce = ticksizeToReduce;
     }
 
+    public BigDecimal getDefaultTickSize() {
+        return defaultTickSize;
+    }
+
+    public void setDefaultTickSize(BigDecimal defaultTickSize) {
+        this.defaultTickSize = defaultTickSize;
+    }
+
     public int getWaitTimeBetweePartialExits() {
         return waitTimeBetweenPartialExits;
     }
@@ -524,6 +538,30 @@ public class ApplicationProperties {
         this.fallbackLtpMockPrice = fallbackLtpMockPrice;
     }
 
+    public String getEodAnalyticsOutputFile() {
+        return eodAnalyticsOutputFile;
+    }
+
+    public void setEodAnalyticsOutputFile(String eodAnalyticsOutputFile) {
+        this.eodAnalyticsOutputFile = eodAnalyticsOutputFile;
+    }
+
+    public String getEodAnalyticsInputAlertPath() {
+        return eodAnalyticsInputAlertPath;
+    }
+
+    public void setEodAnalyticsInputAlertPath(String eodAnalyticsInputAlertPath) {
+        this.eodAnalyticsInputAlertPath = eodAnalyticsInputAlertPath;
+    }
+
+    public String getAnalyticsSquareoffTime() {
+        return analyticsSquareoffTime;
+    }
+
+    public void setAnalyticsSquareoffTime(String analyticsSquareoffTime) {
+        this.analyticsSquareoffTime = analyticsSquareoffTime;
+    }
+
     @Override
     public String toString() {
         return "ApplicationProperties{" +
@@ -577,6 +615,7 @@ public class ApplicationProperties {
                 ", squareoffZone='" + squareoffZone + '\'' +
                 ", exitMaxAttempt=" + exitMaxAttempt +
                 ", ticksizeToReduce=" + ticksizeToReduce +
+                ", defaultTickSize=" + defaultTickSize +
                 ", waitTimeBetweenPartialExits=" + waitTimeBetweenPartialExits +
                 ", historicDataDays=" + historicDataDays +
                 ", fallbackAlertEnable=" + fallbackAlertEnable +

@@ -9,7 +9,10 @@ Then based on today's task, load ONLY the relevant context:
 - New feature or architecture change → @ai-context/architecture.md
 - Bug or unexpected behavior → just the relevant source file (I'll tell you)
 - Security or auth work → @ai-context/decisions.md#Authentication
-- Redis or data work → @ai-context/decisions.md#Data-Storage
+- Data storage work → @ai-context/decisions.md#Data-Storage
 
 Tell me which LLM tab to start on (Sonnet/Opus/Haiku = Tab 1, Qwen = Tab 2).
 Then ask: "What are we working on today?"
+
+---
+At session end: run /wrap-up — it will ask one question about LLM usage and update the attribution log automatically.

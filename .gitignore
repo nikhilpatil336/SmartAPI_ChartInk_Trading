@@ -37,3 +37,7 @@ src/main/resources/application.properties
 
 # AI Files
 docs/
+
+
+proposed/
+template/

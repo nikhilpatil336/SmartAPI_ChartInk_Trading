@@ -287,7 +287,8 @@ public class OrderService_v2 {
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
 //        double triggerPrice = Utility.roundToTick(Double.parseDouble(price));
-        BigDecimal tickSize = scripMasterService.getNseEquityMap().get(stockName).getTickSize();
+        ScripMasterRecord buyRecord = scripMasterService.getNseEquityMap().get(stockName);
+        BigDecimal tickSize = buyRecord != null ? buyRecord.getTickSize() : applicationProperties.getDefaultTickSize();
         BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
 
 
@@ -383,7 +384,8 @@ public class OrderService_v2 {
 
         String stockName = webhookRequest.getStocks().split(",")[0].trim();
         String price = webhookRequest.getTrigger_prices().split(",")[0].trim();
-        BigDecimal tickSize = scripMasterService.getNseEquityMap().get(stockName).getTickSize();
+        ScripMasterRecord sellRecord = scripMasterService.getNseEquityMap().get(stockName);
+        BigDecimal tickSize = sellRecord != null ? sellRecord.getTickSize() : applicationProperties.getDefaultTickSize();
         BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
 
 //        BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, scripMasterService.getNseEquityMap().get(stockName).getTickSize());
@@ -937,7 +939,8 @@ public class OrderService_v2 {
 
     private Mono<OrderResponse> handleSingleStockAlert(String stockName, String price, LocalDateTime triggerTime, WebhookRequest webhookRequest) {
 
-        BigDecimal tickSize = scripMasterService.getNseEquityMap().get(stockName).getTickSize();
+        ScripMasterRecord scripRecord = scripMasterService.getNseEquityMap().get(stockName);
+        BigDecimal tickSize = scripRecord != null ? scripRecord.getTickSize() : applicationProperties.getDefaultTickSize();
 
         BigDecimal triggerPrice = Utility.roundToTick(new BigDecimal(price), stockName, tickSize);
 

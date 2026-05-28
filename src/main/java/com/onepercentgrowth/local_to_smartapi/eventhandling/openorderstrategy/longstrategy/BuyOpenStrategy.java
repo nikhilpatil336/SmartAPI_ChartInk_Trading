@@ -412,8 +412,8 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
 
             ctx.setBuyPrice(executedPrice);
 
-            log.info("BUY partial fill | stock={} | delta={} | totalFilled={}",
-                    ctx.getTradingSymbol(), delta, filledQty);
+            log.info("BUY partial fill | stock={} | delta={} | placing SELL+SL for full qty={}",
+                    ctx.getTradingSymbol(), delta, ctx.getQuantity());
 
             String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
 
@@ -450,7 +450,7 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
 //                                            update.remainingQty,
-                                            remainingQty,
+                                            ctx.getQuantity(),
                                             sellPrice.doubleValue(),
                                             jwt
                                     )
@@ -508,7 +508,7 @@ public class BuyOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
 //                                            update.remainingQty,
-                                            remainingQty,
+                                            ctx.getQuantity(),
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
                                             jwt,

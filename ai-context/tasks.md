@@ -4,6 +4,10 @@
 > Decide on `orderRegistry.remove(ctx)` — enable cleanup after trade closes or archive to separate map
 > Started: (next session)
 
+## Recently Completed
+- [x] **Session 14 — remainingQty fix + configurable tick size** — Fixed `SellOpenStrategy` and `ShortTargetOpenStrategy` to compute `remainingQty = ctx.getQuantity() - lastFilledQty` instead of broken counter. Made default tick size configurable via `myapp.default-tick-size`. Confirmed `assertSufficientMargin()` already live on both entry paths.
+- [x] **Session 13 — Fixed scrip master NPE + key mismatch** — `ScripMasterService.filterOnlyEquityNse` was keying the map by `item.get("name")` (company name) but Chartink sends ticker symbols. Changed key to `item.get("symbol").replace("-EQ", "")` so `SBILIFE` etc. resolve correctly. Added null guard in `getTokenForName` (returns null + warn instead of NPE). Added default `tickSize=10` fallback in `handleSingleStockAlert`, `chartinkSimpleBuyOrder`, `chartinkSimpleSellOrder` so a missing scrip entry degrades gracefully instead of crashing.
+
 
 ## In Progress
 <!-- Nothing mid-way -->
@@ -12,9 +16,11 @@
 
 ### High Priority (correctness / memory risk)
 
+- [x] **Fix `remainingQty` tracking in `SellOpenStrategy` and `ShortTargetOpenStrategy`** — replaced `ctx.longSellRemainingQty(delta)` / `ctx.shortBuyRemainingQty(delta)` with `ctx.getQuantity() - ctx.getLastSellFilledQty().get()` / `ctx.getLastBuyFilledQty().get()` so SL is correctly reduced on each partial target fill.
+
 - [ ] **Decide on `orderRegistry.remove(ctx)` after trade completes** — commented out in all four fill strategies (`SellFilledOrderStrategy`, `StopLossFilledOrderStrategy`, `ShortTargetFilledStrategy`, `ShortStopLossFilledStrategy`). Active `OrderContext` entries are never evicted from memory after a trade closes; this will cause stale context to persist between trading days. Decide: enable remove or persist closed trades to a separate archive map.
 
-- [ ] **Re-enable `assertSufficientFunds()` in `chartinkSimpleBuyOrder` / `chartinkSimpleSellOrder`** — commented out at `OrderService_v2.java:336` and `:429`. The balance check only fires for the old v1 path (line 157). New strategy flow has no fund guard. Re-enable when confident in quantity calculation.
+- [x] **Re-enable balance guard in `chartinkSimpleBuyOrder` / `chartinkSimpleSellOrder`** — already live as `assertSufficientMargin()` at lines 345 and 439. The old `assertSufficientFunds()` comments above are dead; the active guard is in place.
 
 ### Medium Priority (dead code / cleanup)
 
@@ -43,6 +49,9 @@
 - [ ] **`BracketOrderRequest.java` is unused** — no references found in active code; likely from an earlier bracket-order experiment. Confirm and delete if truly unreferenced.
 
 ## Completed Tasks
+- [x] Session 14 — Made default tick size configurable: added `myapp.default-tick-size=10` to `application.properties`, added `BigDecimal defaultTickSize` field to `ApplicationProperties`, replaced 3 hardcoded `BigDecimal.TEN` fallbacks in `OrderService_v2` with `applicationProperties.getDefaultTickSize()`
+- [x] Session 13 — Fixed scrip master NPE: key changed from `name` to `symbol.replace("-EQ","")` in `ScripMasterService`; null guards added in `getTokenForName` and all three `getTickSize()` call sites; default tickSize=10 fallback for unknown stocks
+- [x] Session 11/12 — Fixed `ShortEntryOpenStrategy` and `BuyOpenStrategy`: target and SL orders now placed for `ctx.getQuantity()` (full order qty) instead of partial-fill delta; compile also fixed by adding 3 missing analytics config fields to `ApplicationProperties`
 - [x] Bootstrap Session 1 — Created ai-context/project-overview.md and filled CLAUDE.md (stack, commands, structure, project-specific rules)
 - [x] Bootstrap Session 2 — Created ai-context/architecture.md (folder tree, system design diagram, 4 key data flows, config management)
 - [x] Bootstrap Session 3 — Created ai-context/decisions.md (auth, data storage, config, patterns, disabled features)

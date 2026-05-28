@@ -308,7 +308,8 @@ public class ShortTargetOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processShortTarget(ctx, response, delta, ctx.shortBuyRemainingQty(delta), failed));
+            int remainingQty = ctx.getQuantity() - ctx.getLastBuyFilledQty().get();
+            return cancelMono.then(processShortTarget(ctx, response, delta, remainingQty, failed));
         });
     }
 

@@ -87,3 +87,4 @@ Quick reference:
 - Decisions → @ai-context/decisions.md
 - Tasks     → @ai-context/tasks.md
 - LLM guide → @ai-context/llm-routing.md
+- LLM log   → @ai-context/llm-log.md

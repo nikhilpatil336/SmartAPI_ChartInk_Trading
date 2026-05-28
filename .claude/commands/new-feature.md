@@ -1,6 +1,6 @@
 Plan and implement this feature: $ARGUMENTS
 
-This command runs the full workflow: plan → approve → implement → verify → document.
+This command runs the full workflow: plan → approve → implement → compile → document.
 
 ---
 
@@ -23,7 +23,7 @@ Show the full plan. Wait for my approval.
 For each task:
 1. Run /implement [task description]
 2. Show diffs, get approval, write code
-3. Run tests, confirm passing
+3. Run ./mvnw compile — confirm it passes
 4. Mark [x] in tasks.md
 5. Say: "Task done. Ready for next task? (yes / pause)"
 
@@ -37,8 +37,7 @@ Run /wrap-up to save the session.
 
 ---
 
-**LLM routing guidance for this feature:**
-Before each task say which LLM to use:
-- Architecture / design decisions → "Use Sonnet for this step"
-- CRUD / boilerplate / templates → "Local LLM is fine for this step"
-- Complex bug or unclear behavior → "Switch to Sonnet"
+**LLM routing guidance (say this before each task):**
+- Architecture / design decisions → "Use Sonnet/Opus for this step"
+- CRUD / boilerplate / template code → "Switch to Qwen (Tab 2) for this step — ask Claude to fill in PROMPT-qwen-handoff.md first"
+- Complex logic or unclear behavior → "Stay on Sonnet"

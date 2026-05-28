@@ -414,8 +414,8 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
 
             ctx.setSellPrice(executedPrice);
 
-            log.info("SHORT SELL partial fill | stock={} | delta={}",
-                    ctx.getTradingSymbol(), delta);
+            log.info("SHORT SELL partial fill | stock={} | delta={} | placing BUY+SL for full qty={}",
+                    ctx.getTradingSymbol(), delta, ctx.getQuantity());
 
             String normalizedSymbol = Utility.normalize(ctx.getTradingSymbol());
 
@@ -452,7 +452,7 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
 //                                            update.remainingQty,
-                                            remainingQty,
+                                            ctx.getQuantity(),
                                             buyPrice.toString(),
                                             jwt
                                     )
@@ -505,7 +505,7 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
                                             ctx.getSymbolToken(),
 //                                            ctx.getNetPositionQty().get(),
 //                                            update.remainingQty,
-                                            remainingQty,
+                                            ctx.getQuantity(),
                                             slPrice.triggerPrice().doubleValue(),
                                             slPrice.limitPrice().doubleValue(),
                                             jwt,

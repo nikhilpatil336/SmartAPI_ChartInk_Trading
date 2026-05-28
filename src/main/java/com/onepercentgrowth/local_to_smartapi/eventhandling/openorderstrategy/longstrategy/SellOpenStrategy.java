@@ -379,7 +379,8 @@ public class SellOpenStrategy implements IOpenOrderStrategy {
                         .then();
             }
 
-            return cancelMono.then(processSellFill(ctx, response, delta, failed, ctx.longSellRemainingQty(delta)));
+            int remainingQty = ctx.getQuantity() - ctx.getLastSellFilledQty().get();
+            return cancelMono.then(processSellFill(ctx, response, delta, failed, remainingQty));
         });
     }
 

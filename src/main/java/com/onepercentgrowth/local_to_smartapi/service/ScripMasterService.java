@@ -244,7 +244,7 @@ public Mono<Map<String, ScripMasterRecord>> fetchNseScripMaster() {
                 })
                 .collect(Collectors.toMap(
 
-                        item -> item.get("name").toString(),
+                        item -> item.get("symbol").toString().replace("-EQ", ""),
 
                         item -> new ScripMasterRecord(
                                 item.get("token").toString(),
@@ -324,7 +324,12 @@ public Mono<Map<String, ScripMasterRecord>> fetchNseScripMaster() {
 //    }
 
     public String getTokenForName(String name) {
-        return nseEquityMap.get(name).getToken();
+        ScripMasterRecord record = nseEquityMap.get(name);
+        if (record == null) {
+            log.warn("Stock not found in scrip master: {}", name);
+            return null;
+        }
+        return record.getToken();
     }
 
 //    public RmsData getRmsData() {
