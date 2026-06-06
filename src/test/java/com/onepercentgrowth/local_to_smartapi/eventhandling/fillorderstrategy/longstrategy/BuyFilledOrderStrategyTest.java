@@ -137,6 +137,26 @@ class BuyFilledOrderStrategyTest {
     }
 
     // -------------------------------------------------------
+    // Scenario 5: buy is open on exchange but no partial fill was processed
+    //   Unique guard in BuyFilledOrderStrategy:
+    //   !isBuyPartiallyFilled() && isBuyOpen() → return empty before CAS is touched
+    // -------------------------------------------------------
+
+    @Test
+    void buyOpenButNotPartialFilled_returnsEmpty() {
+        OrderContext ctx = OrderContextFactory.longBuyOpenNotPartialFilled("BUY-001", 5);
+        OrderStatusResponse response = OrderStatusResponseFactory.buyComplete("BUY-001", 5, "100.00");
+
+        StepVerifier.create(strategy.onFilled(ctx, response)).verifyComplete();
+
+        verify(executionService, never()).placeSellOrder(any(), any(), anyInt(), anyDouble(), any());
+        verify(executionService, never()).placeStopLossOrder(any(), any(), anyInt(), anyDouble(), anyDouble(), any(), any());
+        assertThat(ctx.tryBeginEntryOrders())
+                .as("CAS must be free — guard returned before CAS was claimed")
+                .isTrue();
+    }
+
+    // -------------------------------------------------------
     // Helper
     // -------------------------------------------------------
 

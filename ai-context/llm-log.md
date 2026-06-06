@@ -29,6 +29,7 @@ Backfill older rows from memory — use `unknown` if you don't remember which mo
 | 2026-06-05 | entry-order-cas-bug-fix | Sonnet | Sonnet | Sonnet | Bug: CAS claimed before delta check in 4 entry strategies; open(filledshares=0) locked CAS, complete event skipped SL+target |
 | 2026-06-06 | session31-short-side-test-coverage | Sonnet | Sonnet | — | Short-side mirror tests: ShortTargetOpen, ShortStopLossOpen, SquareOff D5, E3/E4 error paths. 46/46 green |
 | 2026-06-06 | test-suite-second-pass-audit | Sonnet | Sonnet | — | eq(qty) verifies + full-fill path tests; 49/49 green |
+| 2026-06-06 | session34-test-coverage-gaps | Sonnet | Sonnet | — | C7/SC7 full-fill SL open tests; LONG entry guard S5; longBuyOpenNotPartialFilled factory; 52/52 green |
 
 **Legend**
 - `—` = not applicable for this phase

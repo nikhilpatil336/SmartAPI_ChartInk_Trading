@@ -76,6 +76,17 @@ public class OrderContextFactory {
         return ctx;
     }
 
+    // LONG entry: buy order is open on exchange but no partial fill event was processed yet.
+    // Triggers the unique guard in BuyFilledOrderStrategy:
+    //   if (!isBuyPartiallyFilled() && isBuyOpen()) → return empty
+    public static OrderContext longBuyOpenNotPartialFilled(String buyOrderId, int qty) {
+        OrderContext ctx = new OrderContext(PositionSide.LONG, "RELIANCE", "2885", qty);
+        ctx.setBuyOrderId(buyOrderId);
+        ctx.setBuyOpen(true);
+        // buyPartiallyFilled stays false intentionally
+        return ctx;
+    }
+
     // LONG context ready for a partial SELL fill — SL trigger/limit prices set for modifyStopLossOrder
     public static OrderContext longReadyForSellOpenFill(int qty) {
         OrderContext ctx = new OrderContext(PositionSide.LONG, "RELIANCE", "2885", qty);

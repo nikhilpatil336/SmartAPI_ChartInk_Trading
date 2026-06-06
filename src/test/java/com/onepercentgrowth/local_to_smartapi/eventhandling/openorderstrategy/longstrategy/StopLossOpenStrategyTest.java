@@ -100,6 +100,21 @@ class StopLossOpenStrategyTest {
         verify(executionService, never()).placeCancelOrder(any(), any(), any(), any());
     }
 
+    // -------------------------------------------------------
+    // C7: full SL fill (delta=5, qty=5) → remainingQty=0 → no SELL modify, no BUY cancel
+    // -------------------------------------------------------
+
+    @Test
+    void fullSlFill_remainingQtyZero_noSellModify() {
+        OrderContext ctx = OrderContextFactory.longReadyForSlOpenFill(5);
+        OrderStatusResponse response = OrderStatusResponseFactory.shortEntryOpen("SL-001", 5, "99.00");
+
+        StepVerifier.create(strategy.onFilled(ctx, response)).verifyComplete();
+
+        verify(executionService, never()).modifySellOrder(any(), any(), anyInt(), anyDouble(), any(), any());
+        verify(executionService, never()).placeCancelOrder(any(), any(), any(), any());
+    }
+
     private OrderResponse fakeResponse() {
         OrderResponse r = new OrderResponse();
         r.setStatus(true);
