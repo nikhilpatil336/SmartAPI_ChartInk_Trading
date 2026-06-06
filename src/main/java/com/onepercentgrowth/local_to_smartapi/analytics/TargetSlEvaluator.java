@@ -81,12 +81,22 @@ public class TargetSlEvaluator {
                     result.tradeOutcome = "WIN";
                     result.timeToHitMins = diffMins;
                     result.trailingOutcome = "NOT_ACTIVATED";
+                    result.hitFirstCandleOpen   = candle.getOpen();
+                    result.hitFirstCandleHigh   = candle.getHigh();
+                    result.hitFirstCandleLow    = candle.getLow();
+                    result.hitFirstCandleClose  = candle.getClose();
+                    result.hitFirstCandleVolume = candle.getVolume();
                     return result;
                 } else if (targetHit) {
                     // Target hit — activate trailing
                     result.targetHit = 1;
                     result.hitFirst = "TARGET";
                     result.timeToHitMins = diffMins;
+                    result.hitFirstCandleOpen   = candle.getOpen();
+                    result.hitFirstCandleHigh   = candle.getHigh();
+                    result.hitFirstCandleLow    = candle.getLow();
+                    result.hitFirstCandleClose  = candle.getClose();
+                    result.hitFirstCandleVolume = candle.getVolume();
                     trailingActive = true;
                     trailingMaxFavorable = isLong ? candle.getHigh() : candle.getLow();
                     trailingSl = isLong
@@ -103,6 +113,7 @@ public class TargetSlEvaluator {
                         result.trailingSlExitPrice = trailingSl;
                         result.trailingOutcome = "TRAILING_EXIT";
                         result.squareoffReason = "TRAILING_SL";
+                        result.squareoffPrice = trailingSl;
                         result.tradeOutcome = "WIN";
                         return result;
                     }
@@ -114,6 +125,11 @@ public class TargetSlEvaluator {
                     result.tradeOutcome = "LOSS";
                     result.timeToHitMins = diffMins;
                     result.trailingOutcome = "NOT_ACTIVATED";
+                    result.hitFirstCandleOpen   = candle.getOpen();
+                    result.hitFirstCandleHigh   = candle.getHigh();
+                    result.hitFirstCandleLow    = candle.getLow();
+                    result.hitFirstCandleClose  = candle.getClose();
+                    result.hitFirstCandleVolume = candle.getVolume();
                     return result;
                 }
             } else {
@@ -129,8 +145,14 @@ public class TargetSlEvaluator {
                         result.trailingSlExitPrice = trailingSl;
                         result.trailingOutcome = "TRAILING_EXIT";
                         result.squareoffReason = "TRAILING_SL";
+                        result.squareoffPrice = trailingSl;
                         result.tradeOutcome = "WIN";
                         result.timeToHitMins = diffMins;
+                        result.hitFirstCandleOpen   = candle.getOpen();
+                        result.hitFirstCandleHigh   = candle.getHigh();
+                        result.hitFirstCandleLow    = candle.getLow();
+                        result.hitFirstCandleClose  = candle.getClose();
+                        result.hitFirstCandleVolume = candle.getVolume();
                         return result;
                     }
                 } else {
@@ -144,8 +166,14 @@ public class TargetSlEvaluator {
                         result.trailingSlExitPrice = trailingSl;
                         result.trailingOutcome = "TRAILING_EXIT";
                         result.squareoffReason = "TRAILING_SL";
+                        result.squareoffPrice = trailingSl;
                         result.tradeOutcome = "WIN";
                         result.timeToHitMins = diffMins;
+                        result.hitFirstCandleOpen   = candle.getOpen();
+                        result.hitFirstCandleHigh   = candle.getHigh();
+                        result.hitFirstCandleLow    = candle.getLow();
+                        result.hitFirstCandleClose  = candle.getClose();
+                        result.hitFirstCandleVolume = candle.getVolume();
                         return result;
                     }
                 }
@@ -182,5 +210,10 @@ public class TargetSlEvaluator {
         public double trailingMaxFavorable = 0;
         public double trailingSlExitPrice = 0;
         public String trailingOutcome = "NOT_ACTIVATED";
+        public double hitFirstCandleOpen   = 0;
+        public double hitFirstCandleHigh   = 0;
+        public double hitFirstCandleLow    = 0;
+        public double hitFirstCandleClose  = 0;
+        public long   hitFirstCandleVolume = 0;
     }
 }

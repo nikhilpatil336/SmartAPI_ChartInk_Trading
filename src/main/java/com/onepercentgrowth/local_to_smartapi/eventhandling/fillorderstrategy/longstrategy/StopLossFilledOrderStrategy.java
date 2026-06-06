@@ -259,8 +259,9 @@ public class StopLossFilledOrderStrategy implements IFillOrderStrategy {
 
                         // ✅ SAFE STATE UPDATE
                         ctx.setSLOpen(false);
-//                        ctx.setTradeCompleted(true);
                         ctx.getTradeCompleted().set(true);
+                        orderRegistry.remove(ctx);
+                        log.info("LONG SL closed, removed from registry | symbol={}", ctx.getTradingSymbol());
 
                         return balanceMono
                                 .onErrorResume(e -> {

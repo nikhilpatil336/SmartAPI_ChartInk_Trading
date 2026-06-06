@@ -2,8 +2,11 @@ package com.onepercentgrowth.local_to_smartapi.historicdata;
 
 import com.onepercentgrowth.local_to_smartapi.client.BrokerApiClient;
 import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
+import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
 import com.onepercentgrowth.local_to_smartapi.service.ScripMasterService;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -31,6 +34,9 @@ public class HistoricalDataService {
 
     @Autowired
     private ScripMasterService scripMasterService;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
 
     private final BrokerApiClient brokerApiClient;
 
@@ -431,7 +437,7 @@ public class HistoricalDataService {
 
     public void processExcelAndWriteBack() throws Exception {
 
-        String filePath = "D:\\1 percent growth trading\\chartinkAlertExcels\\AllAlerts.xlsx";
+        String filePath = applicationProperties.getBacktestInputAlertPath();
 
         FileInputStream fis = new FileInputStream(filePath);
         Workbook workbook = new XSSFWorkbook(fis);
@@ -446,8 +452,18 @@ public class HistoricalDataService {
             Row row = sheet.getRow(i);
             if (row == null) continue;
 
-            String triggeredAt = row.getCell(0).getStringCellValue();
-            String stocksCell = row.getCell(2).getStringCellValue();
+            Cell dateCell = row.getCell(0);
+            String triggeredAt;
+            if (dateCell.getCellType() == CellType.NUMERIC) {
+                triggeredAt = dateCell.getLocalDateTimeCellValue()
+                        .format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy h:mm a", Locale.ENGLISH));
+            } else {
+                triggeredAt = dateCell.getStringCellValue();
+            }
+            Cell stockCell = row.getCell(2);
+            String stocksCell = stockCell.getCellType() == CellType.NUMERIC
+                    ? String.valueOf((long) stockCell.getNumericCellValue())
+                    : stockCell.getStringCellValue();
 
             String[] stocks = stocksCell.split("\\s*,\\s*");
 

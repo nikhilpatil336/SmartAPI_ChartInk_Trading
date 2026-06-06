@@ -240,14 +240,14 @@ public class ShortEntryFilledOrderStrategy implements IFillOrderStrategy {
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
-
-            // ✅ USE reduceSell (same pattern as reduceBuy)
-//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
             int delta = filledQty - ctx.getLastSellFilledQty().get();
 
-//            int delta = update.delta;
-
             if (delta <= 0) return Mono.empty();
+
+            if (!ctx.tryBeginEntryOrders()) {
+                log.info("Entry orders already being placed, skipping filled-path | stock={}", ctx.getTradingSymbol());
+                return Mono.empty();
+            }
 
             ctx.getLastSellFilledQty().set(filledQty);
 

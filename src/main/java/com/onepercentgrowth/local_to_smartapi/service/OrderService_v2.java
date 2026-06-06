@@ -19,6 +19,7 @@ import com.onepercentgrowth.local_to_smartapi.registry.AlertStateRegistry;
 import com.onepercentgrowth.local_to_smartapi.utility.Utility;
 import com.onepercentgrowth.local_to_smartapi.model.chartink_request.IOrderRequest;
 import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
+import com.onepercentgrowth.local_to_smartapi.storage.AlertTriggerLogService;
 import com.onepercentgrowth.local_to_smartapi.storage.SlOrderStore;
 import com.onepercentgrowth.local_to_smartapi.storage.TokenStorageService;
 import org.slf4j.Logger;
@@ -81,6 +82,8 @@ public class OrderService_v2 {
     private OrderEventDispatcher orderEventDispatcher;
     @Autowired
     private MarketDataService marketDataService;
+    @Autowired
+    private AlertTriggerLogService alertTriggerLogService;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
 
@@ -1107,7 +1110,9 @@ public class OrderService_v2 {
 
             double sma20 = calculateSMA(mergedCandles, index, 20);
 
-            alertStateRegistry.get(symbol).setSecondPrice(Double.parseDouble(request.getTrigger_prices()));
+            double secondPrice = Double.parseDouble(request.getTrigger_prices());
+            alertStateRegistry.get(symbol).setSecondPrice(secondPrice);
+            alertTriggerLogService.logAlert(symbol, firstAlert.getTriggeredAt(), firstAlert.getFirstPrice(), secondPrice);
 
             alertStateRegistry.get(symbol).setSma10(sma10);
 
@@ -1119,24 +1124,35 @@ public class OrderService_v2 {
 
             log.info("Alert details are: {} | volume: {} | candleTime: {} | candleColor: {}", alertStateRegistry.get(symbol), current.getVolume(), current.getTimestamp(), isGreen ? "Green" : "Red");
 
-            Mono<OrderResponse> result;
+            String strategy = applicationProperties.getLiveStrategy();
+            boolean longSignal;
+            boolean shortSignal;
 
-            if (isGreen && current.getVolume() > sma10) {
-
-                log.info("Placing Long order for stock: {}", symbol);
-
-                result = chartinkSimpleBuyOrder(request, "NSE");
-
-            } else if (isRed && current.getVolume() <= sma10) {
-
-                log.info("Placing Short order for stock: {}", symbol);
-
-                result = chartinkSimpleSellOrder(request, "NSE");
-
+            if ("EMA_CROSS_V1".equals(strategy)) {
+                double emaFast = calculateEMA(mergedCandles, index, applicationProperties.getLiveEmaFastPeriod());
+                double emaSlow = calculateEMA(mergedCandles, index, applicationProperties.getLiveEmaSlowPeriod());
+                log.info("EMA_CROSS_V1 | emaFast={} emaSlow={} close={}", emaFast, emaSlow, current.getClose());
+                if (emaFast == 0 || emaSlow == 0) {
+                    log.warn("Insufficient candles for EMA on stock: {} — skipping trade", symbol);
+                    return Mono.empty();
+                }
+                longSignal  = isGreen && current.getClose() > emaFast && current.getClose() > emaSlow;
+                shortSignal = isRed   && current.getClose() < emaFast && current.getClose() < emaSlow;
             } else {
+                // BASELINE_VOL_SMA10 (default)
+                longSignal  = isGreen && current.getVolume() > sma10;
+                shortSignal = isRed   && current.getVolume() <= sma10;
+            }
 
-                log.info("Not placing order for stock: {}", symbol);
-
+            Mono<OrderResponse> result;
+            if (longSignal) {
+                log.info("Placing Long order for stock: {} | strategy: {}", symbol, strategy);
+                result = chartinkSimpleBuyOrder(request, "NSE");
+            } else if (shortSignal) {
+                log.info("Placing Short order for stock: {} | strategy: {}", symbol, strategy);
+                result = chartinkSimpleSellOrder(request, "NSE");
+            } else {
+                log.info("Not placing order for stock: {} | strategy: {}", symbol, strategy);
                 result = Mono.empty();
             }
 
@@ -1249,6 +1265,22 @@ public class OrderService_v2 {
             sum += candles.get(i).getVolume();
         }
         return sum / period;
+    }
+
+    private double calculateEMA(List<Candle> candles, int endIndex, int period) {
+        if (endIndex < period - 1) return 0;
+        double multiplier = 2.0 / (period + 1);
+        // Seed with SMA of first 'period' closes
+        double ema = 0;
+        for (int i = 0; i < period; i++) {
+            ema += candles.get(i).getClose();
+        }
+        ema /= period;
+        // Apply EMA from period onwards to endIndex
+        for (int i = period; i <= endIndex; i++) {
+            ema = candles.get(i).getClose() * multiplier + ema * (1 - multiplier);
+        }
+        return ema;
     }
 
     private Mono<List<Candle>> fetchWithRetry(JsonObject requestBody, String jwtToken) {

@@ -24,41 +24,58 @@ public class AlertAnalyticsExcelWriter {
     static final String SHEET_SHORT = "SHORT_TRADES";
     static final String SHEET_DOJI  = "DOJI_TRADES";
 
-    // Column order — 53 columns (indices 0-52)
+    // Column order — 58 columns (indices 0-57)
     private static final String[] HEADERS = {
-        // 0-3: identity
-        "trade_date", "stock", "alert_direction", "trade_taken",
-        // 4-7: timing
+        // 0-2: identity
+        "trade_date", "stock", "alert_direction",
+        // 3-6: timing
         "first_alert_time", "first_alert_trigger_price", "second_alert_time", "second_alert_trigger_price",
-        // 8-20: 1st alert candle OHLCV + color flags + pct metrics
-        "candle_open", "candle_high", "candle_low", "candle_close", "candle_volume",
-        "candle_color", "is_green", "is_red", "is_doji", "candle_body_pct", "candle_range_pct",
-        // 19-23: previous candle
-        "prev_candle_open", "prev_candle_high", "prev_candle_low", "prev_candle_close", "prev_candle_volume",
-        // 24-32: volume analysis
+        // 7-12: 1st alert candle OHLCV + color
+        "candle_open", "candle_high", "candle_low", "candle_close", "candle_volume", "candle_color",
+        // 13-17: previous candle (volume first, then OHLC)
+        "prev_candle_volume", "prev_candle_open", "prev_candle_high", "prev_candle_low", "prev_candle_close",
+        // 18-20: candle flags
+        "is_green", "is_red", "is_doji",
+        // 21-29: volume analysis
         "volume_sma10", "volume_sma20", "vol_vs_sma10_ratio", "vol_vs_sma20_ratio",
         "vol_gt_sma10", "vol_gt_sma20", "vol_lt_sma10", "vol_lt_sma20", "sma10_lt_sma20",
-        // 33-35: trade levels
+        // 30: trade taken
+        "trade_taken",
+        // 31-33: trade levels
         "target_price", "sl_price", "risk_reward_ratio",
-        // 36-42: outcome
+        // 34-40: outcome
         "target_hit", "sl_hit", "hit_first", "squareoff_reason", "squareoff_price",
         "time_to_hit_mins", "trade_outcome",
-        // 43-44: contextual
-        "time_of_day", "day_of_week",
-        // 45-48: trailing SL
+        // 41: contextual time
+        "time_of_day",
+        // 42-46: hit-first candle OHLCV
+        "hit_first_candle_open", "hit_first_candle_high", "hit_first_candle_low",
+        "hit_first_candle_close", "hit_first_candle_volume",
+        // 47: day of week
+        "day_of_week",
+        // 48-51: conditional win stats
+        "vol_gt_sma10_win", "vol_gt_sma20_win", "vol_lt_sma10_win", "vol_lt_sma20_win",
+        // 52-53: candle metrics
+        "candle_body_pct", "candle_range_pct",
+        // 54-57: trailing SL
         "trailing_activated", "trailing_max_favorable", "trailing_sl_exit_price", "trailing_outcome",
-        // 49-52: conditional win stats
-        "vol_gt_sma10_win", "vol_gt_sma20_win", "vol_lt_sma10_win", "vol_lt_sma20_win"
+        // 58-59: next candle open analysis
+        "Entry Gap % (Next Open vs Alert Close)", "Entry Gap Direction (ABOVE / BELOW / FLAT)",
+        // 60-67: price excursion (MFE / MAE)
+        "Max Favorable Move % (in trade direction)",
+        "Max Adverse Move % (against trade direction)",
+        "Reached +0.5% Favorable", "Reached +1.0% Favorable", "Reached +1.5% Favorable",
+        "Went -0.5% Against",      "Went -1.0% Against",      "Went -1.5% Against"
     };
 
     // Key column indices for stats formulas
-    private static final int COL_STOCK          = 1;
-    private static final int COL_TRADE_TAKEN    = 3;
-    private static final int COL_TIME_TO_HIT    = 41;
-    private static final int COL_TRADE_OUTCOME  = 42;
-    private static final int COL_TRAILING_OUTCOME = 48;
-    private static final int COL_VOL_GT_SMA10   = 28;
-    private static final int COL_VOL_GT_SMA10_WIN = 49;
+    private static final int COL_STOCK            = 1;
+    private static final int COL_TRADE_TAKEN      = 30;
+    private static final int COL_TIME_TO_HIT      = 39;
+    private static final int COL_TRADE_OUTCOME    = 40;
+    private static final int COL_TRAILING_OUTCOME = 57;
+    private static final int COL_VOL_GT_SMA10     = 25;
+    private static final int COL_VOL_GT_SMA10_WIN = 48;
 
     // Row layout: row 0 = stats, row 1 = headers, row 2+ = data
     private static final int ROW_STATS   = 0;
@@ -84,7 +101,7 @@ public class AlertAnalyticsExcelWriter {
         Map<String, Set<String>> existingKeys = buildExistingKeys(workbook);
 
         for (AlertAnalyticsRow r : rows) {
-            String sheetName = sheetFor(r.getAlertDirection());
+            String sheetName = sheetFor(r.getCandleColor());
             Sheet sheet = workbook.getSheet(sheetName);
             Set<String> keys = existingKeys.computeIfAbsent(sheetName, k -> new HashSet<>());
             String key = r.getTradeDate() + "|" + r.getStock();
@@ -120,7 +137,7 @@ public class AlertAnalyticsExcelWriter {
         nextRowNum.put(SHEET_DOJI,  ROW_DATA);
 
         for (AlertAnalyticsRow r : rows) {
-            String sheetName = sheetFor(r.getAlertDirection());
+            String sheetName = sheetFor(r.getCandleColor());
             Sheet sheet = workbook.getSheet(sheetName);
             int rowNum = nextRowNum.get(sheetName);
             writeDataRow(sheet, rowNum, r);
@@ -147,11 +164,10 @@ public class AlertAnalyticsExcelWriter {
 
     private void ensureSheets(Workbook wb) {
         for (String name : new String[]{SHEET_LONG, SHEET_SHORT, SHEET_DOJI}) {
-            if (wb.getSheet(name) == null) {
-                Sheet sheet = wb.createSheet(name);
-                writeHeaderRow(sheet);
-                // Stats row will be written by updateStatsFormulas
-            }
+            Sheet sheet = wb.getSheet(name);
+            if (sheet == null) sheet = wb.createSheet(name);
+            writeHeaderRow(sheet);
+            // Stats row will be written by updateStatsFormulas
         }
     }
 
@@ -186,9 +202,9 @@ public class AlertAnalyticsExcelWriter {
         return result;
     }
 
-    private static String sheetFor(String alertDirection) {
-        if ("GREEN".equals(alertDirection)) return SHEET_LONG;
-        if ("RED".equals(alertDirection))   return SHEET_SHORT;
+    private static String sheetFor(String candleColor) {
+        if ("GREEN".equals(candleColor)) return SHEET_LONG;
+        if ("RED".equals(candleColor))   return SHEET_SHORT;
         return SHEET_DOJI;
     }
 
@@ -283,35 +299,33 @@ public class AlertAnalyticsExcelWriter {
     private void writeDataRow(Sheet sheet, int rowNum, AlertAnalyticsRow r) {
         Row row = sheet.createRow(rowNum);
         int c = 0;
-        // identity
+        // 0-2: identity
         row.createCell(c++).setCellValue(r.getTradeDate());
         row.createCell(c++).setCellValue(r.getStock());
         row.createCell(c++).setCellValue(r.getAlertDirection());
-        row.createCell(c++).setCellValue(r.getTradeTaken());
-        // timing
+        // 3-6: timing
         row.createCell(c++).setCellValue(r.getFirstAlertTime());
         row.createCell(c++).setCellValue(r.getFirstAlertTriggerPrice());
         row.createCell(c++).setCellValue(r.getSecondAlertTime());
         row.createCell(c++).setCellValue(r.getSecondAlertTriggerPrice());
-        // 1st candle OHLCV + flags + pct
+        // 7-12: 1st candle OHLCV + color
         row.createCell(c++).setCellValue(r.getCandleOpen());
         row.createCell(c++).setCellValue(r.getCandleHigh());
         row.createCell(c++).setCellValue(r.getCandleLow());
         row.createCell(c++).setCellValue(r.getCandleClose());
         row.createCell(c++).setCellValue(r.getCandleVolume());
         row.createCell(c++).setCellValue(r.getCandleColor());
-        row.createCell(c++).setCellValue(r.getIsGreen());
-        row.createCell(c++).setCellValue(r.getIsRed());
-        row.createCell(c++).setCellValue(r.getIsDoji());
-        row.createCell(c++).setCellValue(r.getCandleBodyPct());
-        row.createCell(c++).setCellValue(r.getCandleRangePct());
-        // prev candle
+        // 13-17: prev candle (volume first, then OHLC)
+        row.createCell(c++).setCellValue(r.getPrevCandleVolume());
         row.createCell(c++).setCellValue(r.getPrevCandleOpen());
         row.createCell(c++).setCellValue(r.getPrevCandleHigh());
         row.createCell(c++).setCellValue(r.getPrevCandleLow());
         row.createCell(c++).setCellValue(r.getPrevCandleClose());
-        row.createCell(c++).setCellValue(r.getPrevCandleVolume());
-        // volume analysis
+        // 18-20: candle flags
+        row.createCell(c++).setCellValue(r.getIsGreen());
+        row.createCell(c++).setCellValue(r.getIsRed());
+        row.createCell(c++).setCellValue(r.getIsDoji());
+        // 21-29: volume analysis
         row.createCell(c++).setCellValue(r.getVolumeSma10());
         row.createCell(c++).setCellValue(r.getVolumeSma20());
         row.createCell(c++).setCellValue(r.getVolVsSma10Ratio());
@@ -321,11 +335,13 @@ public class AlertAnalyticsExcelWriter {
         row.createCell(c++).setCellValue(r.getVolLtSma10());
         row.createCell(c++).setCellValue(r.getVolLtSma20());
         row.createCell(c++).setCellValue(r.getSma10LtSma20());
-        // trade levels
+        // 30: trade taken
+        row.createCell(c++).setCellValue(r.getTradeTaken());
+        // 31-33: trade levels
         row.createCell(c++).setCellValue(r.getTargetPrice());
         row.createCell(c++).setCellValue(r.getSlPrice());
         row.createCell(c++).setCellValue(r.getRiskRewardRatio());
-        // outcome
+        // 34-40: outcome
         row.createCell(c++).setCellValue(r.getTargetHit());
         row.createCell(c++).setCellValue(r.getSlHit());
         row.createCell(c++).setCellValue(r.getHitFirst());
@@ -333,19 +349,41 @@ public class AlertAnalyticsExcelWriter {
         row.createCell(c++).setCellValue(r.getSquareoffPrice());
         row.createCell(c++).setCellValue(r.getTimeToHitMins());
         row.createCell(c++).setCellValue(r.getTradeOutcome());
-        // contextual
+        // 41: contextual time
         row.createCell(c++).setCellValue(r.getTimeOfDay());
+        // 42-46: hit-first candle OHLCV
+        row.createCell(c++).setCellValue(r.getHitFirstCandleOpen());
+        row.createCell(c++).setCellValue(r.getHitFirstCandleHigh());
+        row.createCell(c++).setCellValue(r.getHitFirstCandleLow());
+        row.createCell(c++).setCellValue(r.getHitFirstCandleClose());
+        row.createCell(c++).setCellValue(r.getHitFirstCandleVolume());
+        // 47: day of week
         row.createCell(c++).setCellValue(r.getDayOfWeek());
-        // trailing SL
+        // 48-51: conditional win stats
+        row.createCell(c++).setCellValue(r.getVolGtSma10Win());
+        row.createCell(c++).setCellValue(r.getVolGtSma20Win());
+        row.createCell(c++).setCellValue(r.getVolLtSma10Win());
+        row.createCell(c++).setCellValue(r.getVolLtSma20Win());
+        // 52-53: candle metrics
+        row.createCell(c++).setCellValue(r.getCandleBodyPct());
+        row.createCell(c++).setCellValue(r.getCandleRangePct());
+        // 54-57: trailing SL
         row.createCell(c++).setCellValue(r.getTrailingActivated());
         row.createCell(c++).setCellValue(r.getTrailingMaxFavorable());
         row.createCell(c++).setCellValue(r.getTrailingSlExitPrice());
         row.createCell(c++).setCellValue(r.getTrailingOutcome());
-        // conditional win stats
-        row.createCell(c++).setCellValue(r.getVolGtSma10Win());
-        row.createCell(c++).setCellValue(r.getVolGtSma20Win());
-        row.createCell(c++).setCellValue(r.getVolLtSma10Win());
-        row.createCell(c).setCellValue(r.getVolLtSma20Win());
+        // 58-59: next candle open analysis
+        row.createCell(c++).setCellValue(r.getNextCandleOpenVsAlertClosePct());
+        row.createCell(c++).setCellValue(r.getNextCandleOpenDirection());
+        // 60-67: price excursion (MFE / MAE)
+        row.createCell(c++).setCellValue(r.getMfePct());
+        row.createCell(c++).setCellValue(r.getMaePct());
+        row.createCell(c++).setCellValue(r.getMfe05() == 1 ? "Yes" : "No");
+        row.createCell(c++).setCellValue(r.getMfe10() == 1 ? "Yes" : "No");
+        row.createCell(c++).setCellValue(r.getMfe15() == 1 ? "Yes" : "No");
+        row.createCell(c++).setCellValue(r.getMae05() == 1 ? "Yes" : "No");
+        row.createCell(c++).setCellValue(r.getMae10() == 1 ? "Yes" : "No");
+        row.createCell(c).setCellValue(r.getMae15() == 1 ? "Yes" : "No");
     }
 
     // ─── Utilities ────────────────────────────────────────────────────────────

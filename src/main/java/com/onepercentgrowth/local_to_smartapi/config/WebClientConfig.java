@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
 import java.time.Duration;
 
@@ -38,6 +39,10 @@ public class WebClientConfig {
 //                .build();
 //    }
 
+    private final ConnectionProvider connectionProvider = ConnectionProvider.builder("broker")
+            .maxIdleTime(Duration.ofMinutes(10))
+            .build();
+
     private HttpClient createHttpClient() {
         return HttpClient.create()
                 .compress(true)
@@ -50,7 +55,7 @@ public class WebClientConfig {
     @Qualifier("directBrokerWebClient")
     public WebClient directBrokerWebClient() {
 
-        HttpClient httpClient = HttpClient.create()
+        HttpClient httpClient = HttpClient.create(connectionProvider)
                 .compress(true)
                 .followRedirect(true)
                 .responseTimeout(Duration.ofMillis(properties.getTimeoutResponse()))
@@ -66,7 +71,7 @@ public class WebClientConfig {
     @Qualifier("proxyBrokerWebClient")
     public WebClient proxyBrokerWebClient() {
 
-        HttpClient httpClient = HttpClient.create()
+        HttpClient httpClient = HttpClient.create(connectionProvider)
                 .compress(true)
                 .followRedirect(true)
                 .responseTimeout(Duration.ofMillis(properties.getTimeoutResponse()))

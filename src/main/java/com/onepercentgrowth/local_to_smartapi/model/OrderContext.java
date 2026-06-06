@@ -65,6 +65,7 @@ public class OrderContext {
 //    private boolean exitInProgress = false;
 
     private final AtomicBoolean exitInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean entryOrdersPlacing = new AtomicBoolean(false);
     private final AtomicInteger netPositionQty = new AtomicInteger(0);
 
     private final AtomicInteger remainingQty = new AtomicInteger(0);
@@ -429,6 +430,10 @@ public class OrderContext {
 
     public boolean tryStartExit() {
         return exitInProgress.compareAndSet(false, true);
+    }
+
+    public boolean tryBeginEntryOrders() {
+        return entryOrdersPlacing.compareAndSet(false, true);
     }
 
     public void endExit() {

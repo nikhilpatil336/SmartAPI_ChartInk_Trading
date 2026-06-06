@@ -15,6 +15,20 @@ Backfill older rows from memory — use `unknown` if you don't remember which mo
 | 2026-05-27 | Scrip master NPE fix | Sonnet | — | Sonnet | Bug: map key was company name not ticker |
 | 2026-05-28 | Context workflow improvements | Sonnet | Sonnet | — | Meta-work: llm-log, handoff template, proposed+template folders |
 | 2026-05-28 | remainingQty fix + configurable tick size | Sonnet | Haiku | — | Bug: SL overshoot on partial target fill; config: default tick size |
+| 2026-05-28 | applicationproperties-field-sync | Sonnet | Haiku | — | Cleanup: 12 missing getters/setters + 6 missing fields added |
+| 2026-05-31 | backtest-usage-guide | Sonnet | Sonnet | — | Explanation only — no code; backtest framework usage documented |
+| 2026-05-31 | backtest-session18 | Sonnet | Sonnet | Sonnet | ATR bug, candle cache fix, charges, takeAllLong, latestEntryTime, full backtest run |
+| 2026-05-31 | backtest-audit-fixes | Sonnet | Sonnet | Sonnet | 15+ fixes: stats, bugs, Nifty benchmark, dedup, OOS split, configurable indicators |
+| 2026-05-31 | session20-backtest-strategy-enhancement | Opus | Sonnet | — | Chartink strategy decoded; 8 overlay JSONs + Phase 2 engine (PrevDayLevel, CandleStructure, LOW/HIGH ops); spring_faithful.json |
+| 2026-05-31 | session21-alert-log-backtest-fix | Sonnet | Sonnet | — | AlertTriggerLogService (parallel log); CURRENT_CLOSE entry fix (AlertEntry + col D price) |
+| 2026-05-31 | backtest-capital-monthly | Sonnet | Sonnet | — | Capital simulation columns + monthly breakdown table in SUMMARY sheet |
+| 2026-06-02 | analytics-entry-gap-mfe-mae | Sonnet | Sonnet | — | Entry gap direction + MFE/MAE excursion columns added to analytics Excel |
+| 2026-06-03 | analytics-header-fix | Sonnet | Sonnet | — | Fix: headers not written to existing sheets; MFE/MAE flags now Yes/No |
+| 2026-06-04 | duplicate-entry-orders-fix | Sonnet | Sonnet | Sonnet | Bug: race condition caused duplicate BUY+SL on partial+complete WS events; CAS guard added |
+| 2026-06-05 | squareoff-fixes-registry-cleanup | Sonnet | Sonnet | Sonnet | Bug: 3× duplicate cancel at squareoff; CAS guard in squareOff(); maxIdleTime WebClient; registry.remove enabled |
+| 2026-06-05 | entry-order-cas-bug-fix | Sonnet | Sonnet | Sonnet | Bug: CAS claimed before delta check in 4 entry strategies; open(filledshares=0) locked CAS, complete event skipped SL+target |
+| 2026-06-06 | session31-short-side-test-coverage | Sonnet | Sonnet | — | Short-side mirror tests: ShortTargetOpen, ShortStopLossOpen, SquareOff D5, E3/E4 error paths. 46/46 green |
+| 2026-06-06 | test-suite-second-pass-audit | Sonnet | Sonnet | — | eq(qty) verifies + full-fill path tests; 49/49 green |
 
 **Legend**
 - `—` = not applicable for this phase

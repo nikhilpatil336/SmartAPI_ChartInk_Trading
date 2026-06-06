@@ -2,10 +2,10 @@ package com.onepercentgrowth.local_to_smartapi.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "myapp")
@@ -62,7 +62,6 @@ public class ApplicationProperties {
     private String squareoffZone;
     private int exitMaxAttempt;
     private double ticksizeToReduce;
-    private BigDecimal defaultTickSize;
     private int waitTimeBetweenPartialExits;
     private int historicDataDays;
     private boolean fallbackAlertEnable;
@@ -70,9 +69,34 @@ public class ApplicationProperties {
     private boolean fallbackLtpMockEnable;
     private double fallbackLtpMockPrice;
 
-    private String eodAnalyticsOutputFile;
+    private String fallbackLtpMockExchange;
+    private String fallbackLtpMockSymbol;
+    private String fallbackLtpMockType;
+    private String fallbackLtpMockProduct;
+    private String fallbackLtpMockSegment;
+    private String fallbackLtpMockInstrumentType;
+
+    private BigDecimal defaultTickSize;
+
     private String eodAnalyticsInputAlertPath;
+    private String eodAnalyticsOutputFile;
+    private String eodAnalyticsCron;
+    private String eodMarketCloseTime;
     private String analyticsSquareoffTime;
+    private long ordercontextSaveIntervalMs;
+
+    private String backtestInputAlertPath;
+    private String backtestCachePath;
+    private String backtestStrategiesPath;
+    private String backtestOutputPath;
+    private long backtestRequestSleepMs;
+    private double backtestBrokeragePct;  // per order both sides; 0.0 = zero brokerage
+    private String niftySymbolToken;      // AngelOne NSE token for Nifty 50 (e.g. "26000")
+    private String alertTriggerLogPath;
+    private List<Long> backtestCapitalAmounts;
+    private String liveStrategy = "BASELINE_VOL_SMA10"; // "BASELINE_VOL_SMA10" or "EMA_CROSS_V1"
+    private int liveEmaFastPeriod = 9;
+    private int liveEmaSlowPeriod = 21;
 
     public double getBalanceMinimumAllowed() {
         return balanceMinimumAllowed;
@@ -466,14 +490,6 @@ public class ApplicationProperties {
         this.ticksizeToReduce = ticksizeToReduce;
     }
 
-    public BigDecimal getDefaultTickSize() {
-        return defaultTickSize;
-    }
-
-    public void setDefaultTickSize(BigDecimal defaultTickSize) {
-        this.defaultTickSize = defaultTickSize;
-    }
-
     public int getWaitTimeBetweePartialExits() {
         return waitTimeBetweenPartialExits;
     }
@@ -538,12 +554,60 @@ public class ApplicationProperties {
         this.fallbackLtpMockPrice = fallbackLtpMockPrice;
     }
 
-    public String getEodAnalyticsOutputFile() {
-        return eodAnalyticsOutputFile;
+    public BigDecimal getDefaultTickSize() {
+        return defaultTickSize;
     }
 
-    public void setEodAnalyticsOutputFile(String eodAnalyticsOutputFile) {
-        this.eodAnalyticsOutputFile = eodAnalyticsOutputFile;
+    public void setDefaultTickSize(BigDecimal defaultTickSize) {
+        this.defaultTickSize = defaultTickSize;
+    }
+
+    public String getFallbackLtpMockExchange() {
+        return fallbackLtpMockExchange;
+    }
+
+    public void setFallbackLtpMockExchange(String fallbackLtpMockExchange) {
+        this.fallbackLtpMockExchange = fallbackLtpMockExchange;
+    }
+
+    public String getFallbackLtpMockSymbol() {
+        return fallbackLtpMockSymbol;
+    }
+
+    public void setFallbackLtpMockSymbol(String fallbackLtpMockSymbol) {
+        this.fallbackLtpMockSymbol = fallbackLtpMockSymbol;
+    }
+
+    public String getFallbackLtpMockType() {
+        return fallbackLtpMockType;
+    }
+
+    public void setFallbackLtpMockType(String fallbackLtpMockType) {
+        this.fallbackLtpMockType = fallbackLtpMockType;
+    }
+
+    public String getFallbackLtpMockProduct() {
+        return fallbackLtpMockProduct;
+    }
+
+    public void setFallbackLtpMockProduct(String fallbackLtpMockProduct) {
+        this.fallbackLtpMockProduct = fallbackLtpMockProduct;
+    }
+
+    public String getFallbackLtpMockSegment() {
+        return fallbackLtpMockSegment;
+    }
+
+    public void setFallbackLtpMockSegment(String fallbackLtpMockSegment) {
+        this.fallbackLtpMockSegment = fallbackLtpMockSegment;
+    }
+
+    public String getFallbackLtpMockInstrumentType() {
+        return fallbackLtpMockInstrumentType;
+    }
+
+    public void setFallbackLtpMockInstrumentType(String fallbackLtpMockInstrumentType) {
+        this.fallbackLtpMockInstrumentType = fallbackLtpMockInstrumentType;
     }
 
     public String getEodAnalyticsInputAlertPath() {
@@ -554,6 +618,30 @@ public class ApplicationProperties {
         this.eodAnalyticsInputAlertPath = eodAnalyticsInputAlertPath;
     }
 
+    public String getEodAnalyticsOutputFile() {
+        return eodAnalyticsOutputFile;
+    }
+
+    public void setEodAnalyticsOutputFile(String eodAnalyticsOutputFile) {
+        this.eodAnalyticsOutputFile = eodAnalyticsOutputFile;
+    }
+
+    public String getEodAnalyticsCron() {
+        return eodAnalyticsCron;
+    }
+
+    public void setEodAnalyticsCron(String eodAnalyticsCron) {
+        this.eodAnalyticsCron = eodAnalyticsCron;
+    }
+
+    public String getEodMarketCloseTime() {
+        return eodMarketCloseTime;
+    }
+
+    public void setEodMarketCloseTime(String eodMarketCloseTime) {
+        this.eodMarketCloseTime = eodMarketCloseTime;
+    }
+
     public String getAnalyticsSquareoffTime() {
         return analyticsSquareoffTime;
     }
@@ -561,6 +649,53 @@ public class ApplicationProperties {
     public void setAnalyticsSquareoffTime(String analyticsSquareoffTime) {
         this.analyticsSquareoffTime = analyticsSquareoffTime;
     }
+
+    public long getOrdercontextSaveIntervalMs() {
+        return ordercontextSaveIntervalMs;
+    }
+
+    public void setOrdercontextSaveIntervalMs(long ordercontextSaveIntervalMs) {
+        this.ordercontextSaveIntervalMs = ordercontextSaveIntervalMs;
+    }
+
+    public String getBacktestInputAlertPath() {
+        return backtestInputAlertPath;
+    }
+
+    public void setBacktestInputAlertPath(String backtestInputAlertPath) {
+        this.backtestInputAlertPath = backtestInputAlertPath;
+    }
+
+    public String getBacktestCachePath() { return backtestCachePath; }
+    public void setBacktestCachePath(String backtestCachePath) { this.backtestCachePath = backtestCachePath; }
+
+    public String getBacktestStrategiesPath() { return backtestStrategiesPath; }
+    public void setBacktestStrategiesPath(String backtestStrategiesPath) { this.backtestStrategiesPath = backtestStrategiesPath; }
+
+    public String getBacktestOutputPath() { return backtestOutputPath; }
+    public void setBacktestOutputPath(String backtestOutputPath) { this.backtestOutputPath = backtestOutputPath; }
+
+    public long getBacktestRequestSleepMs() { return backtestRequestSleepMs; }
+    public void setBacktestRequestSleepMs(long backtestRequestSleepMs) { this.backtestRequestSleepMs = backtestRequestSleepMs; }
+
+    public double getBacktestBrokeragePct() { return backtestBrokeragePct; }
+    public void setBacktestBrokeragePct(double backtestBrokeragePct) { this.backtestBrokeragePct = backtestBrokeragePct; }
+
+    public String getNiftySymbolToken() { return niftySymbolToken; }
+    public void setNiftySymbolToken(String niftySymbolToken) { this.niftySymbolToken = niftySymbolToken; }
+
+    public String getAlertTriggerLogPath() { return alertTriggerLogPath; }
+    public void setAlertTriggerLogPath(String alertTriggerLogPath) { this.alertTriggerLogPath = alertTriggerLogPath; }
+
+    public List<Long> getBacktestCapitalAmounts() { return backtestCapitalAmounts; }
+    public void setBacktestCapitalAmounts(List<Long> backtestCapitalAmounts) { this.backtestCapitalAmounts = backtestCapitalAmounts; }
+
+    public String getLiveStrategy() { return liveStrategy; }
+    public void setLiveStrategy(String liveStrategy) { this.liveStrategy = liveStrategy; }
+    public int getLiveEmaFastPeriod() { return liveEmaFastPeriod; }
+    public void setLiveEmaFastPeriod(int liveEmaFastPeriod) { this.liveEmaFastPeriod = liveEmaFastPeriod; }
+    public int getLiveEmaSlowPeriod() { return liveEmaSlowPeriod; }
+    public void setLiveEmaSlowPeriod(int liveEmaSlowPeriod) { this.liveEmaSlowPeriod = liveEmaSlowPeriod; }
 
     @Override
     public String toString() {
@@ -615,13 +750,26 @@ public class ApplicationProperties {
                 ", squareoffZone='" + squareoffZone + '\'' +
                 ", exitMaxAttempt=" + exitMaxAttempt +
                 ", ticksizeToReduce=" + ticksizeToReduce +
-                ", defaultTickSize=" + defaultTickSize +
                 ", waitTimeBetweenPartialExits=" + waitTimeBetweenPartialExits +
                 ", historicDataDays=" + historicDataDays +
                 ", fallbackAlertEnable=" + fallbackAlertEnable +
                 ", fallbackAlertWaitTimeMs=" + fallbackAlertWaitTimeMs +
                 ", fallbackLtpMockEnable=" + fallbackLtpMockEnable +
                 ", fallbackLtpMockPrice=" + fallbackLtpMockPrice +
+                ", fallbackLtpMockExchange='" + fallbackLtpMockExchange + '\'' +
+                ", fallbackLtpMockSymbol='" + fallbackLtpMockSymbol + '\'' +
+                ", fallbackLtpMockType='" + fallbackLtpMockType + '\'' +
+                ", fallbackLtpMockProduct='" + fallbackLtpMockProduct + '\'' +
+                ", fallbackLtpMockSegment='" + fallbackLtpMockSegment + '\'' +
+                ", fallbackLtpMockInstrumentType='" + fallbackLtpMockInstrumentType + '\'' +
+                ", defaultTickSize=" + defaultTickSize +
+                ", eodAnalyticsInputAlertPath='" + eodAnalyticsInputAlertPath + '\'' +
+                ", eodAnalyticsOutputFile='" + eodAnalyticsOutputFile + '\'' +
+                ", eodAnalyticsCron='" + eodAnalyticsCron + '\'' +
+                ", eodMarketCloseTime='" + eodMarketCloseTime + '\'' +
+                ", analyticsSquareoffTime='" + analyticsSquareoffTime + '\'' +
+                ", ordercontextSaveIntervalMs=" + ordercontextSaveIntervalMs +
+                ", backtestInputAlertPath='" + backtestInputAlertPath + '\'' +
                 '}';
     }
 }

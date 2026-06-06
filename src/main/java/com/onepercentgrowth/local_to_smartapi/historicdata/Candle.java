@@ -1,5 +1,6 @@
 package com.onepercentgrowth.local_to_smartapi.historicdata;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
@@ -61,6 +62,7 @@ public class Candle {
         this.volume = volume;
     }
 
+    @JsonIgnore
     public LocalDateTime getTime() {
         if (time == null && timestamp != null) {
             time = OffsetDateTime.parse(timestamp).toLocalDateTime();

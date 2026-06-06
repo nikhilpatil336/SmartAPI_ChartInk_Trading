@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -37,21 +38,10 @@ public class EODSquareOffScheduler {
     @Scheduled(cron = "${myapp.squareoff-cron}", zone = "${myapp.squareoff-zone}")
     public void runSquareOff() {
         log.info("==========================================================================================");
-        log.info("Square off started for buy context");
+        log.info("EOD Square off initiated | contexts={}",
+                registry.getAllContextsSnapshot().size());
 
-        registry.getAllBuyContexts()
-                .flatMap(ctx ->
-                        squareOffManager.squareOff(ctx)
-                                .onErrorResume(e -> {
-                                    log.error("SquareOff failed for {} | error: {}", ctx.getTradingSymbol(), e.getMessage());
-                                    return Mono.empty();
-                                })
-                )
-                .subscribe();
-
-        log.info("Square off started for sell context");
-
-        registry.getAllSellContexts()
+        Flux.fromIterable(registry.getAllContextsSnapshot())
                 .flatMap(ctx ->
                         squareOffManager.squareOff(ctx)
                                 .onErrorResume(e -> {

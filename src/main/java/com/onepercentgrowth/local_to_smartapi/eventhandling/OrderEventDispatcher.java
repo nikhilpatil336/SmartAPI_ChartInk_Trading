@@ -128,7 +128,7 @@ public class OrderEventDispatcher {
         IOrderStatusHandler handler = handlers.get(status.toUpperCase());
 
         if (handler == null) {
-            log.error("No handler for status: {}", status);
+            log.warn("No handler for WS status (ignored): {}", status);
             return;
         }
 

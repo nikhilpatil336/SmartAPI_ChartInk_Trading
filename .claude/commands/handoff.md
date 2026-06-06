@@ -9,7 +9,7 @@ STEP 2 — Output the handoff block, fully filled in, ready to paste.
 Do not leave any placeholder unfilled.
 
 ─────────────────────────────────────────────────────────────
-  LOCAL LLM TASK — Copy everything below, paste into Tab 2
+  LOCAL LLM TASK — Copy everything below, paste into Tab 2  
 ─────────────────────────────────────────────────────────────
 ## Task
 [one paragraph — what to do, no ambiguity, no "see context"]

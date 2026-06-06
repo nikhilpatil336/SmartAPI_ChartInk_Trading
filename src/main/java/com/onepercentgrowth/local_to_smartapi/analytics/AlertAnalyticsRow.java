@@ -69,11 +69,32 @@ public class AlertAnalyticsRow {
     private double trailingSlExitPrice;  // trailing SL price when triggered; 0 if not triggered
     private String trailingOutcome;      // TRAILING_EXIT / SQUAREOFF_AFTER_TRAILING / NOT_ACTIVATED / NO_TRADE
 
+    // ─── Hit-first candle OHLCV ──────────────────────────────────────────────────
+    private double hitFirstCandleOpen;
+    private double hitFirstCandleHigh;
+    private double hitFirstCandleLow;
+    private double hitFirstCandleClose;
+    private long   hitFirstCandleVolume;
+
     // ─── Conditional win stats ───────────────────────────────────────────────────
     private int volGtSma10Win;
     private int volGtSma20Win;
     private int volLtSma10Win;
     private int volLtSma20Win;
+
+    // ─── Next candle open analysis ────────────────────────────────────────────
+    private double nextCandleOpenVsAlertClosePct; // (nextOpen − alertClose) / alertClose × 100
+    private String nextCandleOpenDirection;        // ABOVE / BELOW / FLAT
+
+    // ─── Price excursion (MFE / MAE) ─────────────────────────────────────────
+    private double mfePct;  // max favorable excursion % from entry
+    private double maePct;  // max adverse excursion % from entry
+    private int    mfe05;   // 1 if MFE >= 0.5%
+    private int    mfe10;   // 1 if MFE >= 1.0%
+    private int    mfe15;   // 1 if MFE >= 1.5%
+    private int    mae05;   // 1 if MAE >= 0.5%
+    private int    mae10;   // 1 if MAE >= 1.0%
+    private int    mae15;   // 1 if MAE >= 1.5%
 
     // ─── Getters / Setters ───────────────────────────────────────────────────────
 
@@ -224,6 +245,17 @@ public class AlertAnalyticsRow {
     public String getTrailingOutcome() { return trailingOutcome; }
     public void setTrailingOutcome(String trailingOutcome) { this.trailingOutcome = trailingOutcome; }
 
+    public double getHitFirstCandleOpen()  { return hitFirstCandleOpen; }
+    public void setHitFirstCandleOpen(double v)  { this.hitFirstCandleOpen = v; }
+    public double getHitFirstCandleHigh()  { return hitFirstCandleHigh; }
+    public void setHitFirstCandleHigh(double v)  { this.hitFirstCandleHigh = v; }
+    public double getHitFirstCandleLow()   { return hitFirstCandleLow; }
+    public void setHitFirstCandleLow(double v)   { this.hitFirstCandleLow = v; }
+    public double getHitFirstCandleClose() { return hitFirstCandleClose; }
+    public void setHitFirstCandleClose(double v) { this.hitFirstCandleClose = v; }
+    public long   getHitFirstCandleVolume(){ return hitFirstCandleVolume; }
+    public void setHitFirstCandleVolume(long v)  { this.hitFirstCandleVolume = v; }
+
     public int getVolGtSma10Win() { return volGtSma10Win; }
     public void setVolGtSma10Win(int volGtSma10Win) { this.volGtSma10Win = volGtSma10Win; }
 
@@ -235,4 +267,34 @@ public class AlertAnalyticsRow {
 
     public int getVolLtSma20Win() { return volLtSma20Win; }
     public void setVolLtSma20Win(int volLtSma20Win) { this.volLtSma20Win = volLtSma20Win; }
+
+    public double getNextCandleOpenVsAlertClosePct() { return nextCandleOpenVsAlertClosePct; }
+    public void setNextCandleOpenVsAlertClosePct(double v) { this.nextCandleOpenVsAlertClosePct = v; }
+
+    public String getNextCandleOpenDirection() { return nextCandleOpenDirection; }
+    public void setNextCandleOpenDirection(String v) { this.nextCandleOpenDirection = v; }
+
+    public double getMfePct() { return mfePct; }
+    public void setMfePct(double v) { this.mfePct = v; }
+
+    public double getMaePct() { return maePct; }
+    public void setMaePct(double v) { this.maePct = v; }
+
+    public int getMfe05() { return mfe05; }
+    public void setMfe05(int v) { this.mfe05 = v; }
+
+    public int getMfe10() { return mfe10; }
+    public void setMfe10(int v) { this.mfe10 = v; }
+
+    public int getMfe15() { return mfe15; }
+    public void setMfe15(int v) { this.mfe15 = v; }
+
+    public int getMae05() { return mae05; }
+    public void setMae05(int v) { this.mae05 = v; }
+
+    public int getMae10() { return mae10; }
+    public void setMae10(int v) { this.mae10 = v; }
+
+    public int getMae15() { return mae15; }
+    public void setMae15(int v) { this.mae15 = v; }
 }

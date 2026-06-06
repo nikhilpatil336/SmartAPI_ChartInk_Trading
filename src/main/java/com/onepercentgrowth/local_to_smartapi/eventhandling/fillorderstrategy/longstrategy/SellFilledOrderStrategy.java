@@ -4,6 +4,7 @@ import com.onepercentgrowth.local_to_smartapi.config.TokenManager;
 import com.onepercentgrowth.local_to_smartapi.eventhandling.fillorderstrategy.IFillOrderStrategy;
 import com.onepercentgrowth.local_to_smartapi.model.OrderContext;
 import com.onepercentgrowth.local_to_smartapi.properties.ApplicationProperties;
+import com.onepercentgrowth.local_to_smartapi.registry.OrderRegistry;
 import com.onepercentgrowth.local_to_smartapi.service.BalanceService;
 import com.onepercentgrowth.local_to_smartapi.service.LeverageService;
 import com.onepercentgrowth.local_to_smartapi.service.OrderExecutionService;
@@ -26,6 +27,7 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
 
     private final OrderExecutionService executionService;
     private final TokenManager tokenManager;
+    private final OrderRegistry orderRegistry;
     private final BalanceService balanceService;
     private final LeverageService leverageService;
     private final ApplicationProperties applicationProperties;
@@ -33,12 +35,14 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
     public SellFilledOrderStrategy(
             OrderExecutionService executionService,
             TokenManager tokenManager,
+            OrderRegistry orderRegistry,
             BalanceService balanceService,
             LeverageService leverageService,
             ApplicationProperties applicationProperties
     ) {
         this.executionService = executionService;
         this.tokenManager = tokenManager;
+        this.orderRegistry = orderRegistry;
         this.balanceService = balanceService;
         this.leverageService = leverageService;
         this.applicationProperties = applicationProperties;
@@ -275,6 +279,8 @@ public class SellFilledOrderStrategy implements IFillOrderStrategy {
                         // ✅ SAFE STATE UPDATE
                         ctx.setSellOpen(false);
                         ctx.getTradeCompleted().set(true);
+                        orderRegistry.remove(ctx);
+                        log.info("LONG target closed, removed from registry | symbol={}", ctx.getTradingSymbol());
 
                         return balanceMono
                                 .onErrorResume(e -> {

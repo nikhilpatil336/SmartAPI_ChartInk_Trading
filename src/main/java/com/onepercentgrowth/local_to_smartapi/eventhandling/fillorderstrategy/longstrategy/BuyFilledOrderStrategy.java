@@ -346,12 +346,16 @@ public class BuyFilledOrderStrategy implements IFillOrderStrategy {
             }
 
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
-
-//            OrderContext.BuyUpdate update = ctx.reduceBuy(filledQty);
-//            int delta = update.delta;
             int delta = filledQty - ctx.getLastBuyFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            if (!ctx.tryBeginEntryOrders()) {
+                log.info("Entry orders already being placed, skipping filled-path | stock={}", ctx.getTradingSymbol());
+                return Mono.empty();
+            }
+
+//            if (delta <= 0) return Mono.empty();
 
             ctx.getLastBuyFilledQty().set(filledQty);
 

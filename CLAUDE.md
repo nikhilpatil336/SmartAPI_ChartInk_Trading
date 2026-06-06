@@ -22,6 +22,9 @@ java -jar target/local_to_smartapi-0.0.1-SNAPSHOT.jar
 
 # Swagger UI:
 http://localhost:8080/swagger-ui.html
+
+# run unit tests (REQUIRED before every deploy):
+./mvnw test
 ```
 
 ## Project structure
@@ -43,6 +46,13 @@ src/main/resources/
   logback-spring.xml
 data/order-context/  JSON files for persisted order context (one file per day)
 ```
+
+## Testing rules
+- **Run `./mvnw test` before every deploy — no exceptions.** A production incident (Session 29) caused entry orders to fill but SL+target to never be placed. Tests now catch this class of bug before it reaches the Pi.
+- **12 unit tests cover all 4 entry strategies** (`BuyFilledOrderStrategy`, `BuyOpenStrategy`, `ShortEntryFilledOrderStrategy`, `ShortEntryOpenStrategy`) — 3 scenarios each: normal fill, zero-fill (CAS must stay free), CAS already claimed (no duplicate orders).
+- **Tests are pure unit tests (`@ExtendWith(MockitoExtension.class)`)** — no Spring context, no `.env`, no broker connection. Run in ~3 seconds.
+- **Do not generate or run tests unless explicitly asked** — but when asked to write tests for order-flow code, follow the pattern in `BuyFilledOrderStrategyTest` (per-test stubs, `StepVerifier`, `verify()` + `assertThat()` on order IDs).
+- **`LocalToSmartapiApplicationTests` was deleted** — it required full broker context and had zero assertions. Never recreate a `@SpringBootTest contextLoads()` test for this project.
 
 ## Project-specific rules
 - **`OrderService` is legacy — never add new logic to it.** All active trading logic lives in `OrderService_v2`. The old service is kept only because `OrderController.getOrderStatus()` still references it.

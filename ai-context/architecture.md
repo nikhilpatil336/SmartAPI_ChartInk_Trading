@@ -14,11 +14,13 @@ src/main/java/.../
   execution/           CancelReplaceExecutor (tick-step price reduction), OrderActionExecutor
   factory/             OrderRequestFactory — builds broker API request objects from internal models
   registry/            In-memory stores: OrderRegistry (active orders), AlertStateRegistry (two-alert state)
-  storage/             File-based persistence: tokens, scrip master, RMS, leverage, order context, SL store
+  storage/             File-based persistence: tokens, scrip master, RMS, leverage, order context, SL store, AlertTriggerLogService (alert pair log for manual Excel import)
   scheduler/           EODSquareOffScheduler (3 PM cron), OrderContextPersistenceScheduler (5 min)
   startupservice/      ApplicationStartupService — loads all data on ready; ShutdownHandler
   websocket/           Broker WebSocket connector + order status handler; test/ has dummy/stub connector
-  historicdata/        HistoricalDataService + models for 5-min candle fetch and backtest
+  historicdata/        HistoricalDataService + models for 5-min candle fetch and backtest; Candle.getTime() is @JsonIgnore (derived from timestamp string)
+  backtest/runner/     BacktestRunner, BacktestResult, BacktestSummary, AlertEntry (record: triggeredAt + stock + firstAlertPrice read from Excel col D)
+  analytics/           EOD analytics pipeline: AlertAnalyticsService (reads alerts Excel, fetches candles, builds rows), AlertAnalyticsRow (40-col POJO), TargetSlEvaluator (target/SL/AUTO_SQUAREOFF), AlertAnalyticsExcelWriter (monthly workbook, 3 sheets), EODAnalyticsScheduler (@5 PM)
   marketdata/          MarketDataService / SmartApiMarketDataService — LTP quotes
   properties/          ApplicationProperties (@ConfigurationProperties prefix="myapp") — single config bean
   client/              BrokerApiClient — low-level WebClient wrapper for AngelOne REST API

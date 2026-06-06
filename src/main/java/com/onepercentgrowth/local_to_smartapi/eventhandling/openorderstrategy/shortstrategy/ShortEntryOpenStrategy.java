@@ -384,19 +384,15 @@ public class ShortEntryOpenStrategy implements IOpenOrderStrategy {
 
         return Mono.defer(() -> {
 
-            // ✅ ATOMIC GUARD
-//            if (!ctx.tryStartSellFill()) {
-//                return Mono.empty();
-//            }
-
             int filledQty = Integer.parseInt(response.getOrderStatusData().getFilledshares());
-
-//            OrderContext.SellUpdate update = ctx.reduceSell(filledQty);
-//
-//            int delta = update.delta;
             int delta = filledQty - ctx.getLastSellFilledQty().get();
 
             if (delta <= 0) return Mono.empty();
+
+            if (!ctx.tryBeginEntryOrders()) {
+                log.info("Entry orders already being placed, skipping open-path | stock={}", ctx.getTradingSymbol());
+                return Mono.empty();
+            }
 
             ctx.setSellPartiallyFilled(true);
             ctx.getLastSellFilledQty().set(filledQty);

@@ -236,6 +236,16 @@ public class AlertAnalyticsService {
                 secondAlertTime = next.getTimestamp();
             }
 
+            // Next candle open vs alert candle close — open confirmation
+            double nextCandleOpenVsAlertClosePct = 0;
+            String nextCandleOpenDirection = "N/A";
+            if (secondAlertTriggerPrice > 0 && alertCandle.getClose() > 0) {
+                nextCandleOpenVsAlertClosePct = (secondAlertTriggerPrice - alertCandle.getClose())
+                        / alertCandle.getClose() * 100;
+                nextCandleOpenDirection = nextCandleOpenVsAlertClosePct > 0.005 ? "ABOVE"
+                        : nextCandleOpenVsAlertClosePct < -0.005 ? "BELOW" : "FLAT";
+            }
+
             // Target / SL based on entry price (second candle OPEN)
             double targetPrice = 0, slPrice = 0;
             if ("TAKE_LONG".equals(decision) && secondAlertTriggerPrice > 0) {
@@ -268,7 +278,10 @@ public class AlertAnalyticsService {
             AlertAnalyticsRow row = new AlertAnalyticsRow();
             row.setTradeDate(alertTime.toLocalDate().toString());
             row.setStock(stock);
-            row.setAlertDirection(color);           // GREEN / RED / DOJI — not trade decision
+            String alertDir = "TAKE_LONG".equals(decision) ? "LONG"
+                           : "TAKE_SHORT".equals(decision) ? "SHORT"
+                           : "NO_TRADE";
+            row.setAlertDirection(alertDir);
             row.setTradeTaken(tradeTaken);
 
             row.setFirstAlertTime(alertTime.toString());
@@ -312,6 +325,8 @@ public class AlertAnalyticsService {
 
             row.setTimeOfDay(timeOfDay);
             row.setDayOfWeek(dayOfWeek);
+            row.setNextCandleOpenVsAlertClosePct(nextCandleOpenVsAlertClosePct);
+            row.setNextCandleOpenDirection(nextCandleOpenDirection);
 
             if (tradeTaken == 0 || secondAlertTriggerPrice == 0) {
                 row.setHitFirst("NONE");
@@ -364,6 +379,31 @@ public class AlertAnalyticsService {
                 row.setTrailingMaxFavorable(eval.trailingMaxFavorable);
                 row.setTrailingSlExitPrice(eval.trailingSlExitPrice);
                 row.setTrailingOutcome(eval.trailingOutcome);
+                row.setHitFirstCandleOpen(eval.hitFirstCandleOpen);
+                row.setHitFirstCandleHigh(eval.hitFirstCandleHigh);
+                row.setHitFirstCandleLow(eval.hitFirstCandleLow);
+                row.setHitFirstCandleClose(eval.hitFirstCandleClose);
+                row.setHitFirstCandleVolume(eval.hitFirstCandleVolume);
+
+                // MFE / MAE — max favorable and adverse excursion from entry price
+                double maxHigh = secondAlertTriggerPrice, minLow = secondAlertTriggerPrice;
+                for (int i = evalEntryStartIndex; i < evalCandles.size(); i++) {
+                    Candle ec = evalCandles.get(i);
+                    if (ec.getHigh() > maxHigh) maxHigh = ec.getHigh();
+                    if (ec.getLow()  < minLow)  minLow  = ec.getLow();
+                }
+                double mfePct = isLong ? (maxHigh - secondAlertTriggerPrice) / secondAlertTriggerPrice * 100
+                                       : (secondAlertTriggerPrice - minLow)  / secondAlertTriggerPrice * 100;
+                double maePct = isLong ? (secondAlertTriggerPrice - minLow)  / secondAlertTriggerPrice * 100
+                                       : (maxHigh - secondAlertTriggerPrice) / secondAlertTriggerPrice * 100;
+                row.setMfePct(mfePct);
+                row.setMaePct(maePct);
+                row.setMfe05(mfePct >= 0.5 ? 1 : 0);
+                row.setMfe10(mfePct >= 1.0 ? 1 : 0);
+                row.setMfe15(mfePct >= 1.5 ? 1 : 0);
+                row.setMae05(maePct >= 0.5 ? 1 : 0);
+                row.setMae10(maePct >= 1.0 ? 1 : 0);
+                row.setMae15(maePct >= 1.5 ? 1 : 0);
             }
 
             boolean win = "WIN".equals(row.getTradeOutcome());
